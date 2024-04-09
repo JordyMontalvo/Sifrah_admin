@@ -1,11 +1,9 @@
 <template>
   <Layout>
-
     <i class="load" v-if="loading"></i>
 
     <section v-if="!loading">
-
-      <div class="notification" style="margin-bottom: 0;">
+      <div class="notification" style="margin-bottom: 0">
         <div class="container">
           <strong>Productos</strong>
         </div>
@@ -17,106 +15,114 @@
             <thead>
               <tr>
                 <th>#</th>
-                <!-- <th>id</th> -->
+                <th>Código</th>
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precios Compra</th>
-                <th>Precios Afiliación</th>
-                <th>Valor a Comisionar</th>
+                <th>Puntos</th>
+                <th>Imágen</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(product, i) in products">
+              <tr v-for="(product, i) in products" :key="i">
                 <th>{{ i + 1 }}</th>
-                <!-- <td>{{ product.id }}</td> -->
+                <!-- Código -->
+                <td>
+                  <span v-if="!product.edit">{{ product.code }}</span>
+                  <input
+                    class="input"
+                    placeholder="Código"
+                    style="max-width: 220px"
+                    v-model="product._code"
+                    v-if="product.edit"
+                  />
+                </td>
+                <!-- Nombre Producto -->
                 <td>
                   <span v-if="!product.edit">{{ product.name }}</span>
-
-                  <input class="input" placeholder="Nombre" style="max-width: 220px;"
-                         v-model="product._name" v-if="product.edit">
+                  <input
+                    class="input"
+                    placeholder="Nombre"
+                    style="max-width: 220px"
+                    v-model="product._name"
+                    v-if="product.edit"
+                  />
                 </td>
-                <td>
+                <!-- Categoría Producto -->
+                <td style="width: 200px">
                   <span v-if="!product.edit">{{ product.type }}</span>
-
-                  <input class="input" placeholder="Categoría" style="max-width: 220px;"
-                         v-model="product._type" v-if="product.edit">
+                  <input
+                    class="input"
+                    placeholder="Categoría"
+                    style="max-width: 220px"
+                    v-model="product._type"
+                    v-if="product.edit"
+                  />
                 </td>
+                <!-- Precio Producto -->
                 <td>
                   <span v-if="!product.edit">{{ product.price }}</span>
-
                   <div v-if="product.edit">
-                    BÁSICO:   <input class="input" type="number" style="max-width: 80px;"
-                                     v-model.number="product._price[0]"> <br>
-                    ESTÁNDAR: <input class="input" type="number" style="max-width: 80px;"
-                                     v-model.number="product._price[1]"> <br>
-                    PREMIUM:  <input class="input" type="number" style="max-width: 80px;"
-                                     v-model.number="product._price[2]"> <br>
-                    ESTRELLA: <input class="input" type="number" style="max-width: 80px;"
-                                     v-model.number="product._price[3]">
+                    <input
+                      class="input"
+                      type="number"
+                      style="max-width: 80px"
+                      v-model.number="product._price"
+                    />
                   </div>
                 </td>
+                <!-- Puntos Producto -->
                 <td>
-                  <span v-if="!product.edit">{{ product.aff_price }}</span>
-
+                  <span v-if="!product.edit">{{ product.points }}</span>
                   <div v-if="product.edit">
-
-                    En Afiliación <input type="checkbox" v-model="product.aff_price_check">
-
-                    <div v-if="product.aff_price_check">
-                      BÁSICO:   <input class="input" type="number" style="max-width: 80px;"
-                                       v-model.number="product._aff_price[0]"> <br>
-                      ESTÁNDAR: <input class="input" type="number" style="max-width: 80px;"
-                                       v-model.number="product._aff_price[1]"> <br>
-                      PREMIUM:  <input class="input" type="number" style="max-width: 80px;"
-                                       v-model.number="product._aff_price[2]"> <br>
-                      ESTRELLA: <input class="input" type="number" style="max-width: 80px;"
-                                       v-model.number="product._aff_price[3]">
-                    </div>
-
+                    <input
+                      class="input"
+                      type="number"
+                      style="max-width: 80px"
+                      v-model.number="product._points"
+                    />
                   </div>
-
                 </td>
+                <!-- Imágen Producto -->
                 <td>
-
-                  <span v-if="!product.edit">{{ product.val }}</span>
-
-
-                  <div v-if="product.edit">
-
-                    A comisionar <input type="checkbox" v-model="product.val_check">
-
-                    <div v-if="product.val_check">
-                      <input class="input" type="number" style="max-width: 80px;"
-                                       v-model.number="product._val">
-                    </div>
-
-                  </div>
-
+                  <small v-if="!product.edit">{{ product.img }}</small>
+                  <input
+                    class="input"
+                    placeholder="Imágen"
+                    style="max-width: 220px"
+                    v-model="product._img"
+                    v-if="product.edit"
+                  />
                 </td>
+                <!-- Edit Options -->
                 <td>
                   <i
                     class="fa-regular fa-pen-to-square"
-                    style="color: #ccc; cursor: pointer; margin-right: 8px;"
+                    style="color: #ccc; cursor: pointer; margin-right: 8px"
                     v-if="!product.edit"
-                    @click="edit(product)"></i>
+                    @click="edit(product)"
+                  ></i>
                   <i
                     class="fa-solid fa-check"
-                    style="color: #ccc; cursor: pointer; margin-right: 8px;"
+                    style="color: #ccc; cursor: pointer; margin-right: 8px"
                     v-if="product.edit"
-                    @click="save(product)"></i>
+                    @click="save(product)"
+                  ></i>
                   <i
                     class="fa-solid fa-xmark"
-                    style="color: #ccc; cursor: pointer; margin-right: 8px;"
+                    style="color: #ccc; cursor: pointer; margin-right: 8px"
                     v-if="product.edit"
-                    @click="cancel(product)"></i>
+                    @click="cancel(product)"
+                  ></i>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div> <br>
+      </div>
+      <br />
 
-      <div class="notification" style="margin-bottom: 0;">
+      <div class="notification" style="margin-bottom: 0">
         <div class="container">
           <strong>Nuevo producto</strong>
         </div>
@@ -127,72 +133,85 @@
           <table class="table">
             <thead>
               <tr>
-                <th>#</th>
-                <!-- <th>id</th> -->
+                <th>Código</th>
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precios Compra</th>
-                <th>Precios Afiliación</th>
+                <th>Puntos</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <th>0</th>
+                <!-- Código Producto -->
                 <td>
-                  <input class="input" placeholder="Nombre" style="max-width: 220px;"
-                         v-model="new_product.name">
+                  <input
+                    class="input"
+                    placeholder="Código"
+                    style="max-width: 220px"
+                    v-model="new_product.code"
+                  />
                 </td>
+                <!-- Nombre Producto -->
                 <td>
-                  <input class="input" placeholder="Categoría" style="max-width: 220px;"
-                         v-model="new_product.type">
+                  <input
+                    class="input"
+                    placeholder="Nombre"
+                    style="max-width: 220px"
+                    v-model="new_product.name"
+                  />
                 </td>
+                <!-- Categoría -->
                 <td>
-                  BÁSICO:   <input class="input" type="number" style="max-width: 80px;"
-                                   v-model.number="new_product.price[0]"> <br>
-                  ESTÁNDAR: <input class="input" type="number" style="max-width: 80px;"
-                                   v-model.number="new_product.price[1]"> <br>
-                  PREMIUM:  <input class="input" type="number" style="max-width: 80px;"
-                                   v-model.number="new_product.price[2]"> <br>
-                  ESTRELLA: <input class="input" type="number" style="max-width: 80px;"
-                                   v-model.number="new_product.price[3]">
+                  <input
+                    class="input"
+                    placeholder="Categoría"
+                    style="max-width: 220px"
+                    v-model="new_product.type"
+                  />
                 </td>
+                <!-- Precio Compra -->
                 <td>
-                  En Afiliación <input type="checkbox" v-model="new_product.aff_price_check">
-
-                  <div v-if="new_product.aff_price_check">
-                    BÁSICO:   <input class="input" type="number" style="max-width: 80px;"
-                                     v-model.number="new_product.aff_price[0]"> <br>
-                    ESTÁNDAR: <input class="input" type="number" style="max-width: 80px;"
-                                     v-model.number="new_product.aff_price[1]"> <br>
-                    PREMIUM:  <input class="input" type="number" style="max-width: 80px;"
-                                     v-model.number="new_product.aff_price[2]"> <br>
-                    ESTRELLA: <input class="input" type="number" style="max-width: 80px;"
-                                     v-model.number="new_product.aff_price[3]">
-                  </div>
+                  <input
+                    class="input"
+                    type="number"
+                    style="max-width: 80px"
+                    v-model.number="new_product.price"
+                  />
                 </td>
+                <!-- Puntos -->
                 <td>
-                  <button class="button is-primary" @click="add">Aprobar</button>
+                  <input
+                    class="input"
+                    type="number"
+                    style="max-width: 80px"
+                    v-model.number="new_product.points"
+                  />
+                </td>
+                <!-- Add -->
+                <td>
+                  <button class="button is-primary" @click="add">
+                    Agregar
+                  </button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div> <br>
-
+      </div>
+      <br />
     </section>
-
   </Layout>
 </template>
 
 <script>
 import Layout from '@/views/Layout'
-import api    from '@/api'
-import lib    from '@/lib'
+import api from '@/api'
+import lib from '@/lib'
 
 export default {
   components: { Layout },
   data() {
-    return{
+    return {
       loading: false,
       products: [],
       new_product: {
@@ -216,127 +235,83 @@ export default {
 
   methods: {
     async GET() {
-
       this.loading = true
 
       // GET data
-      const { data } = await api.products.GET(); console.log({ data })
+      const { data } = await api.products.GET() /*; console.log({ data })*/
 
       this.loading = false
 
-      this.products = data.products
+      this.products = data.products.map((el) => (el.code = el.id))
 
-
-      this.products = data.products
-                    .map(p => ({
-                      ...p,
-                      sending: false,
-                      edit: false,
-                      _name: '',
-                      _type: '',
-                      _price:     [0, 0, 0, 0],
-                      _aff_price: [0, 0, 0, 0],
-                      aff_price_check: p.aff_price ? true : false,
-                      _val: 0,
-                      val_check: p.val ? true : false,
-                    }))
+      this.products = data.products.map((p) => ({
+        ...p,
+        sending: false,
+        edit: false,
+        _code: '',
+        _name: '',
+        _type: '',
+        _price: 0,
+        _points: 0,
+        _img: '',
+      }))
     },
 
-    edit(product) { /*; console.log('edit: ', product)*/
+    edit(product) {
       product.edit = true
 
+      product._code = product.code
       product._name = product.name
       product._type = product.type
-
-      product._price[0] = product.price[0]
-      product._price[1] = product.price[1]
-      product._price[2] = product.price[2]
-      product._price[3] = product.price[3]
-
-      if(product.aff_price_check) {
-        product._aff_price[0] = product.aff_price[0]
-        product._aff_price[1] = product.aff_price[1]
-        product._aff_price[2] = product.aff_price[2]
-        product._aff_price[3] = product.aff_price[3]
-      }
-
-      if(product.val_check) {
-        product._val = product.val
-      }
-
-      // if(!product._name)  product._name = product.name
-      // if(!product._type)  product._type = product.type
-
-      // if(!product._price[0]) product._price[0] = product.price[0]
-      // if(!product._price[1]) product._price[1] = product.price[1]
-      // if(!product._price[2]) product._price[2] = product.price[2]
-      // if(!product._price[3]) product._price[3] = product.price[3]
-
-      // if(product.aff_price_check) {
-      //   if(!product._aff_price[0]) product._aff_price[0] = product.aff_price[0]
-      //   if(!product._aff_price[1]) product._aff_price[1] = product.aff_price[1]
-      //   if(!product._aff_price[2]) product._aff_price[2] = product.aff_price[2]
-      //   if(!product._aff_price[3]) product._aff_price[3] = product.aff_price[3]
-      // }
-
-      // if(product.val_check) {
-      //   if(!product._val) product._val = product.val
-      // }
+      product._price = product.price
+      product._points = product.points
+      product._img = product.img
     },
-    async save(product) {
 
+    async save(product) {
       await api.products.POST({
         action: 'edit',
         id: product.id,
         data: {
-          _name:           product._name,
-          _type:           product._type,
-          _price:          product._price,
-          aff_price_check: product.aff_price_check,
-          _aff_price:      product._aff_price,
-          val_check:       product.val_check,
-          _val:            product._val,
-        }
+          _code: product._code,
+          _name: product._name,
+          _type: product._type,
+          _price: product._price,
+          _points: product._points,
+          _img: product._img,
+        },
       })
 
+      product.code = product._code
       product.name = product._name
       product.type = product._type
       product.price = product._price
-
-      if(product.aff_price_check)
-        product.aff_price = product._aff_price
-      else
-        product.aff_price = null
-
-      if(product.val_check)
-        product.val = product._val
-      else
-        product.val = null
+      product.points = product._points
+      product.img = product._img
 
       product.edit = false
     },
+
     cancel(product) {
       product.edit = false
     },
 
-    async add() { /*; console.log('save ...')*/
-
-      const { name, type, price, aff_price_check, aff_price } = this.new_product
-      console.log({ name, type, price, aff_price_check, aff_price })
+    async add() {
+      const { code, name, type, price, points } = this.new_product
 
       await api.products.POST({
         action: 'add',
         data: {
+          code,
           name,
           type,
           price,
-          aff_price_check,
-          aff_price,
-        }
+          points,
+        },
       })
 
       location.reload()
-    }
-  }
-};
+    },
+  },
+}
 </script>
