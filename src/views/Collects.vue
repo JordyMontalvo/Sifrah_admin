@@ -51,7 +51,7 @@
                   </div>
                 </td>
                 <td>
-                  $ {{ collect.amount }}
+                  S/. {{ collect.amount }}
                 </td>
                 <td>
                   {{ collect.office }}

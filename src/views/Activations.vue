@@ -64,7 +64,7 @@
 
                 </td>
                 <td>
-                  $ {{ activation.price }} <br>
+                  S/. {{ activation.price }} <br>
                   <a :href=" `${INVOICE_ROOT}?id=${activation.id}` " target="_blank" style="color: gray;" v-if="activation.status == 'approved'">boleta</a>
                 </td>
                 <td>

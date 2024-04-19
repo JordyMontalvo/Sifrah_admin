@@ -10,7 +10,7 @@
           <strong>{{ title }}</strong>
           <input class="input" placeholder="Buscar por nombre" v-model="search" @input="input"> <br><br>
 
-          <small>Total disponible: USD {{ balance }} &nbsp;&nbsp; / &nbsp;&nbsp; Total no disponible: USD {{ virtualBalance }}</small>
+          <small>Total disponible: s/. {{ balance }} &nbsp;&nbsp; / &nbsp;&nbsp; Total no disponible: s/. {{ virtualBalance }}</small>
 
         </div>
       </div>
@@ -158,7 +158,7 @@ export default {
       // return new Date(val).toLocaleString()
     },
     money(val) {
-      return `USD ${val.toFixed(2)}`
+      return `s/. ${val.toFixed(2)}`
     },
   },
   beforeRouteUpdate(to, from, next) {
