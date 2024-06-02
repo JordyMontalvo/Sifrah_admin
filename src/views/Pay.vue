@@ -19,8 +19,10 @@
         <div class="field">
           <label class="label">Monto</label>
           <div class="control has-icons-left has-icons-right">
-            <input class="input" type="text"
+            <!-- <input class="input" type="text"
               oninput="this.value=this.value.replace(/(?![0-9])./gmi,'')"
+              placeholder="Monto en $" v-model="amount"> -->
+            <input class="input" type="text"
               placeholder="Monto en $" v-model="amount">
             <span class="icon is-small is-left">
               <i class="fa-solid fa-money-bill"></i>
