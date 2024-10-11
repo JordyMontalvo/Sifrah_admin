@@ -383,6 +383,7 @@ export default {
 
             'USUARIO (NO. DE CÉDULA)': a.dni,
             'NOMBRES COMPLETOS': a.name + ' ' + a.lastName,
+            'TELÉFONO': a.phone,
             'FECHA DE AFILIACIÓN': new Date(a.date).toLocaleDateString(),
 
             'PLAN': a.plan.name,
@@ -418,6 +419,7 @@ export default {
 
                 'USUARIO (NO. DE CÉDULA)': a.dni,
                 'NOMBRES COMPLETOS': a.name + ' ' + a.lastName,
+                'TELÉFONO': a.phone,
                 'FECHA DE AFILIACIÓN': new Date(a.date).toLocaleDateString(),
 
                 'PLAN': a.plan.name,
