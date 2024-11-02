@@ -72,7 +72,8 @@
                   <!-- <input v-model="activation.points" @change="change(activation)" style="width: 50px;"> -->
                 </td>
                 <td style="min-width: 200px;">
-                  <span v-if="activation.pay_method == 'cash'">Efectivo</span>
+
+                  <span v-if="activation.pay_method == 'cash' && activation.amounts && activation.amounts[2]">Efectivo</span>
                   <div v-if="activation.pay_method == 'bank'">
                     <span>Banco</span> <br>
                     <small>Nombre: {{ activation.bank }}</small> <br>
