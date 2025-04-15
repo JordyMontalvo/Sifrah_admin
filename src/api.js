@@ -33,8 +33,11 @@ class Users {
 }
 
 class Affiliations {
-  GET({ filter, account }) {
-    return axios.get (`/admin/affiliations?filter=${filter}&&account=${account}`)
+  GET({ filter, account, page = 1, limit = 20, search }) {
+    const searchParam = search ? `&search=${search}` : "";
+    return axios.get(
+      `/admin/affiliations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
+    );
   }
   POST({ action, id }) {
     return axios.post(`/admin/affiliations`, { action, id })
@@ -60,8 +63,12 @@ class OfficeCollects {
 }
 
 class Activations {
-  GET({ filter, account }) {
-    return axios.get (`/admin/activations?filter=${filter}&&account=${account}`)
+
+  GET({ filter, account, page = 1, limit = 20, search }) {
+    const searchParam = search ? `&search=${search}` : "";
+    return axios.get(
+      `/admin/activations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
+    );
   }
   POST({ action, id, points }) {
     return axios.post(`/admin/activations`, { action, id, points })
