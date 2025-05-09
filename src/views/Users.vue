@@ -5,15 +5,8 @@
     <section v-if="!loading">
       <div class="notification" style="margin-bottom: 0">
         <div class="container">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            "
-          >
-            <strong>{{ title }}</strong>
-            <router-link to="/reports" class="button is-primary">
+          <strong style="padding: 10px;">{{ title }}</strong>
+          <router-link to="/reports" class="button is-primary">
               <span class="icon">
                 <i class="fas fa-chart-line"></i>
               </span>
@@ -22,19 +15,19 @@
             <button class="button is-info" @click="exportToExcel">
               Exportar a Excel
             </button>
-          </div>
           <input
             class="input"
             placeholder="Buscar por nombre"
             v-model="search"
-            @input="input"
+            @input="debouncedInput"
           />
           <br /><br />
 
           <small
-            >Total disponible: s/. {{ balance }} &nbsp;&nbsp; / &nbsp;&nbsp;
-            Total no disponible: s/. {{ virtualBalance }}</small
-          >
+            >Total disponible: USD
+            {{ Number(totalBalance).toFixed(2) }} &nbsp;&nbsp; / &nbsp;&nbsp;
+            Total no disponible: USD {{ totalVirtualBalance }}
+          </small>
         </div>
       </div>
 
@@ -51,7 +44,7 @@
                 <th>Puntos</th>
                 <th>
                   Saldo disponible
-                  <input type="checkbox" v-model="check" @change="input2" />
+                  <input type="checkbox" v-model="check" @change="fetchUsers" />
                 </th>
                 <th>No Disponible</th>
                 <th>Patrocinador</th>
@@ -59,8 +52,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(user, i) in users" v-show="user.visible">
-                <th>{{ users.length - i }}</th>
+              <tr
+                v-for="(user, i) in sortedUsers"
+                :key="user.id"
+                v-show="user.visible"
+              >
+                <th>{{ totalItems - (currentPage - 1) * itemsPerPage - i }}</th>
                 <td>{{ user.date | date }}</td>
                 <td style="position: relative">
                   <span v-if="!user.edit"
@@ -123,7 +120,7 @@
                   </div>
                   <br />
 
-                  <p v-if="user.rank">rango: {{ user.rank }}</p>
+                  <p v-if="user.rank">rango: {{ user.rank | _rank }}</p>
                   tel: {{ user.phone }} <br />
                 </td>
                 <td>
@@ -177,7 +174,39 @@
             </tbody>
           </table>
         </div>
+     <div class="pagination" v-if="!loading">
+          <button
+            @click="previousPage"
+            :disabled="currentPage === 1"
+            class="pagination-button"
+          >
+            Anterior
+          </button>
+          <span class="pagination-info">
+            Página {{ currentPage }} de {{ totalPages }}
+          </span>
+          <input
+            type="number"
+            v-model="pageInput"
+            @keyup.enter="goToPage"
+            min="1"
+            :max="totalPages"
+            class="pagination-input"
+          />
+          <button @click="goToPage" class="pagination-button">Ir</button>
+          <button
+            @click="nextPage"
+            :disabled="currentPage === totalPages"
+            class="pagination-button"
+          >
+            Siguiente
+          </button>
+        </div>
       </div>
+
+      <button class="scroll-to-top" v-if="showScrollToTop" @click="scrollToTop">
+        <i class="fa-solid fa-arrow-up"></i>
+      </button>
     </section>
   </Layout>
 </template>
@@ -185,7 +214,7 @@
 <script>
 import Layout from "@/views/Layout";
 import api from "@/api";
-import * as XLSX from "xlsx";
+import { debounce } from "lodash";
 
 export default {
   components: { Layout },
@@ -198,19 +227,30 @@ export default {
       title: null,
 
       search: null,
-      check: null,
+      check: false,
 
       show: false,
+
+      currentPage: 1,
+      itemsPerPage: 20,
+      totalItems: 0,
+      totalPages: 0,
+      searchTimeout: null,
+      totalBalance: 0,
+      totalVirtualBalance: 0,
+      showScrollToTop: false,
     };
   },
   computed: {
+    sortedUsers() {
+      return this.users.sort((a, b) => new Date(b.date) - new Date(a.date)); // Asegúrate de que las fechas estén en un formato correcto
+    },
     balance() {
-      const ret = this.users.reduce((a, b) => a + b.balance, 0);
-
+      const ret = this.users.reduce((total, user) => total + user.balance, 0);
       return ret;
     },
     virtualBalance() {
-      const ret = this.users.reduce((a, b) => a + b.virtualbalance, 0);
+      const ret = this.users.reduce((a, b) => a + Number(b.virtualbalance), 0);
 
       return ret;
     },
@@ -218,10 +258,24 @@ export default {
   filters: {
     date(val) {
       return new Date(val).toLocaleDateString();
-      // return new Date(val).toLocaleString()
     },
     money(val) {
-      return `s/. ${val.toFixed(2)}`;
+      if (val == null || isNaN(val)) return "0.00";
+      return `USD ${Number(val).toFixed(2)}`;
+    },
+    _rank(val) {
+      if (val == "none") return "Ninguno";
+      if (val == "active") return "ACTIVO";
+      if (val == "star") return "MASTER";
+      if (val == "master") return "PLATA";
+      if (val == "silver") return "PLATINO";
+      if (val == "gold") return "ORO";
+      if (val == "sapphire") return "ZAFIRO";
+      if (val == "RUBI") return "DIAMANTE RUBI";
+      if (val == "DIAMANTE") return "DIAMANTE ESTRELLA";
+      if (val == "DOBLE DIAMANTE") return "DIAMANTE DOS ESTRELLAS";
+      if (val == "TRIPLE DIAMANTE") return "DIAMANTE TRES ESTRELLAS";
+      if (val == "DIAMANTE ESTRELLA") return "DIAMANTE CBM";
     },
   },
   beforeRouteUpdate(to, from, next) {
@@ -234,17 +288,33 @@ export default {
     this.$store.commit("SET_ACCOUNT", account);
 
     this.GET(this.$route.params.filter);
+
+    this.debouncedInput = debounce(this.input, 1500);
+    window.addEventListener("scroll", this.handleScroll);
+  },
+  beforeDestroy() {
+    window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
+    async fetchUsers() {
+      await this.GET(this.$route.params.filter); // Llama a GET para obtener usuarios
+    },
     async GET(filter) {
       this.loading = true;
 
       // GET data
-      const { data } = await api.users.GET({ filter });
+      const { data } = await api.users.GET({
+        filter,
+        page: this.currentPage,
+        limit: this.itemsPerPage,
+        search: this.search || undefined,
+        totalBalance: this.totalBalance,
+        totalVirtualBalance: this.totalVirtualBalance,
+        showAvailable: this.check,
+      });
       console.log({ data });
 
       this.loading = false;
-
       // error
       if (data.error && data.msg == "invalid filter")
         this.$router.push("activations/all");
@@ -265,44 +335,41 @@ export default {
         }))
         .reverse();
 
+      this.totalItems = data.total;
+      this.totalPages = data.totalPages;
+      this.totalBalance = data.totalBalance;
+      this.totalVirtualBalance = data.totalVirtualBalance;
+      this.showAvailable = data.showAvailable;
+
       if (filter == "all") this.title = "Todos los usuarios";
       if (filter == "affiliated") this.title = "Usuarios Afiliados";
       if (filter == "activated") this.title = "Usuarios Activados";
     },
-    input() {
-      if (!this.search) return;
-
-      const words = this.search.match(/\b(\w+)\b/g);
-      console.log({ words });
-
-      for (let word of words) {
-        for (let user of this.users) {
-          if (
-            user.name.toLowerCase().includes(word.toLowerCase()) ||
-            user.lastName.toLowerCase().includes(word.toLowerCase()) ||
-            user.country.toLowerCase().includes(word.toLowerCase()) ||
-            user.dni.toLowerCase().includes(word.toLowerCase())
-          ) {
-            user.visible = true;
-          } else {
-            user.visible = false;
-          }
-        }
+    async changePage(page) {
+      if (page >= 1 && page <= this.totalPages) {
+        this.currentPage = page;
+        await this.GET(this.$route.params.filter);
       }
+    },
+
+    async nextPage() {
+      await this.changePage(this.currentPage + 1);
+    },
+
+    async previousPage() {
+      await this.changePage(this.currentPage - 1);
+    },
+    async goToPage() {
+      const page = Math.max(1, Math.min(this.pageInput, this.totalPages));
+      this.currentPage = page;
+      await this.GET(this.$route.params.filter);
+    },
+    async input() {
+      this.GET(this.$route.params.filter);
     },
     input2() {
-      const check = this.check;
       console.log({ check });
-
-      for (let user of this.users) {
-        if (!check || (check && user.balance > 0)) {
-          user.visible = true;
-        } else {
-          user.visible = false;
-        }
-      }
     },
-
     async migrate(user) {
       console.log("migrate ..");
       console.log({ user });
@@ -352,6 +419,12 @@ export default {
     cancel(user) {
       user.edit = false;
     },
+    handleScroll() {
+      this.showScrollToTop = window.scrollY >= document.body.offsetHeight / 2;
+    },
+    scrollToTop() {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
     exportToExcel() {
       const worksheet = XLSX.utils.json_to_sheet(
         this.users.map((user) => ({
@@ -376,3 +449,35 @@ export default {
   },
 };
 </script>
+
+<style>
+.scroll-to-top {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: inline-block;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+.scroll-to-top:hover {
+  background-color: #0056b3;
+}
+.scroll-to-top i {
+  font-size: 20px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+.pagination button {
+  margin: 0 5px;
+}
+</style>
