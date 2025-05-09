@@ -4,7 +4,7 @@ axios.defaults.baseURL = process.env.VUE_APP_SERVER + '/api'
 
 
 class API {
-  constructor({ users, affiliations, Collects, OfficeCollects, activations, products, kadex, closeds, promos, promo, pay, wallet, Tree, offices, stock }) {
+  constructor({ users, affiliations, Collects, OfficeCollects, activations, products, kadex, closeds, promos, promo, pay, wallet, Tree, offices, stock,reports }) {
     this.users        = users
     this.affiliations = affiliations
     this.Collects     = Collects
@@ -20,6 +20,7 @@ class API {
     this.Tree         = Tree
     this.offices      = offices
     this.stock        = stock
+    this.reports      = reports
   }
 }
 
@@ -158,6 +159,14 @@ class Offices {
     return axios.post(`/admin/offices`, { id, products, office })
   }
 }
+  class Reports {
+    GET({ filter }) {
+      return axios.get (`/admin/reports?filter=${filter}`)
+    }
+    POST({ id, products, office }) {
+      return axios.post(`/admin/reports`, { id, products, office })
+    }
+}
 
 export default new API({
   users:        new Users(),
@@ -175,4 +184,5 @@ export default new API({
   Tree:         new Tree(),
   offices:      new Offices(),
   stock:        new Stock(),
+  reports:      new Reports(),
 })

@@ -1,16 +1,14 @@
 <template>
   <Layout>
-
     <section>
-
-      <div class="notification" style="margin-bottom: 0;">
+      <div class="notification" style="margin-bottom: 0">
         <div class="container">
           <strong>{{ title }}</strong>
         </div>
       </div>
 
-      <div class="container"> <br>
-
+      <div class="container">
+        <br />
 
         <div class="control">
           <div class="select">
@@ -19,60 +17,63 @@
               <option value="month">Mes</option>
             </select>
           </div>
-        </div> <br>
+        </div>
+        <br />
 
         <i class="load" v-if="loading"></i>
 
-        <strong>Afiliaciones: {{ affiliations_count }}</strong> <br>
+        <strong>Afiliaciones: {{ affiliations_count }}</strong> <br />
 
-        <p v-for="plan in plans">
-          {{ plan.name }} - {{ plan.count }}
-        </p> <br>
+        <p v-for="plan in plans">{{ plan.name }} - {{ plan.count }}</p>
+        <br />
 
-        <strong>Productos:</strong> <br>
+        <strong>Productos:</strong> <br />
 
         <p v-for="product in products_affiliation">
           {{ product.name }} - {{ product.count }}
-        </p> <br><br>
+        </p>
+        <br /><br />
 
+        <strong>Activaciones: {{ activations_count }}</strong> <br />
 
-        <strong>Activaciones: {{ activations_count }}</strong> <br>
+        Total: S/.{{ activations_amount }} <br /><br />
 
-        Total: S/.{{ activations_amount }} <br><br>
-
-        <strong>Productos:</strong> <br>
+        <strong>Productos:</strong> <br />
 
         <p v-for="product in products_activation">
           {{ product.name }} - {{ product.count }}
-        </p> <br><br>
+        </p>
+        <br /><br />
 
+        <strong>Retiros: {{ collects_count }}</strong> <br />
 
+        Total: S/.{{ collects_total }} <br /><br /><br /><br />
 
-        <strong>Retiros: {{ collects_count }}</strong> <br>
+        <strong>Ingresos Mensuales: S/.{{ monthlyIncome }}</strong> <br /><br />
 
-        Total: S/.{{ collects_total }} <br><br><br><br>
-
-
+        <strong>Productos Más Vendidos:</strong> <br />
+        <p v-for="product in productsSold" :key="product._id">
+          {{ product._id }} - {{ product.count }}
+        </p>
+        <br /><br />
       </div>
-
     </section>
-
   </Layout>
 </template>
 
 <script>
-import Layout from '@/views/Layout'
-import api from '@/api'
+import Layout from "@/views/Layout";
+import api from "@/api";
 
 export default {
   components: { Layout },
   data() {
-    return{
+    return {
       loading: false,
 
-      title: 'Reportes',
+      title: "Reportes",
 
-      mode: 'day', //month
+      mode: "day", //month
 
       affiliations: null,
       affiliations_count: null,
@@ -88,115 +89,116 @@ export default {
       collects: null,
       collects_count: null,
       collects_total: null,
-    }
+
+      monthlyIncome: 0,
+      productsSold: [],
+    };
   },
   created() {
-    this.load()
+    this.load();
   },
   methods: {
     change() {
-      this.load()
+      this.load();
     },
     async load() {
-      this.loading = true
+      this.loading = true;
 
-      const mode = this.mode
+      const mode = this.mode;
 
-      const { data } = await api.reports.GET({ filter: mode }); console.log({ data })
+      const { data } = await api.reports.GET({ filter: mode });
+      console.log({ data });
 
-      this.affiliations       = data.affiliations
-      this.affiliations_count = data.affiliations_count
+      this.affiliations = data.affiliations;
+      this.affiliations_count = data.affiliations_count;
 
-      this.activations       = data.activations
-      this.activations_count = data.activations_count
+      this.activations = data.activations;
+      this.activations_count = data.activations_count;
 
-      this.collects       = data.collects
-      this.collects_count = data.collects_count
+      this.collects = data.collects;
+      this.collects_count = data.collects_count;
 
       // console.log('1')
-      let products = []
-      let plans = []
+      let products = [];
+      let plans = [];
 
       for (const affiliation of this.affiliations) {
-
-        for(const product of affiliation.plan.products) {
-
-          const p = products.find(x => x.name == product)
-          console.log({ p })
+        for (const product of affiliation.plan.products) {
+          const p = products.find((x) => x.name == product);
+          console.log({ p });
 
           if (!p) {
             products.push({
               name: product,
               count: 1,
-            })
+            });
           } else {
-            p.count += 1
+            p.count += 1;
           }
         }
 
-
-        const j = plans.find(x => x.name == affiliation.plan.name)
+        const j = plans.find((x) => x.name == affiliation.plan.name);
 
         if (!j) {
           plans.push({
             name: affiliation.plan.name,
             count: 1,
-          })
+          });
         } else {
-          j.count += 1
+          j.count += 1;
         }
-
       }
       // console.log('2')
-      this.plans = plans
+      this.plans = plans;
 
-      this.products_affiliation = products
+      this.products_affiliation = products;
 
-
-      products = []
-      let amount = 0
+      products = [];
+      let amount = 0;
 
       for (const activation of this.activations) {
+        const p = activation.products;
 
-        const p = activation.products
+        amount += activation.price;
 
-        amount += activation.price
-
-        for(let product of p) {
+        for (let product of p) {
           if (product.quantity) {
-            const id   = product.id
-            const name = product.name
+            const id = product.id;
+            const name = product.name;
 
-            const i = products.find(x => x.id == id)
+            const i = products.find((x) => x.id == id);
 
             if (!i) {
               products.push({
                 id: product.id,
                 name: product.name,
                 count: 1,
-              })
+              });
             } else {
-              i.count += product.quantity
-              i.name   = product.name
+              i.count += product.quantity;
+              i.name = product.name;
             }
           }
         }
       }
       // console.log('3')
-      this.products_activation = products
-      this.activations_amount = amount
+      this.products_activation = products;
+      this.activations_amount = amount;
 
-      let total = 0
+      let total = 0;
 
       for (const collect of this.collects) {
-        total += collect.amount
+        total += collect.amount;
       }
       // console.log('4')
-      this.collects_total = total
+      this.collects_total = total;
 
-      this.loading = false
+      this.monthlyIncome = data.monthlyIncome;
+      this.productsSold = data.productsSold;
+
+      this.loading = false;
     },
-  }
+  },
 };
 
 // console.log({ affiliation })
@@ -231,7 +233,6 @@ export default {
 //       const id   = product.id
 //       const name = product.name
 
-
 //       const i = products.find(x => x.id == id)
 
 //       if (!i) {
@@ -250,6 +251,4 @@ export default {
 
 // let prod = affiliation.plan.products
 // console.log({ products })
-
 </script>
-
