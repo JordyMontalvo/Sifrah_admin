@@ -261,7 +261,7 @@ export default {
     },
     money(val) {
       if (val == null || isNaN(val)) return "0.00";
-      return `USD ${Number(val).toFixed(2)}`;
+      return `S/. ${Number(val).toFixed(2)}`;
     },
     _rank(val) {
       if (val == "none") return "Ninguno";
