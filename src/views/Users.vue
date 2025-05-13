@@ -24,9 +24,9 @@
           <br /><br />
 
           <small
-            >Total disponible: USD
+            >Total disponible: S/.
             {{ Number(totalBalance).toFixed(2) }} &nbsp;&nbsp; / &nbsp;&nbsp;
-            Total no disponible: USD {{ totalVirtualBalance }}
+            Total no disponible: S/. {{ totalVirtualBalance }}
           </small>
         </div>
       </div>
