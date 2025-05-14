@@ -5,16 +5,16 @@
     <section v-if="!loading">
       <div class="notification" style="margin-bottom: 0">
         <div class="container">
-          <strong style="padding: 10px;">{{ title }}</strong>
+          <strong style="padding: 10px">{{ title }}</strong>
           <router-link to="/reports" class="button is-primary">
-              <span class="icon">
-                <i class="fas fa-chart-line"></i>
-              </span>
-              <span>Ver Analytics</span>
-            </router-link>
-            <button class="button is-info" @click="exportToExcel">
-              Exportar a Excel
-            </button>
+            <span class="icon">
+              <i class="fas fa-chart-line"></i>
+            </span>
+            <span>Ver Analytics</span>
+          </router-link>
+          <button class="button is-info" @click="exportToExcel">
+            Exportar a Excel
+          </button>
           <input
             class="input"
             placeholder="Buscar por nombre"
@@ -24,9 +24,9 @@
           <br /><br />
 
           <small
-            >Total disponible: S/.
+            >Total disponible: USD
             {{ Number(totalBalance).toFixed(2) }} &nbsp;&nbsp; / &nbsp;&nbsp;
-            Total no disponible: S/. {{ totalVirtualBalance }}
+            Total no disponible: USD {{ totalVirtualBalance }}
           </small>
         </div>
       </div>
@@ -174,7 +174,7 @@
             </tbody>
           </table>
         </div>
-     <div class="pagination" v-if="!loading">
+        <div class="pagination" v-if="!loading">
           <button
             @click="previousPage"
             :disabled="currentPage === 1"
@@ -239,6 +239,7 @@ export default {
       totalBalance: 0,
       totalVirtualBalance: 0,
       showScrollToTop: false,
+      pageInput: 1,
     };
   },
   computed: {
@@ -261,7 +262,7 @@ export default {
     },
     money(val) {
       if (val == null || isNaN(val)) return "0.00";
-      return `S/. ${Number(val).toFixed(2)}`;
+      return `USD ${Number(val).toFixed(2)}`;
     },
     _rank(val) {
       if (val == "none") return "Ninguno";
@@ -425,9 +426,20 @@ export default {
     scrollToTop() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    exportToExcel() {
+    async exportToExcel() {
+      // Obtener todos los usuarios
+      const { data } = await api.users.GET({
+        filter: this.$route.params.filter,
+        page: 1, // Puedes usar la página 1 para obtener todos los usuarios
+        limit: 1000, // Asegúrate de que el límite sea suficiente para obtener todos los usuarios
+        search: this.search || undefined,
+        totalBalance: this.totalBalance,
+        totalVirtualBalance: this.totalVirtualBalance,
+        showAvailable: this.check,
+      });
+
       const worksheet = XLSX.utils.json_to_sheet(
-        this.users.map((user) => ({
+        data.users.map((user) => ({
           Nombre: user.name,
           Apellido: user.lastName,
           DNI: user.dni,

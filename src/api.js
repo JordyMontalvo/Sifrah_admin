@@ -25,13 +25,17 @@ class API {
 }
 
 class Users {
-  GET({ filter }) {
-    return axios.get (`/admin/users?filter=${filter}`)
-  }
-  POST({ action, id, data }) {
-    return axios.post(`/admin/users`, { action, id, data })
-  }
-}
+  GET({ filter, page = 1, limit = 10, search, showAvailable }) {
+    // Añadir showAvailable como parámetro
+    const searchParam = search ? `&search=${search}` : "";
+    const availableParam = showAvailable
+      ? `&showAvailable=${showAvailable}`
+      : ""; // Añadir el parámetro showAvailable
+    return axios.get(
+      `/admin/users?filter=${filter}&page=${page}&limit=${limit}${searchParam}${availableParam}`
+    );
+   }
+  } // Incluir el nuevo parámetro en la URL
 
 class Affiliations {
   GET({ filter, account, page = 1, limit = 20, search }) {
