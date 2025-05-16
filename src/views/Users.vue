@@ -21,6 +21,13 @@
             v-model="search"
             @input="debouncedInput"
           />
+          <label for="itemsPerPage">Items por página:</label>
+          <select v-model="itemsPerPage" @change="fetchUsers">
+            <option value="20">20</option>
+            <option value="30">30</option>
+            <option value="40">40</option>
+            <option value="50">50</option>
+          </select>
           <br /><br />
 
           <small

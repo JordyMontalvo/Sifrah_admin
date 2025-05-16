@@ -150,23 +150,21 @@ https://codepen.io/team/amcharts/pen/poPxojR */
   }
 
   :root {
-    --col-1: #c8ddef;
-    --col-2: #c8ddef;
-    --bg-1: #0e182d;
-    --highlighted: #ff5722;
+    --col-1: #c8ddef; /* Color de fondo */
+    --col-2: #a0c4ff; /* Color de los bordes */
+    --bg-1: #0e182d; /* Color de fondo principal */
+    --highlighted: #ff5722; /* Color destacado */
+    --hover-bg: #e0f7fa; /* Color de fondo al pasar el mouse */
+    --hover-color: #00796b; /* Color del texto al pasar el mouse */
   }
 
   .tree-container {
-    /*display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;*/
-
     overflow: auto;
-
     width: 100%;
-/*    padding-top: 5em;*/
     padding-bottom: 5em;
+    border: 1px solid var(--col-2); /* Añadir borde a la contenedor del árbol */
+    border-radius: 10px; /* Bordes redondeados */
+    background-color: var(--bg-1); /* Fondo del contenedor */
   }
 
   .tree-container>h1 {
@@ -199,7 +197,7 @@ https://codepen.io/team/amcharts/pen/poPxojR */
 
   .tree li {
     display: table-cell;
-    padding: .5em 0;
+    padding: 1em 0; /* Aumentar el padding para más espacio */
     vertical-align: top;
   }
 
@@ -225,18 +223,15 @@ https://codepen.io/team/amcharts/pen/poPxojR */
     right: 50%;
   }
 
-  .tree code,
   .tree span {
-/*    border: solid .1em var(--col-1);*/
-    border-radius: .2em;
+    border-radius: .5em; /* Bordes más redondeados */
     display: inline-block;
     margin: 0 .2em .5em;
-    padding: .2em .5em;
+    padding: .5em 1em; /* Aumentar el padding */
     position: relative;
-/*    background-color: var(--bg-1);*/
-    transition: all 0.2s ease;
-/*    color: var(--col-1);*/
-    font-size: 14px;
+    background-color: var(--col-1); /* Fondo de los nodos */
+    transition: all 0.3s ease; /* Suavizar la transición */
+    color: #000; /* Color del texto */
   }
 
   .tree span.green {
@@ -247,13 +242,13 @@ https://codepen.io/team/amcharts/pen/poPxojR */
   }
 
   .tree span:hover {
-    background-color: var(--col-1);
-    color: var(--bg-1);
+    background-color: var(--hover-bg); /* Fondo al pasar el mouse */
+    color: var(--hover-color); /* Color del texto al pasar el mouse */
   }
 
   .tree li:hover>span {
-    background-color: var(--col-1);
-    color: var(--bg-1);
+    background-color: var(--highlighted); /* Color destacado al pasar el mouse */
+    color: #fff; /* Color del texto al pasar el mouse */
   }
 
   .tree span:hover::after,
