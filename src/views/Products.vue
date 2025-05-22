@@ -18,6 +18,7 @@
                 <th>Código</th>
                 <th>Nombre</th>
                 <th>Categoría</th>
+                <th>Descripción</th>
                 <th>Precios Compra</th>
                 <th>Puntos</th>
                 <th>Imágen</th>
@@ -59,6 +60,17 @@
                     v-if="product.edit"
                   />
                 </td>
+
+                <td>
+                  <span v-if="!product.edit">{{ product.description }}</span>
+                  <textarea
+                    class="textarea"
+                    placeholder="Descripción"
+                    style="max-width: 220px"
+                    v-model="product._description"
+                    v-if="product.edit"
+                  ></textarea>
+                </td>
                 <!-- Precio Producto -->
                 <td>
                   <span v-if="!product.edit">{{ product.price }}</span>
@@ -85,7 +97,8 @@
                 </td>
                 <!-- Imágen Producto -->
                 <td>
-                  <small v-if="!product.edit">{{ product.img }}</small>
+                  <!-- <small v-if="!product.edit">{{ product.img }}</small> -->
+                  <small v-if="!product.edit"><a :href="product.img" target="_blank">link</a></small>
                   <input
                     class="input"
                     placeholder="Imágen"
@@ -207,9 +220,9 @@
 </template>
 
 <script>
-import Layout from "@/views/Layout";
-import api from "@/api";
-import lib from "@/lib";
+import Layout from '@/views/Layout'
+import api from '@/api'
+import lib from '@/lib'
 
 export default {
   components: { Layout },
@@ -221,111 +234,118 @@ export default {
         price: [],
         aff_price: [],
       },
-    };
+    }
   },
   filters: {
     date(val) {
-      return new Date(val).toLocaleDateString();
+      return new Date(val).toLocaleDateString()
     },
   },
   created() {
-    const account = JSON.parse(localStorage.getItem("session"));
+    const account = JSON.parse(localStorage.getItem('session'))
 
-    this.$store.commit("SET_ACCOUNT", account);
+    this.$store.commit('SET_ACCOUNT', account)
 
-    this.GET();
+    this.GET()
   },
 
   methods: {
     async GET() {
-      this.loading = true;
+      this.loading = true
 
       // GET data
-      const { data } = await api.products.GET(); /*; console.log({ data })*/
+      const { data } = await api.products.GET() /*; console.log({ data })*/
 
-      this.loading = false;
+      this.loading = false
 
-      this.products = data.products.map((el) => (el.code = el.id));
+      this.products = data.products.map((el) => (el.code = el.id))
 
       this.products = data.products.map((p) => ({
         ...p,
         sending: false,
         edit: false,
-        _code: "",
-        _name: "",
-        _type: "",
+        _code: '',
+        _name: '',
+        _type: '',
+        _description: '',
         _price: 0,
         _points: 0,
-        _img: "",
-      }));
+        _img: '',
+      }))
     },
+
     async remove(product) {
-      if (!confirm("¿Está seguro de eliminar este producto?")) {
-        return;
+
+      if (!confirm('¿Está seguro de eliminar este producto?')) {
+        return
       }
       await api.products.POST({
-        action: "delete",
-        id: product.id,
-      });
+        action: 'delete',
+        id: product.id
+      })
 
-      location.reload();
+      location.reload()
     },
 
     edit(product) {
-      product.edit = true;
+      product.edit = true
 
-      product._code = product.code;
-      product._name = product.name;
-      product._type = product.type;
-      product._price = product.price;
-      product._points = product.points;
-      product._img = product.img;
+      product._code = product.code
+      product._name = product.name
+      product._type = product.type
+      product._description = product.description
+      product._price = product.price
+      product._points = product.points
+      product._img = product.img
     },
 
     async save(product) {
       await api.products.POST({
-        action: "edit",
+        action: 'edit',
         id: product.id,
         data: {
           _code: product._code,
-          _name: product._name,
+          _name: product._name, 
           _type: product._type,
+          _description: product._description,
           _price: product._price,
           _points: product._points,
           _img: product._img,
         },
-      });
+      })
 
-      product.code = product._code;
-      product.name = product._name;
-      product.type = product._type;
-      product.price = product._price;
-      product.points = product._points;
-      product.img = product._img;
+      product.code = product._code
+      product.name = product._name
+      product.type = product._type
+      product.description = product._description
+      product.price = product._price
+      product.points = product._points
+      product.img = product._img
 
-      product.edit = false;
+      product.edit = false
     },
 
     cancel(product) {
-      product.edit = false;
+      product.edit = false
     },
 
     async add() {
-      const { code, name, type, price, points } = this.new_product;
+      const { code, name, type, price, points, description } = this.new_product
 
       await api.products.POST({
-        action: "add",
+        action: 'add',
         data: {
           code,
           name,
           type,
           price,
           points,
+          description,
         },
-      });
+      })
 
-      location.reload();
+      location.reload()
     },
   },
-};
+}
 </script>
