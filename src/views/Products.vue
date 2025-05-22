@@ -95,6 +95,9 @@
                   />
                 </td>
                 <!-- Edit Options -->
+                <td v-if="product.edit">
+                  <button @click="remove(product)">Eliminar</button>
+                </td>
                 <td>
                   <i
                     class="fa-regular fa-pen-to-square"
@@ -204,9 +207,9 @@
 </template>
 
 <script>
-import Layout from '@/views/Layout'
-import api from '@/api'
-import lib from '@/lib'
+import Layout from "@/views/Layout";
+import api from "@/api";
+import lib from "@/lib";
 
 export default {
   components: { Layout },
@@ -218,59 +221,70 @@ export default {
         price: [],
         aff_price: [],
       },
-    }
+    };
   },
   filters: {
     date(val) {
-      return new Date(val).toLocaleDateString()
+      return new Date(val).toLocaleDateString();
     },
   },
   created() {
-    const account = JSON.parse(localStorage.getItem('session'))
+    const account = JSON.parse(localStorage.getItem("session"));
 
-    this.$store.commit('SET_ACCOUNT', account)
+    this.$store.commit("SET_ACCOUNT", account);
 
-    this.GET()
+    this.GET();
   },
 
   methods: {
     async GET() {
-      this.loading = true
+      this.loading = true;
 
       // GET data
-      const { data } = await api.products.GET() /*; console.log({ data })*/
+      const { data } = await api.products.GET(); /*; console.log({ data })*/
 
-      this.loading = false
+      this.loading = false;
 
-      this.products = data.products.map((el) => (el.code = el.id))
+      this.products = data.products.map((el) => (el.code = el.id));
 
       this.products = data.products.map((p) => ({
         ...p,
         sending: false,
         edit: false,
-        _code: '',
-        _name: '',
-        _type: '',
+        _code: "",
+        _name: "",
+        _type: "",
         _price: 0,
         _points: 0,
-        _img: '',
-      }))
+        _img: "",
+      }));
+    },
+    async remove(product) {
+      if (!confirm("¿Está seguro de eliminar este producto?")) {
+        return;
+      }
+      await api.products.POST({
+        action: "delete",
+        id: product.id,
+      });
+
+      location.reload();
     },
 
     edit(product) {
-      product.edit = true
+      product.edit = true;
 
-      product._code = product.code
-      product._name = product.name
-      product._type = product.type
-      product._price = product.price
-      product._points = product.points
-      product._img = product.img
+      product._code = product.code;
+      product._name = product.name;
+      product._type = product.type;
+      product._price = product.price;
+      product._points = product.points;
+      product._img = product.img;
     },
 
     async save(product) {
       await api.products.POST({
-        action: 'edit',
+        action: "edit",
         id: product.id,
         data: {
           _code: product._code,
@@ -280,27 +294,27 @@ export default {
           _points: product._points,
           _img: product._img,
         },
-      })
+      });
 
-      product.code = product._code
-      product.name = product._name
-      product.type = product._type
-      product.price = product._price
-      product.points = product._points
-      product.img = product._img
+      product.code = product._code;
+      product.name = product._name;
+      product.type = product._type;
+      product.price = product._price;
+      product.points = product._points;
+      product.img = product._img;
 
-      product.edit = false
+      product.edit = false;
     },
 
     cancel(product) {
-      product.edit = false
+      product.edit = false;
     },
 
     async add() {
-      const { code, name, type, price, points } = this.new_product
+      const { code, name, type, price, points } = this.new_product;
 
       await api.products.POST({
-        action: 'add',
+        action: "add",
         data: {
           code,
           name,
@@ -308,10 +322,10 @@ export default {
           price,
           points,
         },
-      })
+      });
 
-      location.reload()
+      location.reload();
     },
   },
-}
+};
 </script>
