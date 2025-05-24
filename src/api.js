@@ -34,7 +34,11 @@ class Users {
     return axios.get(
       `/admin/users?filter=${filter}&page=${page}&limit=${limit}${searchParam}${availableParam}`
     );
+    
    }
+   POST({ action, id, data }) {
+    return axios.post(`/admin/users`, { action, id, data });
+  }
   } // Incluir el nuevo parámetro en la URL
 
 class Affiliations {
