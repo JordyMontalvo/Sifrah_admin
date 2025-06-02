@@ -69,10 +69,10 @@
                   <small v-if="affiliation.remaining != null">
                     <br />
                     <span v-if="affiliation.amounts">
-                      saldo:  s/.{{ affiliation.amounts[0] }} <br />
+                      saldo: s/.{{ affiliation.amounts[0] }} <br />
                     </span>
-                    ganancia:  s/.{{ affiliation.plan.pay }} <br />
-                    cobrar:  s/.{{ Number(affiliation.remaining).toFixed(2) }}
+                    ganancia: s/.{{ affiliation.plan.pay }} <br />
+                    cobrar: s/.{{ Number(affiliation.remaining).toFixed(2) }}
                   </small>
 
                   <div
@@ -265,7 +265,7 @@ export default {
       pageInput: 1,
       showScrollToTop: false,
       searchTimeout: null,
-      accounts: []
+      accounts: [],
     };
   },
   computed: {
@@ -319,7 +319,7 @@ export default {
         account: this.account.id,
         page: this.currentPage,
         limit: this.itemsPerPage,
-        search: this.search || undefined
+        search: this.search || undefined,
       });
       console.log({ data });
 
@@ -454,11 +454,18 @@ export default {
       location.reload();
     },
 
-    download() {
-      let filename = "Afiliaciones.xlsx";
+    async download() {
+      // Obtener todas las afiliaciones
+      const { data } = await api.affiliations.GET({
+        filter: this.$route.params.filter,
+        page: 1, // Puedes usar la página 1 para obtener todas las afiliaciones
+        limit: 1000, // Asegúrate de que el límite sea suficiente para obtener todas las afiliaciones
+        search: this.search || undefined,
+      });
+
       let data_xls = [];
 
-      this.affiliations.forEach((a) => {
+      data.affiliations.forEach((a) => {
         let disponible = 0,
           no_disponible = 0;
 
@@ -495,18 +502,14 @@ export default {
         if (!a.products) {
           data_xls.push({
             ID: a.id,
-
             "USUARIO (NO. DE CÉDULA)": a.dni,
             "NOMBRES COMPLETOS": a.name + " " + a.lastName,
             "FECHA DE AFILIACIÓN": new Date(a.date).toLocaleDateString(),
-
             PLAN: a.plan.name,
             "VALOR DEL PLAN": a.plan.amount,
-
             KASH: cash,
             "SALDO DISPONIBLE DE CASH": disponible,
             "SALDO NO DISPONIBLE DE CASH": no_disponible,
-
             EFECTIVO: efectivo,
             "FECHA EFECTIVO": new Date(a.date).toLocaleDateString(),
             BANCO: banco,
@@ -516,33 +519,26 @@ export default {
               : "",
             "NUMERO DE VOUCHER ": a.voucher_number,
             VOUCHER: a.voucher,
-
             "TOTAL APORTE": cash + pay,
-
             PRODUCTO: "",
             PRECIO: "",
-
             ESTATUS: a.status,
             OFICINA: a.office,
-            "ENTRAGA DE PRODUCTOS": a.delivered,
+            "ENTREGA DE PRODUCTOS": a.delivered,
           });
         } else {
           for (let p of a.products) {
             if (p.total) {
               data_xls.push({
                 ID: a.id,
-
                 "USUARIO (NO. DE CÉDULA)": a.dni,
                 "NOMBRES COMPLETOS": a.name + " " + a.lastName,
                 "FECHA DE AFILIACIÓN": new Date(a.date).toLocaleDateString(),
-
                 PLAN: a.plan.name,
                 "VALOR DEL PLAN": a.plan.amount,
-
                 KASH: cash,
                 "SALDO DISPONIBLE DE CASH": disponible,
                 "SALDO NO DISPONIBLE DE CASH": no_disponible,
-
                 EFECTIVO: efectivo,
                 "FECHA EFECTIVO": new Date(a.date).toLocaleDateString(),
                 BANCO: banco,
@@ -552,25 +548,25 @@ export default {
                   : "",
                 "NUMERO DE VOUCHER ": a.voucher_number,
                 VOUCHER: a.voucher,
-
                 "TOTAL APORTE": cash + pay,
-
                 PRODUCTO: p.name,
                 PRECIO: p.price,
-
                 ESTATUS: a.status,
                 OFICINA: a.office,
-                "ENTRAGA DE PRODUCTOS": a.delivered ? "Entregado" : "Pendiente",
+                "ENTREGA DE PRODUCTOS": a.delivered ? "Entregado" : "Pendiente",
               });
             }
           }
         }
       });
 
-      var ws = XLSX.utils.json_to_sheet(data_xls);
-      var wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Afiliaciones");
-      XLSX.writeFile(wb, filename);
+      // Crear la hoja de Excel
+      const worksheet = XLSX.utils.json_to_sheet(data_xls);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Afiliaciones");
+
+      // Descargar el archivo
+      XLSX.writeFile(workbook, "afiliaciones.xlsx");
     },
 
     editVoucher(affiliation) {

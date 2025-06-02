@@ -105,6 +105,15 @@
                     v-if="user.edit"
                   /><br />
 
+                  <select v-model="user._rank" v-if="user.edit">
+                    <option value="none">Ninguno</option>
+                    <option value="Bronce">Bronce</option>
+                    <option value="Plata">Plata</option>
+                    <option value="Oro">Oro</option>
+                    <option value="Platino">Platino</option>
+                    
+                  </select>
+
                   <div style="position: absolute; top: 8px; right: -8px">
                     <i
                       class="fa-regular fa-pen-to-square"
@@ -271,20 +280,6 @@ export default {
       if (val == null || isNaN(val)) return "0.00";
       return `S/. ${Number(val).toFixed(2)}`;
     },
-    _rank(val) {
-      if (val == "none") return "Ninguno";
-      if (val == "active") return "ACTIVO";
-      if (val == "star") return "MASTER";
-      if (val == "master") return "PLATA";
-      if (val == "silver") return "PLATINO";
-      if (val == "gold") return "ORO";
-      if (val == "sapphire") return "ZAFIRO";
-      if (val == "RUBI") return "DIAMANTE RUBI";
-      if (val == "DIAMANTE") return "DIAMANTE ESTRELLA";
-      if (val == "DOBLE DIAMANTE") return "DIAMANTE DOS ESTRELLAS";
-      if (val == "TRIPLE DIAMANTE") return "DIAMANTE TRES ESTRELLAS";
-      if (val == "DIAMANTE ESTRELLA") return "DIAMANTE CBM";
-    },
   },
   beforeRouteUpdate(to, from, next) {
     this.GET(to.params.filter);
@@ -340,6 +335,7 @@ export default {
           _password: "",
           _parent_dni: "",
           _points: 0,
+          _rank: "",
         }))
         .reverse();
 
@@ -398,6 +394,7 @@ export default {
       if (!user._points) user._points = user.points;
 
       if (!user._parent_dni) user._parent_dni = user.parent.dni;
+      if (!user._rank) user._rank = user.rank;
     },
     async save(user) {
       // post new name
@@ -412,6 +409,7 @@ export default {
 
           _parent_dni: user._parent_dni,
           _points: user._points,
+          _rank: user._rank,
         },
       });
 
@@ -419,6 +417,7 @@ export default {
       user.lastName = user._lastName;
       user.dni = user._dni;
       user.points = user._points;
+      user.rank = user._rank;
 
       user.parent.dni = user._parent_dni;
 
