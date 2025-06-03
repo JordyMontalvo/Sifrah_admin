@@ -114,7 +114,7 @@
                     
                   </select>
 
-                  <div style="position: absolute; top: 8px; right: -8px">
+                  <div style="position: absolute; top: 8px; right: -15px; gap: 10px; display: flex;flex-direction: column;">
                     <i
                       class="fa-regular fa-pen-to-square"
                       style="color: #ccc; cursor: pointer; margin-right: 8px"
