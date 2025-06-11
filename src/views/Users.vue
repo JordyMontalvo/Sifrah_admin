@@ -56,6 +56,7 @@
                 <th>No Disponible</th>
                 <th>Patrocinador</th>
                 <th>País</th>
+                <th>Ciudad</th>
               </tr>
             </thead>
             <tbody>
@@ -186,6 +187,7 @@
                   </div>
                 </td>
                 <td>{{ user.country }}</td>
+                <td>{{ user.city }}</td>
               </tr>
             </tbody>
           </table>
@@ -456,6 +458,7 @@ export default {
           Teléfono: user.phone,
           FechaNacimiento: user.birthdate,
           FechaRegistro: user.date,
+          cuidad: user.city,
         }))
       );
 
