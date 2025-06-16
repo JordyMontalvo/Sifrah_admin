@@ -21,6 +21,7 @@ import Products     from './views/Products.vue'
 import Kadex        from './views/Kadex.vue'
 import Closed       from './views/Closed.vue'
 import Reports      from './views/Reports.vue'
+import Transaction        from './views/Trans.vue'
 
 // import Reports      from './views/Reports.vue'
 
@@ -35,6 +36,11 @@ const routes = [
     path: '/login',
     component: Login,
     meta: { requiresNoAuth: true }
+  },
+    {
+    path: '/trans',
+    component: Transaction,
+    meta: { requiresAuth: true }
   },
   {
     path: '/sucursal',

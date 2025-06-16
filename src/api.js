@@ -21,6 +21,7 @@ class API {
     stock,
     reports,
     plans,
+    transaction,
   }) {
     this.users = users;
     this.affiliations = affiliations;
@@ -39,6 +40,7 @@ class API {
     this.stock = stock;
     this.reports = reports;
     this.plans = plans;
+    this.transaction = transaction;
   }
 }
 
@@ -200,6 +202,18 @@ class Plans {
   }
 }
 
+class Transaction {
+  GET(filter, account, page = 1, limit = 20, search) {
+    const searchParam = search ? `&search=${search}` : "";
+    return axios.get(
+      `/admin/trans?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
+    );
+  }
+  POST({ action, id, data }) {
+    return axios.post("/admin/trans", { action, id, data });
+  }
+}
+
 export default new API({
   users: new Users(),
   affiliations: new Affiliations(),
@@ -218,4 +232,5 @@ export default new API({
   stock: new Stock(),
   reports: new Reports(),
   plans: new Plans(),
+  transaction: new Transaction(),
 });

@@ -49,7 +49,7 @@
                 <td>{{ activation.date | date }}</td>
                 <td>
                   {{ activation.name }} {{ activation.lastName }} <br />
-                  <a>cédula: {{ activation.dni }}</a> <br />
+                  <a>{{ activation.dni }}</a> <br />
                   tel: {{ activation.phone }}
                 </td>
                 <td>{{ activation.office }}</td>
@@ -73,7 +73,7 @@
                   </div>
                 </td>
                 <td>
-                  s/. {{ parseFloat(activation.price).toFixed(2) }} <br />
+                  s/.{{ parseFloat(activation.price).toFixed(2) }} <br />
                   <a
                     :href="`${INVOICE_ROOT}?id=${activation.id}`"
                     target="_blank"

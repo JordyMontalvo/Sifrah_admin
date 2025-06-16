@@ -264,7 +264,6 @@ export default {
       totalPages: 0,
       pageInput: 1,
       showScrollToTop: false,
-      searchTimeout: null,
       accounts: [],
     };
   },
