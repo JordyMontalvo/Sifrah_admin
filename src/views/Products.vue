@@ -28,6 +28,7 @@
                 <th>Descripción</th>
                 <th>Precios Compra</th>
                 <th>Puntos</th>
+                <th>Peso</th>
                 <th>Imágen</th>
                 <th v-for="plan in plans" :key="plan.id">{{ plan.name }}</th>
                 <th>Acciones</th>
@@ -87,7 +88,7 @@
                     <input
                       class="input"
                       type="number"
-                      style="max-width: 80px"
+                      style="max-width: 100px; min-width: 80px"
                       v-model.number="product._price"
                     />
                   </div>
@@ -99,8 +100,20 @@
                     <input
                       class="input"
                       type="number"
-                      style="max-width: 80px"
+                      style="max-width: 100px; min-width: 80px"
                       v-model.number="product._points"
+                    />
+                  </div>
+                </td>
+                <!-- Peso Producto -->
+                <td>
+                  <span v-if="!product.edit">{{ product.weight }}</span>
+                  <div v-if="product.edit">
+                    <input
+                      class="input"
+                      type="number"
+                      style="max-width: 100px; min-width: 80px"
+                      v-model.number="product._weight"
                     />
                   </div>
                 </td>
@@ -175,6 +188,7 @@
                 <th>Categoría</th>
                 <th>Precios Compra</th>
                 <th>Puntos</th>
+                <th>Peso</th>
                 <th v-for="plan in plans" :key="plan.id">{{ plan.name }}</th>
                 <th>Acciones</th>
               </tr>
@@ -213,7 +227,7 @@
                   <input
                     class="input"
                     type="number"
-                    style="max-width: 80px"
+                    style="max-width: 100px; min-width: 80px"
                     v-model.number="new_product.price"
                   />
                 </td>
@@ -222,8 +236,17 @@
                   <input
                     class="input"
                     type="number"
-                    style="max-width: 80px"
+                    style="max-width: 100px; min-width: 80px"
                     v-model.number="new_product.points"
+                  />
+                </td>
+                <!-- Peso -->
+                <td>
+                  <input
+                    class="input"
+                    type="number"
+                    style="max-width: 100px; min-width: 80px"
+                    v-model.number="new_product.weight"
                   />
                 </td>
                 <!-- Plan Checkboxes for New Product -->
@@ -309,6 +332,7 @@ export default {
           _points: 0,
           _img: "",
           _plans: {},
+          _weight: 0,
         }));
       } catch (error) {
         console.error("Error loading data:", error);
@@ -340,6 +364,7 @@ export default {
       product._price = product.price;
       product._points = product.points;
       product._img = product.img;
+      product._weight = product.weight;
 
       // Initialize _plans with all available plans
       this.plans.forEach((plan) => {
@@ -361,6 +386,7 @@ export default {
           _points: product._points,
           _img: product._img,
           _plans: product._plans,
+          _weight: product._weight,
         },
       });
 
@@ -372,6 +398,7 @@ export default {
       product.points = product._points;
       product.img = product._img;
       product.plans = { ...product._plans };
+      product.weight = product._weight;
 
       product.edit = false;
     },
@@ -381,7 +408,7 @@ export default {
     },
 
     async add() {
-      const { code, name, type, price, points, description, plans } =
+      const { code, name, type, price, points, description, plans, weight } =
         this.new_product;
 
       // Solo enviar los planes que están marcados como true
@@ -400,6 +427,7 @@ export default {
           points,
           description,
           plans: selectedPlans,
+          weight,
         },
       });
 
@@ -412,6 +440,7 @@ export default {
         points: 0,
         description: "",
         plans: {},
+        weight: 0,
       };
       // Reinicializar los planes como false
       this.plans.forEach((plan) => {
