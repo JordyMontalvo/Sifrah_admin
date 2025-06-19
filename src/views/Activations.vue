@@ -1,249 +1,150 @@
 <template>
   <Layout>
-    <i class="load" v-if="loading"></i>
-
-    <section v-if="!loading">
-      <div class="notification" style="margin-bottom: 0">
+    <section class="activations-section">
+      <!-- Page Header -->
+      <div class="page-header">
         <div class="container">
-          <strong>{{ title }}</strong
-          >&nbsp;&nbsp;&nbsp;<a @click="download">Descargar Reporte</a>
-          <input
-            class="input"
-            placeholder="Buscar por nombre"
-            v-model="search"
-            @input="input"
+          <div class="header-content">
+            <div class="header-left">
+              <h1 class="page-title">{{ title }}</h1>
+              <p class="page-subtitle">
+                Gestiona las activaciones de productos del sistema
+              </p>
+            </div>
+
+            <div class="header-actions">
+              <button class="button is-info" @click="download">
+                <span class="icon">
+                  <i class="fas fa-download"></i>
+                </span>
+                <span>Descargar Reporte</span>
+              </button>
+
+              <router-link to="/reports" class="button is-primary">
+                <span class="icon">
+                  <i class="fas fa-chart-line"></i>
+                </span>
+                <span>Ver Analytics</span>
+              </router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="container">
+        <div class="stats-grid">
+          <DashboardCard
+            :value="totalItems"
+            label="Total Activaciones"
+            icon="fas fa-bolt"
+            color="primary"
+            :description="`Registradas en el sistema`"
+          />
+
+          <DashboardCard
+            :value="approvedTotal"
+            label="Aprobadas"
+            icon="fas fa-check-circle"
+            color="success"
+            :description="`Activaciones confirmadas`"
+          />
+
+          <DashboardCard
+            :value="pendingTotal"
+            label="Pendientes"
+            icon="fas fa-clock"
+            color="warning"
+            :description="`Esperando aprobación`"
+          />
+
+          <DashboardCard
+            :value="totalAmount"
+            label="Monto Total"
+            icon="fas fa-money-bill-wave"
+            color="info"
+            :show-currency="true"
+            :description="`Valor de todas las activaciones`"
           />
         </div>
       </div>
 
+      <!-- Modern Table -->
       <div class="container">
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <!-- <th>
-                  <p style="display: flex">
-                    Fecha <input class="input" style="margin-left: 6px;" placeholder="buscar" v-model="search" @input="input">
-                  </p>
-                </th> -->
-                <th>Fecha</th>
-                <th>Usuario</th>
-                <th>Oficina</th>
-                <th>Products</th>
-                <th>Precio Total</th>
-                <th>Puntos</th>
-                <th>Medio de Pago</th>
-                <th>Voucher</th>
-                <th>Saldo</th>
-                <th>Estado</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(activation, i) in activations"
-                v-show="activation.visible"
-              >
-                <th>{{ totalItems - (currentPage - 1) * itemsPerPage - i }}</th>
-                <td>{{ activation.date | date }}</td>
-                <td>
-                  {{ activation.name }} {{ activation.lastName }} <br />
-                  <a>{{ activation.dni }}</a> <br />
-                  tel: {{ activation.phone }}
-                </td>
-                <td>{{ activation.office }}</td>
-                <td>
-                  <!-- <div> -->
-                  <!-- <table>
-                      <tr v-for="product in activation.products" v-if="product.quantity != 0">
-                        <td style="padding: 0">{{ product.name }}</td>
-                        <td style="padding: 0">&nbsp; {{ product.quantity }}</td>
-                      </tr>
-                    </table> -->
-                  <!-- <span style="width: 136px; display: inline-block;">{{ product.name }}</span> &nbsp;
-                    <span>{{ product.quantity }}</span> -->
-                  <!-- </div> -->
-
-                  <div
-                    v-for="product in activation.products"
-                    v-if="product.total"
-                  >
-                    {{ product.total }} {{ product.name }}
-                  </div>
-                </td>
-                <td>
-                  s/.{{ parseFloat(activation.price).toFixed(2) }} <br />
-                  <a
-                    :href="`${INVOICE_ROOT}?id=${activation.id}`"
-                    target="_blank"
-                    style="color: gray"
-                    v-if="activation.status == 'approved'"
-                    >boleta</a
-                  >
-                </td>
-                <td>
-                  {{ parseFloat(activation.points).toFixed(2) }}
-                  <!-- <input v-model="activation.points" @change="change(activation)" style="width: 50px;"> -->
-                </td>
-                <td style="min-width: 200px">
-                  <span v-if="activation.pay_method == 'cash'">Efectivo</span>
-                  <div v-if="activation.pay_method == 'bank'">
-                    <span>Banco</span> <br />
-                    <small>Nombre: {{ activation.bank }}</small> <br />
-                    <small>Fecha: {{ activation.voucher_date }}</small> <br />
-                    <small>Núm: {{ activation.voucher_number }}</small>
-                  </div>
-                </td>
-                <td>
-                  <a :href="activation.voucher" target="_blank">
-                    <img
-                      :src="activation.voucher"
-                      style="max-height: 80px; max-width: 80px"
-                    />
-                  </a>
-                  <span v-if="!activation.editing">
-                    <button @click="editVoucher(activation)">Editar</button>
-                  </span>
-                  <input
-                    v-if="activation.editing"
-                    v-model="activation.newVoucher"
-                    placeholder="Nueva URL del voucher"
-                  />
-                  <button
-                    v-if="activation.editing"
-                    @click="saveVoucher(activation)"
-                  >
-                    Guardar
-                  </button>
-                </td>
-                <td>
-                  <div v-if="activation.amounts">
-                    <small>no disponible: S/{{ activation.amounts[0] }}</small>
-                    <br />
-                    <small
-                      >disponible: S/{{
-                        Number(activation.amounts[1]).toFixed(2)
-                      }}</small
-                    >
-                    <br />
-                    <small
-                      >cobrar: S/{{
-                        Number(activation.amounts[2]).toFixed(2)
-                      }}</small
-                    >
-                    <br />
-                  </div>
-                </td>
-                <td>
-                  <!-- <span class="has-text-success" v-if="activation.status == 'approved'">
-                    {{ activation.status | status }}
-                  </span> -->
-
-                  <span
-                    class="has-text-success"
-                    v-if="activation.status == 'approved'"
-                  >
-                    {{ activation.status | status }}
-                  </span>
-                  <span
-                    class="has-text-danger"
-                    v-if="activation.status == 'rejected'"
-                  >
-                    {{ activation.status | status }}
-                  </span>
-
-                  <i class="load" v-if="activation.sending"></i>
-
-                  <!-- <div class="buttons" v-if="activation.status == 'pending' && !activation.sending">
-                    <button class="button is-primary" @click="approve(activation)">Confirmar</button>
-                  </div> -->
-
-                  <div
-                    class="buttons"
-                    v-if="activation.status == 'pending' && !activation.sending"
-                  >
-                    <button
-                      class="button is-primary"
-                      @click="approve(activation)"
-                    >
-                      Aprobar
-                    </button>
-                    <button
-                      class="button is-danger"
-                      @click="reject(activation)"
-                    >
-                      Rechazar
-                    </button>
-                  </div>
-
-                  <br />
-                  <label style="cursor: pointer">
-                    <small style="color: gray">entregado: </small>
-
-                    <i
-                      class="fa-regular fa-square"
-                      style="color: gray"
-                      v-if="!activation.delivered"
-                      @click="check(activation)"
-                    ></i>
-
-                    <i
-                      class="fa-regular fa-square-check"
-                      style="color: gray"
-                      v-if="activation.delivered"
-                      @click="uncheck(activation)"
-                    ></i>
-                  </label>
-                </td>
-                <td
-                  v-if="activation.status == 'approved' && !activation.closed"
-                >
-                  <i
-                    class="fa-solid fa-xmark"
-                    style="color: #ccc; cursor: pointer; margin-right: 8px"
-                    @click="revert(activation)"
-                  ></i>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="pagination" v-if="!loading">
-          <button
-            @click="previousPage"
-            :disabled="currentPage === 1"
-            class="pagination-button"
-          >
-            Anterior
-          </button>
-          <span class="pagination-info"
-            >Página {{ currentPage }} de {{ totalPages }}</span
-          >
-          <input
-            type="number"
-            v-model="pageInput"
-            @keyup.enter="goToPage"
-            min="1"
-            :max="totalPages"
-            class="pagination-input"
-          />
-          <button @click="goToPage" class="pagination-button">Ir</button>
-          <button
-            @click="nextPage"
-            :disabled="currentPage === totalPages"
-            class="pagination-button"
-          >
-            Siguiente
-          </button>
-        </div>
-        <button
-          v-if="showScrollToTop"
-          @click="scrollToTop"
-          class="scroll-to-top"
+        <ModernTable
+          :data="tableData"
+          :columns="tableColumns"
+          title="Lista de Activaciones"
+          subtitle="Gestiona y aprueba activaciones de productos"
+          :actions="tableActions"
+          :item-actions="itemActions"
+          :show-filters="true"
+          :show-pagination="true"
+          :server-pagination="true"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-items="totalItems"
+          :items-per-page="itemsPerPage"
+          search-placeholder="Buscar por nombre, DNI o oficina..."
+          :filters="tableFilters"
+          @action="handleTableAction"
+          @item-action="handleItemAction"
+          @search="handleSearch"
+          @filter="handleFilter"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
         >
-          <i class="fa-solid fa-arrow-up"></i>
-        </button>
+          <template #cell-user="{ row }">
+            {{ formatUser(row.raw) }}
+          </template>
+          <template #cell-office="{ row }">
+            {{ getOfficeName(row.raw.office) }}
+          </template>
+          <template #cell-voucher="{ row }">
+            <span v-if="row.voucher.isImage">
+              <img
+                :src="row.voucher.url"
+                alt="Voucher"
+                class="voucher-thumb"
+                @click="openImageModal(row.voucher.url)"
+                style="
+                  max-width: 60px;
+                  max-height: 60px;
+                  cursor: pointer;
+                  border-radius: 6px;
+                  border: 1px solid #eee;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                "
+              />
+            </span>
+            <span v-else>{{ row.voucher.url }}</span>
+          </template>
+        </ModernTable>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" v-if="loading">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p>Cargando activaciones...</p>
+        </div>
+      </div>
+
+      <div
+        v-if="showImageModal"
+        class="image-modal-overlay"
+        @click.self="closeImageModal"
+      >
+        <div class="image-modal-content">
+          <button class="image-modal-close" @click="closeImageModal">
+            &times;
+          </button>
+          <img
+            :src="imageModalUrl"
+            alt="Voucher grande"
+            class="image-modal-img"
+          />
+        </div>
       </div>
     </section>
   </Layout>
@@ -251,16 +152,23 @@
 
 <script>
 import Layout from "@/views/Layout";
+import DashboardCard from "@/components/DashboardCard";
+import ModernTable from "@/components/ModernTable";
 import api from "@/api";
+import { debounce } from "lodash";
 
 const INVOICE_ROOT = process.env.VUE_APP_INVOICE_ROOT;
-console.log({ INVOICE_ROOT });
 
 export default {
-  components: { Layout },
+  components: {
+    Layout,
+    DashboardCard,
+    ModernTable,
+  },
   data() {
     return {
       activations: [],
+      allActivations: [],
       loading: true,
       title: null,
       search: null,
@@ -269,8 +177,140 @@ export default {
       itemsPerPage: 20,
       totalItems: 0,
       totalPages: 0,
-      showScrollToTop: false,
-      pageInput: 1,
+      approvedTotal: 0,
+      pendingTotal: 0,
+      showImageModal: false,
+      imageModalUrl: "",
+
+      // Table configuration
+      tableColumns: [
+        {
+          key: "id",
+          label: "#",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "date",
+          label: "Fecha",
+          sortable: true,
+          type: "date",
+        },
+        {
+          key: "user",
+          label: "Usuario",
+          sortable: true,
+        },
+        {
+          key: "office",
+          label: "Oficina",
+          sortable: true,
+        },
+        {
+          key: "products",
+          label: "Productos",
+          sortable: false,
+        },
+        {
+          key: "price",
+          label: "Precio Total",
+          sortable: true,
+          type: "currency",
+        },
+        {
+          key: "points",
+          label: "Puntos",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "pay_method",
+          label: "Medio de Pago",
+          sortable: true,
+        },
+        {
+          key: "voucher",
+          label: "Voucher",
+          sortable: false,
+        },
+        {
+          key: "balance",
+          label: "Saldo",
+          sortable: false,
+        },
+        {
+          key: "status",
+          label: "Estado",
+          sortable: true,
+          type: "status",
+        },
+      ],
+      tableActions: [
+        {
+          key: "refresh",
+          label: "Actualizar",
+          icon: "fas fa-sync-alt",
+          class: "is-info",
+        },
+        {
+          key: "export",
+          label: "Exportar",
+          icon: "fas fa-file-excel",
+          class: "is-success",
+        },
+      ],
+      itemActions: [
+        {
+          key: "approve",
+          label: "Aprobar",
+          icon: "fas fa-check",
+          class: "is-success",
+          condition: (item) => item.status === "pending",
+        },
+        {
+          key: "reject",
+          label: "Rechazar",
+          icon: "fas fa-times",
+          class: "is-danger",
+          condition: (item) => item.status === "pending",
+        },
+        {
+          key: "edit",
+          label: "Editar",
+          icon: "fas fa-edit",
+          class: "is-info",
+        },
+        {
+          key: "invoice",
+          label: "Boleta",
+          icon: "fas fa-file-invoice",
+          class: "is-warning",
+          condition: (item) => item.status === "approved",
+        },
+      ],
+      tableFilters: [
+        {
+          key: "status",
+          label: "Estado",
+          type: "select",
+          options: [
+            { value: "", label: "Todos" },
+            { value: "pending", label: "Pendiente" },
+            { value: "approved", label: "Aprobada" },
+            { value: "rejected", label: "Rechazada" },
+          ],
+        },
+        {
+          key: "pay_method",
+          label: "Medio de Pago",
+          type: "select",
+          options: [
+            { value: "", label: "Todos" },
+            { value: "cash", label: "Efectivo" },
+            { value: "bank", label: "Banco" },
+          ],
+        },
+      ],
     };
   },
   computed: {
@@ -280,369 +320,512 @@ export default {
     account() {
       return this.$store.state.account;
     },
+    tableData() {
+      return this.activations.map((activation, index) => {
+        // Validar price y points
+        let price = "-";
+        if (
+          activation.price !== null &&
+          activation.price !== undefined &&
+          activation.price !== "" &&
+          !isNaN(Number(activation.price))
+        ) {
+          price = Number(activation.price).toFixed(2);
+        }
+
+        let points = "-";
+        if (
+          activation.points !== null &&
+          activation.points !== undefined &&
+          activation.points !== "" &&
+          !isNaN(Number(activation.points))
+        ) {
+          points = Number(activation.points).toFixed(2);
+        }
+
+        // Usuario
+        const userName =
+          (activation.name ? activation.name : "") +
+          " " +
+          (activation.lastName ? activation.lastName : "");
+        const user = {
+          name: userName.trim() || "N/A",
+          dni: activation.dni || "-",
+          phone: activation.phone || "-",
+        };
+
+        // Oficina
+        const office = activation.office || "N/A";
+
+        // Productos
+        let products = "-";
+        if (Array.isArray(activation.products)) {
+          products = activation.products
+            .filter((p) => Number(p.total) > 0)
+            .map((p) => `${p.total} ${p.name}`)
+            .join(", ");
+          if (!products) products = "-";
+        }
+
+        // Voucher
+        let voucherIsImage = false;
+        let voucherUrl = activation.voucher || "";
+        if (voucherUrl && typeof voucherUrl === "string") {
+          voucherIsImage =
+            /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(voucherUrl);
+        }
+
+        return {
+          id:
+            this.totalItems -
+            (this.currentPage - 1) * this.itemsPerPage -
+            index,
+          date: activation.date
+            ? new Date(activation.date).toLocaleDateString()
+            : "-",
+          user,
+          office,
+          products,
+          price,
+          points,
+          pay_method: this.formatPayMethod(activation) || "-",
+          voucher: voucherIsImage
+            ? { url: voucherUrl, isImage: true }
+            : { url: voucherUrl, isImage: false },
+          balance: this.formatBalance(activation) || "-",
+          status: activation.status || "-",
+          raw: activation,
+        };
+      });
+    },
+    approvedActivations() {
+      return this.allActivations.filter((a) => a.status === "approved");
+    },
+    pendingActivations() {
+      return this.allActivations.filter((a) => a.status === "pending");
+    },
+    totalAmount() {
+      return this.allActivations.reduce((sum, a) => sum + (a.amount || 0), 0);
+    },
   },
   filters: {
-    status(val) {
-      if (val == "approved") return "Aprobada";
-      if (val == "pending") return "Pendiente";
-      if (val == "rejected") return "Rechazada";
+    status(value) {
+      if (value == "approved") return "Aprobada";
+      if (value == "pending") return "Pendiente";
+      if (value == "rejected") return "Rechazada";
+      return value;
     },
     date(val) {
       return new Date(val).toLocaleDateString();
-      // return new Date(val).toLocaleString()
     },
   },
-  created() {
+  beforeRouteUpdate(to, from, next) {
+    this.GET(to.params.filter);
+    next();
+  },
+  async created() {
     const account = JSON.parse(localStorage.getItem("session"));
-
     this.$store.commit("SET_ACCOUNT", account);
-
-    this.GET(this.$route.params.filter);
-  },
-  mounted() {
-    window.addEventListener("scroll", this.handleScroll);
-  },
-  beforeDestroy() {
-    window.removeEventListener("scroll", this.handleScroll);
+    await this.GET(this.$route.params.filter);
+    await this.fetchStatusTotals();
   },
   methods: {
-    async GET(filter) {
-      console.log(
-        "Sending request with page:",
-        this.currentPage,
-        "Type:",
-        typeof this.currentPage
-      );
-      const { data } = await api.activations.GET({
-        filter,
-        account: this.account.id,
-        page: this.currentPage,
-        limit: this.itemsPerPage,
-        search: this.search || undefined,
-      });
+    async GET(filter = "all") {
+      this.loading = true;
 
-      this.loading = false;
+      try {
+        console.log("Loading activations with params:", {
+          filter,
+          account: this.account.id,
+          page: this.currentPage,
+          limit: this.itemsPerPage,
+          search: this.search,
+        });
 
-      if (data.error && data.msg == "invalid filter") {
-        this.$router.push("activations/all");
-        return;
+        const { data } = await api.Activations.GET({
+          filter,
+          account: this.account.id,
+          page: this.currentPage,
+          limit: this.itemsPerPage,
+          search: this.search,
+        });
+
+        // Obtener todas las activaciones para los totales
+        const { data: allData } = await api.Activations.GET({ all: true });
+        this.allActivations = allData.activations || [];
+        this.activations = data.activations || [];
+        this.totalItems = data.totalItems || 0;
+        this.totalPages = data.totalPages || 0;
+
+        console.log("Processed activations:", {
+          count: this.activations.length,
+          totalItems: this.totalItems,
+          totalPages: this.totalPages,
+        });
+
+        // Enriquecer con información de oficinas
+        this.activations.forEach((activation) => {
+          const office = this.accounts.find((x) => x.id == activation.office);
+          activation.office = (office && office.name) || "N/A";
+        });
+
+        if (filter == "all") this.title = "Todas las Activaciones";
+        if (filter == "pending") this.title = "Activaciones Pendientes";
+      } catch (error) {
+        console.error("Error loading activations:", error);
+        this.$toast.error("Error al cargar las activaciones");
+      } finally {
+        this.loading = false;
       }
-
-      this.totalItems = data.total;
-      this.totalPages = data.totalPages;
-      this.activations = data.activations.map((i) => ({
-        ...i,
-        sending: false,
-        visible: true,
-        editing: false,
-        newVoucher: "",
-      }));
-
-      this.activations.forEach((activation) => {
-        const office = this.accounts.find((x) => x.id == activation.office);
-        if (office) activation.office = office.name;
-      });
-
-      this.activations.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      this.title =
-        filter === "all" ? "Todas las Activaciones" : "Activaciones Pendientes";
     },
-    async changePage(page) {
-      console.log("Changing to page:", page, "Type:", typeof page);
+
+    formatProducts(activation) {
+      if (activation.products) {
+        return activation.products
+          .filter((p) => p.total > 0)
+          .map((p) => `${p.total} ${p.name}`)
+          .join(", ");
+      }
+      return "N/A";
+    },
+
+    formatPayMethod(activation) {
+      if (activation.pay_method === "cash") {
+        return "Efectivo";
+      }
+      if (activation.pay_method === "bank") {
+        return `Banco - ${activation.bank}`;
+      }
+      return activation.pay_method;
+    },
+
+    formatBalance(activation) {
+      if (activation.amounts) {
+        return {
+          notAvailable: activation.amounts[0],
+          available: Number(activation.amounts[1]).toFixed(2),
+          toCollect: Number(activation.amounts[2]).toFixed(2),
+        };
+      }
+      return null;
+    },
+
+    async handleTableAction(action) {
+      if (action === "refresh") {
+        await this.GET(this.$route.params.filter);
+      } else if (action === "export") {
+        this.download();
+      }
+    },
+
+    async handleItemAction({ action, item }) {
+      const activation = item.raw;
+      if (action === "approve") {
+        await this.approve(activation);
+      } else if (action === "reject") {
+        await this.reject(activation);
+      } else if (action === "edit") {
+        this.editVoucher(activation);
+      } else if (action === "invoice") {
+        window.open(`${this.INVOICE_ROOT}?id=${activation.id}`, "_blank");
+      }
+    },
+
+    handleSearch: debounce(function (search) {
+      this.search = search;
+      this.currentPage = 1;
+      this.GET(this.$route.params.filter);
+    }, 300),
+
+    handleFilter(filters) {
+      console.log("Filters applied:", filters);
+      this.currentPage = 1;
+      this.GET(this.$route.params.filter);
+    },
+
+    async handlePageChange(page) {
+      console.log("Page changed to:", page);
       this.currentPage = page;
       await this.GET(this.$route.params.filter);
     },
-    async nextPage() {
-      await this.changePage(this.currentPage + 1);
-    },
-    async previousPage() {
-      await this.changePage(this.currentPage - 1);
+
+    async handlePageSizeChange(pageSize) {
+      console.log("Page size changed to:", pageSize);
+      this.itemsPerPage = pageSize;
+      this.currentPage = 1;
+      await this.GET(this.$route.params.filter);
     },
 
     async approve(activation) {
-      if (!confirm("Desea confirmar la activación?")) return;
+      if (!confirm("¿Desea aprobar esta activación?")) return;
 
       activation.sending = true;
 
-      const { data } = await api.activations.POST({
-        action: "approve",
-        id: activation.id,
-      });
-      console.log({ data });
+      try {
+        const { data } = await api.Activations.POST({
+          action: "approve",
+          id: activation.id,
+        });
 
-      activation.sending = false;
-
-      // error
-      if (data.error && data.msg == "already approved")
-        return (activation.status = "approved");
-      if (data.error && data.msg == "already rejected")
-        return (affiliation.status = "rejected");
-
-      // success
-      activation.status = "approved";
+        activation.status = "approved";
+      } catch (error) {
+        console.error("Error approving activation:", error);
+      } finally {
+        activation.sending = false;
+      }
     },
+
     async reject(activation) {
-      if (!confirm("Desea rechazar la activación?")) return;
+      if (!confirm("¿Desea rechazar esta activación?")) return;
 
       activation.sending = true;
 
-      const { data } = await api.activations.POST({
-        action: "reject",
-        id: activation.id,
-      });
-      console.log({ data });
+      try {
+        const { data } = await api.Activations.POST({
+          action: "reject",
+          id: activation.id,
+        });
 
-      activation.sending = false;
-
-      // error
-      if (data.error && data.msg == "already approved")
-        return (activation.status = "approved");
-      if (data.error && data.msg == "already rejected")
-        return (activation.status = "rejected");
-
-      // success
-      activation.status = "rejected";
-    },
-    input() {
-      if (this.searchTimeout) {
-        clearTimeout(this.searchTimeout);
+        activation.status = "rejected";
+      } catch (error) {
+        console.error("Error rejecting activation:", error);
+      } finally {
+        activation.sending = false;
       }
-
-      this.searchTimeout = setTimeout(async () => {
-        this.currentPage = 1;
-        await this.GET(this.$route.params.filter);
-      }, 1500);
-    },
-
-    async check(activation) {
-      if (
-        !confirm("Seguro que desea marcar entregado? esto no se puede revertir")
-      )
-        return;
-      // console.log('check', { activation })
-      activation.delivered = true;
-
-      const { data } = await api.activations.POST({
-        action: "check",
-        id: activation.id,
-      });
-    },
-    async uncheck(activation) {
-      if (affiliation.delivered) return;
-      // console.log('uncheck', { activation })
-      activation.delivered = false;
-
-      const { data } = await api.activations.POST({
-        action: "uncheck",
-        id: activation.id,
-      });
-    },
-
-    async revert(activation) {
-      if (!confirm("Desea revertir la activación?")) return;
-
-      console.log("revert ...");
-
-      const { data } = await api.activations.POST({
-        action: "revert",
-        id: activation.id,
-      });
-      location.reload();
-    },
-
-    async changePage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-        await this.GET(this.$route.params.filter);
-      }
-    },
-
-    async nextPage() {
-      await this.changePage(this.currentPage + 1);
-    },
-
-    async previousPage() {
-      await this.changePage(this.currentPage - 1);
-    },
-
-    // async change(activation) {
-    //   const { data } = await api.activations.POST({ action: 'change', id: activation.id,
-    //                                                                   points: activation.points })
-    // },
-
-    download() {
-      let filename = "Activaciones.xlsx";
-      let data_xls = [];
-
-      this.activations.forEach((a) => {
-        let disponible = 0,
-          no_disponible = 0;
-
-        if (a.amounts) {
-          no_disponible = a.amounts[0];
-          disponible = a.amounts[1];
-        }
-
-        let cash = disponible + no_disponible;
-
-        let pay = 0;
-
-        if (a.amounts) {
-          pay = a.amounts[2];
-        } else {
-          pay = a.price;
-        }
-
-        let efectivo = 0,
-          banco = 0;
-
-        if (!a.pay_method) efectivo = pay;
-        if (a.pay_method == "cash") efectivo = pay;
-        if (a.pay_method == "bank") banco = pay;
-
-        for (let p of a.products) {
-          if (p.total) {
-            data_xls.push({
-              ID: a.id,
-
-              "USUARIO (NO. DE CÉDULA)": a.dni,
-              "NOMBRES COMPLETOS": a.name + " " + a.lastName,
-              "FECHA DE ACTIVACIÓN": new Date(a.date).toLocaleDateString(),
-
-              // 'PLAN': a.plan.name,
-              "VALOR DE LA COMPRA": a.price,
-
-              KASH: cash,
-              "SALDO DISPONIBLE DE CASH": disponible,
-              "SALDO NO DISPONIBLE DE CASH": no_disponible,
-
-              EFECTIVO: efectivo,
-              BANCO: banco,
-              "NOMBRE BANCO": a.bank,
-              "FECHA VOUCHER ": a.voucher_date
-                ? new Date(a.voucher_date).toLocaleDateString()
-                : "",
-              "NUMERO DE VOUCHER ": a.voucher_number,
-              VOUCHER: a.voucher,
-
-              "TOTAL APORTE": cash + pay,
-
-              PRODUCTO: p.name,
-              PRECIO: p.price,
-              // 'POINTS': p.points,
-
-              ESTATUS: a.status,
-              OFICINA: a.office,
-              "ENTRAGA DE PRODUCTOS": a.delivered ? "Entregado" : "Pendiente",
-            });
-          }
-        }
-      });
-
-      var ws = XLSX.utils.json_to_sheet(data_xls);
-      var wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Activaciones");
-      XLSX.writeFile(wb, filename);
     },
 
     editVoucher(activation) {
-      console.log("Editando voucher para:", activation);
       activation.editing = true;
-      activation.newVoucher = activation.voucher; // Prellenar el input con la URL actual
+      activation.newVoucher = activation.voucher;
     },
 
     async saveVoucher(activation) {
-      if (!activation.newVoucher) return; // Validar que haya una nueva URL
+      try {
+        const { data } = await api.Activations.POST({
+          action: "update_voucher",
+          id: activation.id,
+          voucher: activation.newVoucher,
+        });
 
-      const { data } = await api.activations.POST({
-        action: "updateVoucher",
-        id: activation.id,
-        voucher: activation.newVoucher,
-      });
-
-      if (!data.error) {
-        activation.voucher = activation.newVoucher; // Actualizar la URL en la vista
-        activation.editing = false; // Cerrar el input
-      } else {
-        alert("Error al actualizar el voucher");
+        activation.voucher = activation.newVoucher;
+        activation.editing = false;
+      } catch (error) {
+        console.error("Error updating voucher:", error);
       }
     },
-    handleScroll() {
-      this.showScrollToTop = window.scrollY >= document.body.offsetHeight / 2;
+
+    download() {
+      // Implement download functionality
+      console.log("Downloading report...");
     },
-    scrollToTop() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+    openImageModal(url) {
+      this.imageModalUrl = url;
+      this.showImageModal = true;
     },
-    async goToPage() {
-      const page = Math.max(1, Math.min(this.pageInput, this.totalPages)); // Asegurarse de que la página esté dentro del rango
-      this.currentPage = page;
-      await this.GET(this.$route.params.filter);
+    closeImageModal() {
+      this.showImageModal = false;
+      this.imageModalUrl = "";
+    },
+
+    async fetchStatusTotals() {
+      try {
+        const { data: approved } = await api.Activations.GET({
+          filter: "approved",
+          page: 1,
+          limit: 1,
+          account: this.account.id,
+        });
+        this.approvedTotal = approved.total || 0;
+      } catch (e) {
+        this.approvedTotal = 0;
+      }
+      try {
+        const { data: pending } = await api.Activations.GET({
+          filter: "pending",
+          page: 1,
+          limit: 1,
+          account: this.account.id,
+        });
+        this.pendingTotal = pending.total || 0;
+      } catch (e) {
+        this.pendingTotal = 0;
+      }
+    },
+
+    getOfficeName(officeId) {
+      console.log(
+        "Buscando officeId:",
+        officeId,
+        "en accounts:",
+        this.accounts.map((x) => x.id)
+      );
+      const officeObj = this.accounts.find(
+        (x) => String(x.id) === String(officeId)
+      );
+      if (officeObj && officeObj.name) {
+        console.log("Encontrado:", officeObj.name);
+        return officeObj.name;
+      } else if (typeof officeId === "string" && officeId) {
+        return officeId.charAt(0).toUpperCase() + officeId.slice(1);
+      }
+      return "N/A";
+    },
+    formatUser(activation) {
+      const name = [activation.name, activation.lastName]
+        .filter(Boolean)
+        .join(" ");
+      const dni = activation.dni ? `DNI: ${activation.dni}` : "";
+      const phone = activation.phone ? `Celular: ${activation.phone}` : "";
+      let extra = [dni, phone].filter(Boolean).join(", ");
+      return extra ? `${name} (${extra})` : name;
     },
   },
 };
 </script>
 
-<style>
-.scroll-to-top {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  display: inline-block;
-  padding: 10px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  z-index: 1000;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-.scroll-to-top:hover {
-  background-color: #0056b3;
-}
-.scroll-to-top i {
-  font-size: 20px;
+<style scoped>
+.activations-section {
+  min-height: 100vh;
+  background: #f8f9fa;
 }
 
-.pagination {
+.page-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem 0;
+  margin-bottom: 2rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.page-subtitle {
+  margin: 0.5rem 0 0 0;
+  opacity: 0.9;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 20px 0;
+  z-index: 9999;
 }
 
-.pagination-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 10px 15px;
-  margin: 0 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.pagination-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.pagination-button:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.pagination-info {
-  margin: 0 10px;
-  font-weight: bold;
-}
-
-.pagination-input {
-  width: 50px;
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin: 0 5px;
+.loading-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
   text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.voucher-thumb {
+  transition: transform 0.2s;
+}
+.voucher-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.image-modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 90vw;
+  max-height: 90vh;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.image-modal-img {
+  max-width: 80vw;
+  max-height: 70vh;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+.image-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: #333;
+  cursor: pointer;
+  z-index: 2;
 }
 </style>

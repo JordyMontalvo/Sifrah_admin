@@ -1,80 +1,91 @@
-import Vue from 'vue'
-import Router from 'vue-router'
+import Vue from "vue";
+import Router from "vue-router";
 
-import Login        from './views/Login.vue'
-import Sucursal     from './views/Sucursal.vue'
-import Logout       from './views/Logout.vue'
-import Users        from './views/Users.vue'
-import Affiliations from './views/Affiliations.vue'
-import Collects     from './views/Collects.vue'
-import OfficeCollects     from './views/OfficeCollects.vue'
-import Activations  from './views/Activations.vue'
+import Login from "./views/Login.vue";
+import Sucursal from "./views/Sucursal.vue";
+import Logout from "./views/Logout.vue";
+import Dashboard from "./views/Dashboard.vue";
+import Users from "./views/Users.vue";
+import Affiliations from "./views/Affiliations.vue";
+import Collects from "./views/Collects.vue";
+import OfficeCollects from "./views/OfficeCollects.vue";
+import Activations from "./views/Activations.vue";
 // import Promos       from './views/Promos.vue'
-import Banner       from './views/Banner.vue'
-import Tree         from './views/Tree.vue'
-import Stock        from './views/Stock.vue'
-import Offices      from './views/Offices.vue'
-import Operations   from './views/Operations.vue'
-import Pay          from './views/Pay.vue'
-import Wallet       from './views/Wallet.vue'
-import Products     from './views/Products.vue'
-import Kadex        from './views/Kadex.vue'
-import Closed       from './views/Closed.vue'
-import Reports      from './views/Reports.vue'
-import Transaction        from './views/Trans.vue'
+import Banner from "./views/Banner.vue";
+import Tree from "./views/Tree.vue";
+import Stock from "./views/Stock.vue";
+import Offices from "./views/Offices.vue";
+import Operations from "./views/Operations.vue";
+import Pay from "./views/Pay.vue";
+import Wallet from "./views/Wallet.vue";
+import Products from "./views/Products.vue";
+import Plans from "./views/Plans.vue";
+import Kadex from "./views/Kadex.vue";
+import Closed from "./views/Closed.vue";
+import Reports from "./views/Reports.vue";
+import Transaction from "./views/Trans.vue";
 
 // import Reports      from './views/Reports.vue'
 
-Vue.use(Router)
+Vue.use(Router);
 
 const routes = [
   {
-    path: '*',
-    redirect: '/login'
+    path: "*",
+    redirect: "/dashboard",
   },
   {
-    path: '/login',
+    path: "/",
+    redirect: "/dashboard",
+  },
+  {
+    path: "/login",
     component: Login,
-    meta: { requiresNoAuth: true }
+    meta: { requiresNoAuth: true },
   },
-    {
-    path: '/trans',
+  {
+    path: "/dashboard",
+    component: Dashboard,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/trans",
     component: Transaction,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/sucursal',
+    path: "/sucursal",
     component: Sucursal,
-    meta: { requiresNoAuth: true }
+    meta: { requiresNoAuth: true },
   },
   {
-    path: '/logout',
-    component: Logout
+    path: "/logout",
+    component: Logout,
   },
   {
-    path: '/users/:filter',
+    path: "/users/:filter",
     component: Users,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/affiliations/:filter',
+    path: "/affiliations/:filter",
     component: Affiliations,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/collects/:filter',
+    path: "/collects/:filter",
     component: Collects,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/office-collects/:filter',
+    path: "/office-collects/:filter",
     component: OfficeCollects,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/activations/:filter',
+    path: "/activations/:filter",
     component: Activations,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   // {
   //   path: '/promotions/:filter',
@@ -83,80 +94,90 @@ const routes = [
   //   meta: { requiresAuth: true }
   // },
   {
-    path: '/banner',
+    path: "/banner",
     component: Banner,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/tree',
+    path: "/tree",
     component: Tree,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/stock',
+    path: "/stock",
     component: Stock,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/offices',
+    path: "/offices",
     component: Offices,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
 
   {
-    path: '/operations/:filter',
+    path: "/operations/:filter",
     component: Operations,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/pay',
+    path: "/pay",
     component: Pay,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/wallet',
+    path: "/wallet",
     component: Wallet,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/products',
+    path: "/products",
     component: Products,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/kadex',
+    path: "/plans",
+    component: Plans,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/kadex",
     component: Kadex,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/closed',
+    path: "/closed",
     component: Closed,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
-   {
-     path: '/reports',
-     component: Reports,
-    meta: { requiresAuth: true }
-   },
-]
+  {
+    path: "/reports",
+    component: Reports,
+    meta: { requiresAuth: true },
+  },
+];
 
 const router = new Router({
-  mode: 'history',
+  mode: "history",
   base: process.env.BASE_URL,
   routes,
-})
+});
 
 router.beforeEach((to, from, next) => {
+  const requiresNoAuth = to.matched.some(
+    (record) => record.meta.requiresNoAuth
+  );
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
 
-  const requiresNoAuth = to.matched.some(record => record.meta.requiresNoAuth)
-  const requiresAuth   = to.matched.some(record => record.meta.requiresAuth)
+  const session = localStorage.getItem("session");
 
-  const session = localStorage.getItem('session')
+  if (requiresNoAuth && session) {
+    next({ path: "/dashboard" });
+  }
+  if (requiresAuth && !session) {
+    next({ path: "/login" });
+  }
 
-  if (requiresNoAuth &&  session) { next({ path: '/affiliations/all' }) }
-  if (requiresAuth   && !session) { next({ path: '/login' }) }
+  next();
+});
 
-  next()
-})
-
-export default router
+export default router;

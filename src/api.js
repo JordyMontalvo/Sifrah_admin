@@ -5,10 +5,10 @@ axios.defaults.baseURL = process.env.VUE_APP_SERVER + "/api";
 class API {
   constructor({
     users,
-    affiliations,
+    Affiliations,
     Collects,
     OfficeCollects,
-    activations,
+    Activations,
     products,
     kadex,
     closeds,
@@ -20,14 +20,14 @@ class API {
     offices,
     stock,
     reports,
-    plans,
+    Plans,
     transaction,
   }) {
     this.users = users;
-    this.affiliations = affiliations;
+    this.Affiliations = Affiliations;
     this.Collects = Collects;
     this.OfficeCollects = OfficeCollects;
-    this.activations = activations;
+    this.Activations = Activations;
     this.products = products;
     this.kadex = kadex;
     this.closeds = closeds;
@@ -39,7 +39,7 @@ class API {
     this.offices = offices;
     this.stock = stock;
     this.reports = reports;
-    this.plans = plans;
+    this.Plans = Plans;
     this.transaction = transaction;
   }
 }
@@ -108,8 +108,8 @@ class Products {
   GET() {
     return axios.get(`/admin/products`);
   }
-  POST({ action, id, data }) {
-    return axios.post(`/admin/products`, { action, id, data });
+  POST(data) {
+    return axios.post(`/admin/products`, data);
   }
 }
 
@@ -200,6 +200,9 @@ class Plans {
   GET() {
     return axios.get(`/admin/plans`);
   }
+  POST({ action, id, data }) {
+    return axios.post(`/admin/plans`, { action, id, data });
+  }
 }
 
 class Transaction {
@@ -216,10 +219,10 @@ class Transaction {
 
 export default new API({
   users: new Users(),
-  affiliations: new Affiliations(),
+  Affiliations: new Affiliations(),
   Collects: new Collects(),
   OfficeCollects: new OfficeCollects(),
-  activations: new Activations(),
+  Activations: new Activations(),
   products: new Products(),
   kadex: new Kadex(),
   closeds: new Closeds(),
@@ -231,6 +234,6 @@ export default new API({
   offices: new Offices(),
   stock: new Stock(),
   reports: new Reports(),
-  plans: new Plans(),
+  Plans: new Plans(),
   transaction: new Transaction(),
 });

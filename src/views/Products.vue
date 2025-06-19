@@ -1,468 +1,1148 @@
 <template>
   <Layout>
-    <i class="load" v-if="loading"></i>
-
-    <section v-if="!loading">
-      <div class="notification" style="margin-bottom: 0">
+    <section class="products-section">
+      <!-- Page Header -->
+      <div class="page-header">
         <div class="container">
-          <strong>Productos</strong>
-          <button
-            class="button is-small is-info"
-            style="float: right"
-            @click="enableAllPlans"
-          >
-            Habilitar todos los planes
-          </button>
+          <div class="header-content">
+            <div class="header-left">
+              <h1 class="page-title">Productos</h1>
+              <p class="page-subtitle">
+                Gestiona el catálogo de productos del sistema
+              </p>
+            </div>
+
+            <div class="header-actions">
+              <router-link to="/plans" class="button is-primary">
+                <span class="icon">
+                  <i class="fas fa-list"></i>
+                </span>
+                <span>Ver Planes</span>
+              </router-link>
+
+              <button class="button is-success" @click="enableAllPlans">
+                <span class="icon">
+                  <i class="fas fa-check-double"></i>
+                </span>
+                <span>Habilitar Todos</span>
+              </button>
+
+              <button class="button is-info" @click="showAddModal = true">
+                <span class="icon">
+                  <i class="fas fa-plus"></i>
+                </span>
+                <span>Nuevo Producto</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- Stats Cards -->
       <div class="container">
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Categoría</th>
-                <th>Descripción</th>
-                <th>Precios Compra</th>
-                <th>Puntos</th>
-                <th>Peso</th>
-                <th>Imágen</th>
-                <th v-for="plan in plans" :key="plan.id">{{ plan.name }}</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(product, i) in products" :key="i">
-                <th>{{ i + 1 }}</th>
-                <!-- Código -->
-                <td>
-                  <span v-if="!product.edit">{{ product.code }}</span>
-                  <input
-                    class="input"
-                    placeholder="Código"
-                    style="max-width: 220px"
-                    v-model="product._code"
-                    v-if="product.edit"
-                  />
-                </td>
-                <!-- Nombre Producto -->
-                <td>
-                  <span v-if="!product.edit">{{ product.name }}</span>
-                  <input
-                    class="input"
-                    placeholder="Nombre"
-                    style="max-width: 220px"
-                    v-model="product._name"
-                    v-if="product.edit"
-                  />
-                </td>
-                <!-- Categoría Producto -->
-                <td style="width: 200px">
-                  <span v-if="!product.edit">{{ product.type }}</span>
-                  <input
-                    class="input"
-                    placeholder="Categoría"
-                    style="max-width: 220px"
-                    v-model="product._type"
-                    v-if="product.edit"
-                  />
-                </td>
+        <div class="stats-grid">
+          <DashboardCard
+            :value="products.length"
+            label="Total Productos"
+            icon="fas fa-box"
+            color="primary"
+            :description="`En el catálogo`"
+          />
 
-                <td>
-                  <span v-if="!product.edit">{{ product.description }}</span>
+          <DashboardCard
+            :value="activeProducts.length"
+            label="Productos Activos"
+            icon="fas fa-check-circle"
+            color="success"
+            :description="`Asignados a planes`"
+          />
+
+          <DashboardCard
+            :value="categories.length"
+            label="Categorías"
+            icon="fas fa-tags"
+            color="info"
+            :description="`Diferentes tipos`"
+          />
+
+          <DashboardCard
+            :value="totalWeight"
+            label="Peso Total"
+            icon="fas fa-weight-hanging"
+            color="warning"
+            :unit="'kg'"
+            :description="`Suma de todos los productos`"
+          />
+        </div>
+      </div>
+
+      <!-- Modern Table -->
+      <div class="container">
+        <ModernTable
+          :data="tableData"
+          :columns="tableColumns"
+          title="Catálogo de Productos"
+          subtitle="Gestiona productos y sus asignaciones a planes"
+          :actions="tableActions"
+          :item-actions="itemActions"
+          :show-filters="true"
+          :show-pagination="false"
+          search-placeholder="Buscar por nombre, código o categoría..."
+          :filters="tableFilters"
+          @action="handleTableAction"
+          @item-action="handleItemAction"
+          @search="handleSearch"
+          @filter="handleFilter"
+        >
+          <template #cell-img="{ value }">
+            <span v-if="value">
+              <img
+                :src="value"
+                alt="Imagen del producto"
+                class="product-thumb"
+                @click="openImageModal(value)"
+                style="
+                  max-width: 60px;
+                  max-height: 60px;
+                  cursor: pointer;
+                  border-radius: 6px;
+                  border: 1px solid #eee;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                "
+              />
+            </span>
+            <span v-else style="color: #aaa">Sin imagen</span>
+          </template>
+        </ModernTable>
+      </div>
+
+      <!-- Add Product Modal -->
+      <div class="modal" :class="{ 'is-active': showAddModal }">
+        <div class="modal-background" @click="showAddModal = false"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Nuevo Producto</p>
+            <button class="delete" @click="showAddModal = false"></button>
+          </header>
+
+          <section class="modal-card-body">
+            <div class="form-grid">
+              <div class="field">
+                <label class="label">Código</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    v-model="newProduct.code"
+                    placeholder="Código del producto"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Nombre</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    v-model="newProduct.name"
+                    placeholder="Nombre del producto"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Categoría</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    v-model="newProduct.type"
+                    placeholder="Categoría del producto"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Descripción</label>
+                <div class="control">
                   <textarea
                     class="textarea"
-                    placeholder="Descripción"
-                    style="max-width: 220px"
-                    v-model="product._description"
-                    v-if="product.edit"
+                    v-model="newProduct.description"
+                    placeholder="Descripción del producto"
                   ></textarea>
-                </td>
-                <!-- Precio Producto -->
-                <td>
-                  <span v-if="!product.edit">{{ product.price }}</span>
-                  <div v-if="product.edit">
-                    <input
-                      class="input"
-                      type="number"
-                      style="max-width: 100px; min-width: 80px"
-                      v-model.number="product._price"
-                    />
-                  </div>
-                </td>
-                <!-- Puntos Producto -->
-                <td>
-                  <span v-if="!product.edit">{{ product.points }}</span>
-                  <div v-if="product.edit">
-                    <input
-                      class="input"
-                      type="number"
-                      style="max-width: 100px; min-width: 80px"
-                      v-model.number="product._points"
-                    />
-                  </div>
-                </td>
-                <!-- Peso Producto -->
-                <td>
-                  <span v-if="!product.edit">{{ product.weight }}</span>
-                  <div v-if="product.edit">
-                    <input
-                      class="input"
-                      type="number"
-                      style="max-width: 100px; min-width: 80px"
-                      v-model.number="product._weight"
-                    />
-                  </div>
-                </td>
-                <!-- Imágen Producto -->
-                <td>
-                  <!-- <small v-if="!product.edit">{{ product.img }}</small> -->
-                  <small v-if="!product.edit"
-                    ><a :href="product.img" target="_blank">link</a></small
-                  >
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Precio</label>
+                <div class="control">
                   <input
                     class="input"
-                    placeholder="Imágen"
-                    style="max-width: 220px"
-                    v-model="product._img"
-                    v-if="product.edit"
+                    type="number"
+                    v-model.number="newProduct.price"
+                    placeholder="0.00"
                   />
-                </td>
-                <!-- Plan Checkboxes -->
-                <td v-for="plan in plans" :key="plan.id">
-                  <input
-                    type="checkbox"
-                    v-model="product._plans[plan.id]"
-                    v-if="product.edit"
-                  />
-                  <span v-else>{{
-                    product.plans && product.plans[plan.id] ? "Sí" : "No"
-                  }}</span>
-                </td>
-                <!-- Edit Options -->
-                <td v-if="product.edit">
-                  <button @click="remove(product)">Eliminar</button>
-                  <br /><br />
-                  <i
-                    class="fa-solid fa-check"
-                    style="color: #ccc; cursor: pointer; margin-right: 8px"
-                    @click="save(product)"
-                  ></i>
-                  <i
-                    class="fa-solid fa-xmark"
-                    style="color: #ccc; cursor: pointer; margin-right: 8px"
-                    @click="cancel(product)"
-                  ></i>
-                </td>
-                <td>
-                  <i
-                    class="fa-regular fa-pen-to-square"
-                    style="color: #ccc; cursor: pointer; margin-right: 8px"
-                    v-if="!product.edit"
-                    @click="edit(product)"
-                  ></i>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <br />
+                </div>
+              </div>
 
-      <div class="notification" style="margin-bottom: 0">
-        <div class="container">
-          <strong>Nuevo producto</strong>
+              <div class="field">
+                <label class="label">Puntos</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="number"
+                    v-model.number="newProduct.points"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Peso</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="number"
+                    v-model.number="newProduct.weight"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Imagen URL</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    v-model="newProduct.img"
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Asignar a Planes</label>
+              <div class="plans-grid">
+                <label
+                  v-for="plan in plans"
+                  :key="plan.id"
+                  class="checkbox-wrapper"
+                >
+                  <input type="checkbox" v-model="newProduct.plans[plan.id]" />
+                  <span class="checkmark"></span>
+                  <span class="plan-name">{{ plan.name }}</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <footer class="modal-card-foot">
+            <button class="button is-success" @click="addProduct">
+              <span class="icon">
+                <i class="fas fa-save"></i>
+              </span>
+              <span>Guardar Producto</span>
+            </button>
+            <button class="button" @click="showAddModal = false">
+              Cancelar
+            </button>
+          </footer>
         </div>
       </div>
 
-      <div class="container">
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Categoría</th>
-                <th>Precios Compra</th>
-                <th>Puntos</th>
-                <th>Peso</th>
-                <th v-for="plan in plans" :key="plan.id">{{ plan.name }}</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <!-- Código Producto -->
-                <td>
+      <!-- Edit Product Modal -->
+      <div class="modal" :class="{ 'is-active': showEditModal }">
+        <div class="modal-background" @click="closeEditModal"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Editar Producto</p>
+            <button
+              class="delete"
+              aria-label="close"
+              @click="closeEditModal"
+            ></button>
+          </header>
+          <section class="modal-card-body">
+            <div class="form-grid">
+              <div class="field">
+                <label class="label">Código</label>
+                <div class="control">
                   <input
                     class="input"
-                    placeholder="Código"
-                    style="max-width: 220px"
-                    v-model="new_product.code"
+                    v-model="editingProduct.code"
+                    placeholder="Código del producto"
                   />
-                </td>
-                <!-- Nombre Producto -->
-                <td>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Nombre</label>
+                <div class="control">
                   <input
                     class="input"
-                    placeholder="Nombre"
-                    style="max-width: 220px"
-                    v-model="new_product.name"
+                    v-model="editingProduct.name"
+                    placeholder="Nombre del producto"
                   />
-                </td>
-                <!-- Categoría -->
-                <td>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Categoría</label>
+                <div class="control">
                   <input
                     class="input"
-                    placeholder="Categoría"
-                    style="max-width: 220px"
-                    v-model="new_product.type"
+                    v-model="editingProduct.type"
+                    placeholder="Categoría del producto"
                   />
-                </td>
-                <!-- Precio Compra -->
-                <td>
-                  <input
-                    class="input"
-                    type="number"
-                    style="max-width: 100px; min-width: 80px"
-                    v-model.number="new_product.price"
-                  />
-                </td>
-                <!-- Puntos -->
-                <td>
-                  <input
-                    class="input"
-                    type="number"
-                    style="max-width: 100px; min-width: 80px"
-                    v-model.number="new_product.points"
-                  />
-                </td>
-                <!-- Peso -->
-                <td>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Descripción</label>
+                <div class="control">
+                  <textarea
+                    class="textarea"
+                    v-model="editingProduct.description"
+                    placeholder="Descripción del producto"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Precio</label>
+                <div class="control">
                   <input
                     class="input"
                     type="number"
-                    style="max-width: 100px; min-width: 80px"
-                    v-model.number="new_product.weight"
+                    step="0.01"
+                    v-model.number="editingProduct.price"
+                    placeholder="0.00"
                   />
-                </td>
-                <!-- Plan Checkboxes for New Product -->
-                <td v-for="plan in plans" :key="plan.id">
-                  <input type="checkbox" v-model="new_product.plans[plan.id]" />
-                </td>
-                <!-- Add -->
-                <td>
-                  <button class="button is-primary" @click="add">
-                    Agregar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Puntos</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="number"
+                    v-model.number="editingProduct.points"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Peso</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="number"
+                    step="0.01"
+                    v-model.number="editingProduct.weight"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Imagen URL</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    v-model="editingProduct.img"
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-success" @click="saveProduct">
+              Guardar Cambios
+            </button>
+            <button class="button" @click="closeEditModal">Cancelar</button>
+          </footer>
         </div>
       </div>
-      <br />
+
+      <!-- Modal para imagen grande -->
+      <div
+        v-if="showImageModal"
+        class="image-modal-overlay"
+        @click.self="closeImageModal"
+      >
+        <div class="image-modal-content">
+          <button class="image-modal-close" @click="closeImageModal">
+            &times;
+          </button>
+          <img
+            :src="imageModalUrl"
+            alt="Producto grande"
+            class="image-modal-img"
+          />
+        </div>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" v-if="loading">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p>Cargando productos...</p>
+        </div>
+      </div>
     </section>
   </Layout>
 </template>
 
 <script>
 import Layout from "@/views/Layout";
+import DashboardCard from "@/components/DashboardCard";
+import ModernTable from "@/components/ModernTable";
 import api from "@/api";
-import lib from "@/lib";
+import Swal from "sweetalert2";
 
 export default {
-  components: { Layout },
+  components: {
+    Layout,
+    DashboardCard,
+    ModernTable,
+  },
   data() {
     return {
-      loading: false,
       products: [],
+      allProducts: [],
       plans: [],
-      new_product: {
-        price: [],
-        aff_price: [],
-        plans: {},
-      },
-    };
-  },
-  filters: {
-    date(val) {
-      return new Date(val).toLocaleDateString();
-    },
-  },
-  async created() {
-    const account = JSON.parse(localStorage.getItem("session"));
-    this.$store.commit("SET_ACCOUNT", account);
-    await this.GET();
-  },
-
-  methods: {
-    async GET() {
-      this.loading = true;
-
-      try {
-        // GET data
-        const { data } = await api.products.GET();
-        const plansData = await api.plans.GET();
-
-        this.loading = false;
-
-        this.plans = plansData.data.plans || [];
-
-        // Inicializar los planes del nuevo producto como false
-        this.new_product.plans = {};
-        this.plans.forEach((plan) => {
-          this.new_product.plans[plan.id] = false;
-        });
-
-        this.products = data.products.map((el) => (el.code = el.id));
-
-        this.products = data.products.map((p) => ({
-          ...p,
-          sending: false,
-          edit: false,
-          _code: "",
-          _name: "",
-          _type: "",
-          _description: "",
-          _price: 0,
-          _points: 0,
-          _img: "",
-          _plans: {},
-          _weight: 0,
-        }));
-      } catch (error) {
-        console.error("Error loading data:", error);
-        this.loading = false;
-        this.plans = [];
-        this.products = [];
-      }
-    },
-
-    async remove(product) {
-      if (!confirm("¿Está seguro de eliminar este producto?")) {
-        return;
-      }
-      await api.products.POST({
-        action: "delete",
-        id: product.id,
-      });
-
-      location.reload();
-    },
-
-    edit(product) {
-      product.edit = true;
-
-      product._code = product.code;
-      product._name = product.name;
-      product._type = product.type;
-      product._description = product.description;
-      product._price = product.price;
-      product._points = product.points;
-      product._img = product.img;
-      product._weight = product.weight;
-
-      // Initialize _plans with all available plans
-      this.plans.forEach((plan) => {
-        product._plans[plan.id] =
-          (product.plans && product.plans[plan.id]) || false;
-      });
-    },
-
-    async save(product) {
-      await api.products.POST({
-        action: "edit",
-        id: product.id,
-        data: {
-          _code: product._code,
-          _name: product._name,
-          _type: product._type,
-          _description: product._description,
-          _price: product._price,
-          _points: product._points,
-          _img: product._img,
-          _plans: product._plans,
-          _weight: product._weight,
-        },
-      });
-
-      product.code = product._code;
-      product.name = product._name;
-      product.type = product._type;
-      product.description = product._description;
-      product.price = product._price;
-      product.points = product._points;
-      product.img = product._img;
-      product.plans = { ...product._plans };
-      product.weight = product._weight;
-
-      product.edit = false;
-    },
-
-    cancel(product) {
-      product.edit = false;
-    },
-
-    async add() {
-      const { code, name, type, price, points, description, plans, weight } =
-        this.new_product;
-
-      // Solo enviar los planes que están marcados como true
-      const selectedPlans = {};
-      this.plans.forEach((plan) => {
-        selectedPlans[plan.id] = plans[plan.id] === true;
-      });
-
-      await api.products.POST({
-        action: "add",
-        data: {
-          code,
-          name,
-          type,
-          price,
-          points,
-          description,
-          plans: selectedPlans,
-          weight,
-        },
-      });
-
-      // Reiniciar el formulario
-      this.new_product = {
+      loading: true,
+      showAddModal: false,
+      showEditModal: false,
+      showImageModal: false,
+      imageModalUrl: "",
+      newProduct: {
         code: "",
         name: "",
         type: "",
+        description: "",
         price: 0,
         points: 0,
-        description: "",
-        plans: {},
         weight: 0,
-      };
-      // Reinicializar los planes como false
-      this.plans.forEach((plan) => {
-        this.new_product.plans[plan.id] = false;
-      });
+        img: "",
+        plans: {},
+      },
+      editingProduct: {
+        code: "",
+        name: "",
+        type: "",
+        description: "",
+        price: 0,
+        points: 0,
+        weight: 0,
+        img: "",
+      },
 
-      location.reload();
+      // Table configuration
+      tableColumns: [
+        {
+          key: "id",
+          label: "#",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "code",
+          label: "Código",
+          sortable: true,
+        },
+        {
+          key: "name",
+          label: "Nombre",
+          sortable: true,
+        },
+        {
+          key: "type",
+          label: "Categoría",
+          sortable: true,
+        },
+        {
+          key: "description",
+          label: "Descripción",
+          sortable: false,
+        },
+        {
+          key: "price",
+          label: "Precio",
+          sortable: true,
+          type: "currency",
+        },
+        {
+          key: "points",
+          label: "Puntos",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "weight",
+          label: "Peso",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "img",
+          label: "Imagen",
+          sortable: false,
+        },
+      ],
+      tableActions: [
+        {
+          key: "refresh",
+          label: "Actualizar",
+          icon: "fas fa-sync-alt",
+          class: "is-info",
+        },
+        {
+          key: "add",
+          label: "Nuevo",
+          icon: "fas fa-plus",
+          class: "is-success",
+        },
+      ],
+      itemActions: [
+        {
+          key: "edit",
+          label: "Editar",
+          icon: "fas fa-edit",
+          class: "is-warning",
+        },
+        {
+          key: "delete",
+          label: "Eliminar",
+          icon: "fas fa-trash",
+          class: "is-danger",
+        },
+        {
+          key: "view",
+          label: "Ver",
+          icon: "fas fa-eye",
+          class: "is-primary",
+        },
+      ],
+      tableFilters: [
+        {
+          key: "type",
+          label: "Categoría",
+          placeholder: "Filtrar por categoría",
+          options: [],
+        },
+        {
+          key: "hasPlans",
+          label: "Con Planes",
+          placeholder: "Filtrar por asignación",
+          options: [
+            { value: true, label: "Asignados" },
+            { value: false, label: "Sin asignar" },
+          ],
+        },
+      ],
+    };
+  },
+  computed: {
+    activeProducts() {
+      return this.allProducts.filter(
+        (product) => product.plans && Object.values(product.plans).some(Boolean)
+      );
+    },
+    categories() {
+      const categories = new Set(this.allProducts.map((p) => p.type));
+      return Array.from(categories).filter(Boolean);
+    },
+    totalWeight() {
+      return this.allProducts.reduce(
+        (sum, product) => sum + (product.weight || 0),
+        0
+      );
+    },
+    tableData() {
+      return this.products.map((product, index) => ({
+        id: product.id || index + 1,
+        code: product.code || "",
+        name: product.name || "",
+        type: product.type || "",
+        description: product.description || "",
+        price: product.price || 0,
+        points: product.points || 0,
+        weight: product.weight || 0,
+        img: product.img || "",
+        plans: product.plans || {},
+        // Puedes agregar más campos si los necesitas
+      }));
+    },
+  },
+  created() {
+    this.load();
+    // Limpiar filtros al cargar
+    this.tableFilters.forEach((f) => this.$set(f, "value", ""));
+  },
+  mounted() {
+    console.log("PRODUCTS:", this.products);
+    console.log("TABLE DATA:", this.tableData);
+  },
+  methods: {
+    async load() {
+      this.loading = true;
+
+      try {
+        const [productsResponse, plansResponse] = await Promise.all([
+          api.products.GET({ all: true }),
+          api.Plans.GET(),
+        ]);
+
+        this.products = productsResponse.data.products || [];
+        this.allProducts = productsResponse.data.products || [];
+        this.plans = plansResponse.data.plans || [];
+
+        // Update filter options
+        this.tableFilters[0].options = this.categories.map((cat) => ({
+          value: cat,
+          label: cat,
+        }));
+
+        this.loading = false;
+      } catch (error) {
+        console.error("Error loading data:", error);
+        this.loading = false;
+      }
+    },
+
+    handleTableAction(action) {
+      switch (action.key) {
+        case "refresh":
+          this.load();
+          break;
+        case "add":
+          this.showAddModal = true;
+          break;
+      }
+    },
+
+    handleItemAction({ action, item }) {
+      console.log("handleItemAction", action, item);
+      if (action === "edit") {
+        this.editProduct(item.raw ? item.raw : item);
+      } else if (action === "delete") {
+        this.deleteProduct(item.raw ? item.raw : item);
+      } else if (action === "view") {
+        this.viewProduct(item.raw ? item.raw : item);
+      }
+    },
+
+    handleSearch(query) {
+      // Implement search logic
+      console.log("Search:", query);
+    },
+
+    handleFilter(filters) {
+      // Implement filter logic
+      console.log("Filters:", filters);
+    },
+
+    editProduct(product) {
+      console.log("editProduct", product);
+      // Buscar el producto original por code o id
+      let original = null;
+      if (product.code) {
+        original = this.products.find((p) => p.code === product.code);
+      }
+      if (!original && product.id) {
+        original = this.products.find((p) => p.id === product.id);
+      }
+      // Si no se encuentra, usar el producto recibido
+      const prod = original || product;
+      this.editingProduct = {
+        code: prod.code || "",
+        name: prod.name || "",
+        type: prod.type || "",
+        description: prod.description || "",
+        price: prod.price || 0,
+        points: prod.points || 0,
+        weight: prod.weight || 0,
+        img: prod.img || "",
+        id: prod.id || "",
+        plans: prod.plans || {},
+      };
+      this.showEditModal = true;
+    },
+
+    async deleteProduct(product) {
+      if (!confirm(`¿Está seguro de eliminar el producto "${product.name}"?`)) {
+        return;
+      }
+
+      try {
+        await api.products.POST({ action: "delete", id: product.id });
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Producto eliminado exitosamente",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        this.load();
+      } catch (error) {
+        console.error("Error deleting product:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al eliminar producto",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    },
+
+    viewProduct(product) {
+      // Open product details modal
+      console.log("View product:", product);
+    },
+
+    async addProduct() {
+      try {
+        await api.products.POST({
+          action: "add",
+          data: {
+            code: this.newProduct.code,
+            name: this.newProduct.name,
+            type: this.newProduct.type,
+            price: this.newProduct.price,
+            points: this.newProduct.points,
+            img: this.newProduct.img,
+            description: this.newProduct.description,
+            plans: this.newProduct.plans,
+            weight: this.newProduct.weight,
+          },
+        });
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Producto agregado exitosamente",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        this.showAddModal = false;
+        this.resetNewProduct();
+        this.load();
+      } catch (error) {
+        console.error("Error adding product:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al agregar producto",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    },
+
+    resetNewProduct() {
+      this.newProduct = {
+        code: "",
+        name: "",
+        type: "",
+        description: "",
+        price: 0,
+        points: 0,
+        weight: 0,
+        img: "",
+        plans: {},
+      };
     },
 
     async enableAllPlans() {
       if (
-        !confirm(
-          "¿Está seguro de habilitar todos los planes para todos los productos?"
-        )
+        !confirm("¿Desea habilitar todos los productos para todos los planes?")
       ) {
         return;
       }
-      await api.products.POST({
-        action: "enable_all_plans",
-      });
-      location.reload();
+
+      try {
+        await api.products.POST({ action: "enable_all_plans" });
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Todos los productos habilitados exitosamente",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        this.load();
+      } catch (error) {
+        console.error("Error enabling all plans:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al habilitar productos",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    },
+
+    closeEditModal() {
+      this.showEditModal = false;
+    },
+
+    async saveProduct() {
+      try {
+        // Prepara el objeto data con los nombres correctos
+        const data = {
+          _name: this.editingProduct.name,
+          _type: this.editingProduct.type,
+          _price: this.editingProduct.price,
+          _points: this.editingProduct.points,
+          _img: this.editingProduct.img,
+          _code: this.editingProduct.code,
+          _description: this.editingProduct.description,
+          _plans: this.editingProduct.plans,
+          _weight: this.editingProduct.weight,
+        };
+
+        await api.products.POST({
+          action: "edit",
+          id: this.editingProduct.id,
+          data,
+        });
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Producto actualizado exitosamente",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        this.closeEditModal();
+        this.load();
+      } catch (error) {
+        console.error("Error updating product:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al actualizar producto",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    },
+
+    openImageModal(url) {
+      this.imageModalUrl = url;
+      this.showImageModal = true;
+    },
+
+    closeImageModal() {
+      this.showImageModal = false;
+      this.imageModalUrl = "";
     },
   },
 };
 </script>
+
+<style scoped>
+.products-section {
+  padding: 0;
+}
+
+/* Page Header */
+.page-header {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 40px 0;
+  margin-bottom: 30px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: white;
+}
+
+.header-left .page-subtitle {
+  font-size: 1.1rem;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.header-actions .button {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.header-actions .button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+/* Modal Styles */
+.modal-card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modal-card-head {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border-bottom: none;
+}
+
+.modal-card-title {
+  color: white;
+  font-weight: 600;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.field .label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkbox-wrapper:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkmark {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkmark::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.plan-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #10b981;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-content p {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+
+  .header-left .page-title {
+    font-size: 2rem;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Mode Support */
+.dark-mode .page-header {
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+}
+
+.dark-mode .loading-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode .loading-content p {
+  color: #e2e8f0;
+}
+
+.dark-mode .field .label {
+  color: #e2e8f0;
+}
+
+.dark-mode .checkbox-wrapper {
+  border-color: #4a5568;
+  background: #2d3748;
+}
+
+.dark-mode .checkbox-wrapper:hover {
+  background: #4a5568;
+  border-color: #718096;
+}
+
+.dark-mode .plan-name {
+  color: #e2e8f0;
+}
+
+.product-thumb {
+  transition: transform 0.2s;
+}
+.product-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.image-modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 90vw;
+  max-height: 90vh;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.image-modal-img {
+  max-width: 80vw;
+  max-height: 70vh;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+.image-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: #333;
+  cursor: pointer;
+  z-index: 2;
+}
+</style>

@@ -1,184 +1,484 @@
 <template>
   <Layout>
-
-    <i class="load" v-if="loading"></i>
-
-    <section v-if="!loading">
-
-      <div class="notification" style="margin-bottom: 0;">
+    <section class="collects-section">
+      <!-- Page Header -->
+      <div class="page-header">
         <div class="container">
-          <strong>{{ title }}</strong>
+          <div class="header-content">
+            <div class="header-left">
+              <h1 class="page-title">{{ title }}</h1>
+              <p class="page-subtitle">
+                Gestiona los retiros de fondos del sistema
+              </p>
+            </div>
+
+            <div class="header-actions">
+              <button class="button is-info" @click="download">
+                <span class="icon">
+                  <i class="fas fa-download"></i>
+                </span>
+                <span>Descargar Reporte</span>
+              </button>
+
+              <router-link to="/reports" class="button is-primary">
+                <span class="icon">
+                  <i class="fas fa-chart-line"></i>
+                </span>
+                <span>Ver Analytics</span>
+              </router-link>
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- Stats Cards -->
       <div class="container">
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <!-- <th>
-                  <p style="display: flex">
-                    Fecha <input class="input" style="margin-left: 6px;" placeholder="buscar" v-model="search" @input="input">
-                  </p>
-                </th> -->
-                <th>Fecha</th>
-                <th>Usuario</th>
-                <th>Cuenta</th>
-                <th>Monto</th>
-                <th>Oficina</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(collect, i) in collects" v-show="collect.visible">
-                <th>{{ i + 1 }}</th>
-                <td>{{ collect.date | date }}</td>
-                <td>
-                  {{ collect.name }} {{ collect.lastName }}<br>
-                  <a>{{ collect.username }}</a> <br>
-                  {{ collect.phone }}
-                </td>
-                <td>
-                  <div v-if="!collect.cash">
-                    En efectivo
-                  </div>
-                  <div v-else>
-                    <small>Banco:</small> {{ collect.bank }} <br>
-                    <small>Número de cuenta:</small> {{ collect.account }} <br>
-                    <!-- <small>Código interbancario:</small> {{ collect.ibk }} -->
-                    <small>Tipo de cuenta:</small> {{ collect.account_type }}
-                  </div>
-                </td>
-                <td>
-                  S/. {{ collect.amount }}
-                </td>
-                <td>
-                  {{ collect.office }}
-                </td>
-                <td>
-                  <span class="has-text-success" v-if="collect.status == 'approved'">
-                    {{ collect.status | status }}
-                  </span>
+        <div class="stats-grid">
+          <DashboardCard
+            :value="collects.length"
+            label="Total Retiros"
+            icon="fas fa-money-bill-wave"
+            color="primary"
+            :description="`Registrados en el sistema`"
+          />
 
-                  <i class="load" v-if="collect.sending"></i>
+          <DashboardCard
+            :value="approvedCollects.length"
+            label="Aprobados"
+            icon="fas fa-check-circle"
+            color="success"
+            :description="`Retiros confirmados`"
+          />
 
-                  <div class="buttons" v-if="collect.status == 'pending' && !collect.sending">
-                    <button class="button is-primary" @click="approve(collect)">Confirmar</button>
+          <DashboardCard
+            :value="pendingCollects.length"
+            label="Pendientes"
+            icon="fas fa-clock"
+            color="warning"
+            :description="`Esperando aprobación`"
+          />
+
+          <DashboardCard
+            :value="totalAmount"
+            label="Monto Total"
+            icon="fas fa-calculator"
+            color="info"
+            :show-currency="true"
+            :description="`Valor de todos los retiros`"
+          />
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </div>
+
+      <!-- Modern Table -->
+      <div class="container">
+        <ModernTable
+          :data="tableData"
+          :columns="tableColumns"
+          title="Lista de Retiros"
+          subtitle="Gestiona y aprueba retiros de fondos"
+          :actions="tableActions"
+          :item-actions="itemActions"
+          :show-filters="true"
+          :show-pagination="true"
+          search-placeholder="Buscar por nombre, DNI o oficina..."
+          :filters="tableFilters"
+          @action="handleTableAction"
+          @item-action="handleItemAction"
+          @search="handleSearch"
+          @filter="handleFilter"
+        />
+                  </div>
+
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" v-if="loading">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p>Cargando retiros...</p>
         </div>
       </div>
-
     </section>
-
   </Layout>
 </template>
 
 <script>
-import Layout from '@/views/Layout'
-import api    from '@/api'
+import Layout from "@/views/Layout";
+import DashboardCard from "@/components/DashboardCard";
+import ModernTable from "@/components/ModernTable";
+import api from "@/api";
+import { debounce } from "lodash";
 
 export default {
-  components: { Layout },
+  components: {
+    Layout,
+    DashboardCard,
+    ModernTable,
+  },
   data() {
-    return{
+    return {
       collects: [],
-
       loading: true,
-
       title: null,
-
       search: null,
-    }
+      currentPage: 1,
+      itemsPerPage: 20,
+      totalItems: 0,
+      totalPages: 0,
+
+      // Table configuration
+      tableColumns: [
+        {
+          key: "id",
+          label: "#",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "date",
+          label: "Fecha",
+          sortable: true,
+          type: "date",
+        },
+        {
+          key: "user",
+          label: "Usuario",
+          sortable: true,
+        },
+        {
+          key: "account",
+          label: "Cuenta",
+          sortable: false,
+        },
+        {
+          key: "amount",
+          label: "Monto",
+          sortable: true,
+          type: "currency",
+        },
+        {
+          key: "office",
+          label: "Oficina",
+          sortable: true,
+        },
+        {
+          key: "status",
+          label: "Estado",
+          sortable: true,
+          type: "status",
+        },
+      ],
+      tableActions: [
+        {
+          key: "refresh",
+          label: "Actualizar",
+          icon: "fas fa-sync-alt",
+          class: "is-info",
+        },
+        {
+          key: "export",
+          label: "Exportar",
+          icon: "fas fa-file-excel",
+          class: "is-success",
+        },
+      ],
+      itemActions: [
+        {
+          key: "approve",
+          label: "Aprobar",
+          icon: "fas fa-check",
+          class: "is-success",
+          condition: (item) => item.status === "pending",
+        },
+        {
+          key: "view",
+          label: "Ver Detalles",
+          icon: "fas fa-eye",
+          class: "is-info",
+        },
+      ],
+      tableFilters: [
+        {
+          key: "status",
+          label: "Estado",
+          type: "select",
+          options: [
+            { value: "", label: "Todos" },
+            { value: "pending", label: "Pendiente" },
+            { value: "approved", label: "Aprobado" },
+          ],
+        },
+        {
+          key: "account_type",
+          label: "Tipo de Cuenta",
+          type: "select",
+          options: [
+            { value: "", label: "Todos" },
+            { value: "cash", label: "Efectivo" },
+            { value: "bank", label: "Banco" },
+          ],
+        },
+      ],
+    };
   },
   computed: {
-    accounts() { return this.$store.state.accounts },
-    account()  { return this.$store.state.account  },
+    accounts() {
+      return this.$store.state.accounts;
+    },
+    account() {
+      return this.$store.state.account;
+    },
+    tableData() {
+      return this.collects.map((collect, index) => ({
+        id: index + 1,
+        date: new Date(collect.date).toLocaleDateString(),
+        user: {
+          name: `${collect.name} ${collect.lastName}`,
+          username: collect.username,
+          phone: collect.phone,
+        },
+        account: this.formatAccount(collect),
+        amount: parseFloat(collect.amount).toFixed(2),
+        office: collect.office,
+        status: collect.status,
+        raw: collect,
+      }));
+    },
+    approvedCollects() {
+      return this.collects.filter((c) => c.status === "approved");
+    },
+    pendingCollects() {
+      return this.collects.filter((c) => c.status === "pending");
+    },
+    totalAmount() {
+      return this.collects.reduce(
+        (sum, c) => sum + parseFloat(c.amount || 0),
+        0
+      );
+    },
   },
   filters: {
     status(value) {
-      if(value == 'approved') return 'Aprobada'
-      if(value == 'pending')  return 'Pendiente'
+      if (value == "approved") return "Aprobado";
+      if (value == "pending") return "Pendiente";
+      return value;
     },
     date(val) {
-      return new Date(val).toLocaleDateString()
-      // return new Date(val).toLocaleString()
+      return new Date(val).toLocaleDateString();
     },
   },
   beforeRouteUpdate(to, from, next) {
-    this.GET(to.params.filter); next()
+    this.GET(to.params.filter);
+    next();
   },
   created() {
-    const account = JSON.parse(localStorage.getItem('session'))
-
-    this.$store.commit('SET_ACCOUNT', account)
-
-    this.GET(this.$route.params.filter)
+    const account = JSON.parse(localStorage.getItem("session"));
+    this.$store.commit("SET_ACCOUNT", account);
+    this.GET(this.$route.params.filter);
   },
   methods: {
     async GET(filter) {
+      this.loading = true;
 
-      this.loading = true
+      try {
+        const { data } = await api.Collects.GET({
+          filter,
+          account: this.account.id,
+        });
 
-      // GET data
-      const { data } = await api.Collects.GET({ filter, account: this.account.id }); console.log({ data })
-
-      this.loading = false
-
-      // error
-      if(data.error && data.msg == 'invalid filter') this.$router.push('collects/all')
-
-      // success
       this.collects = data.collects
-                       .map(i => ({ ...i, sending: false, visible: true }))
-                       .reverse()
-
+          .map((i) => ({ ...i, sending: false, visible: true }))
+          .reverse();
 
       this.collects.forEach((collect) => {
-        const office = this.accounts.find(x => x.id == collect.office)
-        collect.office = office.name
-      })
+          const office = this.accounts.find((x) => x.id == collect.office);
+          collect.office = (office && office.name) || "N/A";
+        });
 
-      if(filter == 'all')     this.title = 'Todos las Retiros'
-      if(filter == 'pending') this.title = 'Retiros Pendientes'
-
-    },
-    async approve(collect) {
-      console.log('approve: ', collect)
-      if(!confirm("Desea confirmar el retiro?")) return
-
-      collect.sending = true
-
-      const { data } = await api.Collects.POST({ action: 'approve', id: collect.id })
-      console.log({ data })
-
-      collect.sending = false
-
-      // error
-      if(data.error && data.msg == 'already approved')  return collect.status = 'approved'
-
-      // success
-      collect.status = 'approved'
-    },
-    input() {
-      console.log('input ...')
-      for(let collect of this.collects) {
-
-        const date = this.$options.filters.date(collect.date)
-        console.log({ date })
-
-        if (date.includes(this.search)) {
-          collect.visible = true
-        }
-        else {
-          collect.visible = false
-        }
+        if (filter == "all") this.title = "Todos los Retiros";
+        if (filter == "pending") this.title = "Retiros Pendientes";
+      } catch (error) {
+        console.error("Error loading collects:", error);
+      } finally {
+        this.loading = false;
       }
     },
-  }
+
+    formatAccount(collect) {
+      if (!collect.cash) {
+        return "En efectivo";
+      }
+      return {
+        bank: collect.bank,
+        account: collect.account,
+        account_type: collect.account_type,
+      };
+    },
+
+    async handleTableAction(action) {
+      if (action === "refresh") {
+        await this.GET(this.$route.params.filter);
+      } else if (action === "export") {
+        this.download();
+      }
+    },
+
+    async handleItemAction(action, item) {
+      const collect = item.raw;
+
+      if (action === "approve") {
+        await this.approve(collect);
+      } else if (action === "view") {
+        this.viewDetails(collect);
+      }
+    },
+
+    handleSearch: debounce(function (search) {
+      this.search = search;
+      for (let collect of this.collects) {
+        const name = `${collect.name} ${collect.lastName}`.toLowerCase();
+        const username = collect.username.toLowerCase();
+        const searchLower = search.toLowerCase();
+
+        collect.visible =
+          name.includes(searchLower) ||
+          username.includes(searchLower) ||
+          collect.office.toLowerCase().includes(searchLower);
+      }
+    }, 300),
+
+    handleFilter(filters) {
+      // Apply filters logic here
+      console.log("Filters applied:", filters);
+    },
+
+    async approve(collect) {
+      if (!confirm("¿Desea confirmar este retiro?")) return;
+
+      collect.sending = true;
+
+      try {
+        const { data } = await api.Collects.POST({
+          action: "approve",
+          id: collect.id,
+        });
+
+        if (data.error && data.msg == "already approved") {
+          collect.status = "approved";
+        } else {
+          collect.status = "approved";
+        }
+      } catch (error) {
+        console.error("Error approving collect:", error);
+      } finally {
+        collect.sending = false;
+      }
+    },
+
+    viewDetails(collect) {
+      // Implement view details functionality
+      console.log("Viewing details for:", collect);
+    },
+
+    download() {
+      // Implement download functionality
+      console.log("Downloading report...");
+    },
+  },
 };
 </script>
+
+<style scoped>
+.collects-section {
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.page-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem 0;
+  margin-bottom: 2rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.page-subtitle {
+  margin: 0.5rem 0 0 0;
+  opacity: 0.9;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

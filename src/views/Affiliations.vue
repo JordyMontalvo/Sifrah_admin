@@ -1,260 +1,187 @@
 <template>
   <Layout>
-    <i class="load" v-if="loading"></i>
-
-    <section v-if="!loading">
-      <div class="notification" style="margin-bottom: 0">
+    <section class="affiliations-section">
+      <!-- Page Header -->
+      <div class="page-header">
         <div class="container">
-          <strong>{{ title }}</strong
-          >&nbsp;&nbsp;&nbsp;<a @click="download">Descargar Reporte</a>
-          <input
-            class="input"
-            placeholder="Buscar por nombre"
-            v-model="search"
-            @input="input"
-          />
+          <div class="header-content">
+            <div class="header-left">
+              <h1 class="page-title">{{ title }}</h1>
+              <p class="page-subtitle">Gestiona las afiliaciones del sistema</p>
+            </div>
+
+            <div class="header-actions">
+              <button class="button is-info" @click="download">
+                <span class="icon">
+                  <i class="fas fa-download"></i>
+                </span>
+                <span>Descargar Reporte</span>
+              </button>
+
+              <router-link to="/reports" class="button is-primary">
+                <span class="icon">
+                  <i class="fas fa-chart-line"></i>
+                </span>
+                <span>Ver Analytics</span>
+              </router-link>
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- Stats Cards -->
       <div class="container">
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Fecha</th>
-                <th>Usuario</th>
-                <th>Oficina</th>
-                <th>Plan</th>
-                <th>Total</th>
-                <th>Productos</th>
-                <th>Medio de Pago</th>
-                <th>Voucher</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(affiliation, i) in affiliations"
-                v-show="affiliation.visible"
-              >
-                <th>{{ totalItems - (currentPage - 1) * itemsPerPage - i }}</th>
-                <td>{{ affiliation.date | date }}</td>
-                <td>
-                  {{ affiliation.name }} {{ affiliation.lastName }} <br />
-                  <a>{{ affiliation.dni }}</a> <br />
-                  {{ affiliation.phone }}
-                </td>
-                <td>{{ affiliation.office }}</td>
-                <td>
-                  <span v-if="affiliation.plan && affiliation.plan.name">
-                    {{ affiliation.plan.name }}
-                  </span>
-                  <br />
-                  <span v-if="affiliation.plan && affiliation.plan.amount">
-                    ${{ affiliation.plan.amount }}
-                  </span>
-                  <br />
-                  <a
-                    :href="`${INVOICE_ROOT}?id=${affiliation.id}`"
-                    target="_blank"
-                    style="color: gray"
-                    v-if="affiliation.status == 'approved'"
-                    >boleta</a
-                  >
-                </td>
-                <td style="min-width: 180px">
-                  s/. {{ affiliation.plan.amount }}
-
-                  <small v-if="affiliation.remaining != null">
-                    <br />
-                    <span v-if="affiliation.amounts">
-                      saldo: s/.{{ affiliation.amounts[0] }} <br />
-                    </span>
-                    ganancia: s/.{{ affiliation.plan.pay }} <br />
-                    cobrar: s/.{{ Number(affiliation.remaining).toFixed(2) }}
-                  </small>
-
-                  <div
-                    v-if="affiliation.amounts && affiliation.remaining == null"
-                  >
-                    <small>no disponible: ${{ affiliation.amounts[0] }}</small>
-                    <br />
-                    <small>disponible: ${{ affiliation.amounts[1] }}</small>
-                    <br />
-                    <small>cobrar: ${{ affiliation.amounts[2] }}</small> <br />
-                  </div>
-                </td>
-                <td v-if="!affiliation.products">
-                  Productos:
-                  <div v-for="group in affiliation.plan.products">
-                    <div v-for="product in group.list" v-if="product.total">
-                      {{ product.total }} {{ product.name }}
-                    </div>
-                  </div>
-                </td>
-                <td v-if="affiliation.products">
-                  Productos:
-                  <p
-                    v-for="product in affiliation.products"
-                    v-if="product.total > 0"
-                  >
-                    {{ product.total }} {{ product.name }}
-                  </p>
-                </td>
-                <td style="min-width: 200px">
-                  <span v-if="affiliation.pay_method == 'cash'">Efectivo</span>
-                  <div v-if="affiliation.pay_method == 'bank'">
-                    <span>Banco</span> <br />
-                    <small>Nombre: {{ affiliation.bank }}</small> <br />
-                    <small>Fecha: {{ affiliation.voucher_date }}</small> <br />
-                    <small>Núm: {{ affiliation.voucher_number }}</small>
-                  </div>
-                </td>
-                <td>
-                  <a :href="affiliation.voucher" target="_blank">
-                    <img
-                      :src="affiliation.voucher"
-                      style="max-height: 80px; max-width: 80px"
-                    />
-                  </a>
-                  <span v-if="!affiliation.editing">
-                    <button @click="editVoucher(affiliation)">Editar</button>
-                  </span>
-                  <input
-                    v-if="affiliation.editing"
-                    v-model="affiliation.newVoucher"
-                    placeholder="Nueva URL del voucher"
-                  />
-                  <button
-                    v-if="affiliation.editing"
-                    @click="saveVoucher(affiliation)"
-                  >
-                    Guardar
-                  </button>
-                </td>
-                <td>
-                  <span
-                    class="has-text-success"
-                    v-if="affiliation.status == 'approved'"
-                  >
-                    {{ affiliation.status | status }}
-                  </span>
-                  <span
-                    class="has-text-danger"
-                    v-if="affiliation.status == 'rejected'"
-                  >
-                    {{ affiliation.status | status }}
-                  </span>
-
-                  <i class="load" v-if="affiliation.sending"></i>
-
-                  <div
-                    class="buttons"
-                    v-if="
-                      affiliation.status == 'pending' &&
-                      !affiliation.sending &&
-                      !sending
-                    "
-                  >
-                    <button
-                      class="button is-primary"
-                      @click="approve(affiliation)"
-                    >
-                      Aprobar
-                    </button>
-                    <button
-                      class="button is-danger"
-                      @click="reject(affiliation)"
-                    >
-                      Rechazar
-                    </button>
-                  </div>
-
-                  <br />
-                  <label style="cursor: pointer">
-                    <small style="color: gray">entregado: </small>
-
-                    <i
-                      class="fa-regular fa-square"
-                      style="color: gray"
-                      v-if="!affiliation.delivered"
-                      @click="check(affiliation)"
-                    ></i>
-
-                    <i
-                      class="fa-regular fa-square-check"
-                      style="color: gray"
-                      v-if="affiliation.delivered"
-                      @click="uncheck(affiliation)"
-                    ></i>
-                  </label>
-                </td>
-
-                <td
-                  v-if="affiliation.status == 'approved' && !affiliation.closed"
-                >
-                  <i
-                    class="fa-solid fa-xmark"
-                    style="color: #ccc; cursor: pointer; margin-right: 8px"
-                    @click="revert(affiliation)"
-                  ></i>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="pagination" v-if="!loading">
-          <button
-            @click="previousPage"
-            :disabled="currentPage === 1"
-            class="pagination-button"
-          >
-            Anterior
-          </button>
-          <span class="pagination-info"
-            >Página {{ currentPage }} de {{ totalPages }}</span
-          >
-          <input
-            type="number"
-            v-model="pageInput"
-            @keyup.enter="goToPage"
-            min="1"
-            :max="totalPages"
-            class="pagination-input"
+        <div class="stats-grid">
+          <DashboardCard
+            :value="totalItems"
+            label="Total Afiliaciones"
+            icon="fas fa-handshake"
+            color="primary"
+            :description="`Registradas en el sistema`"
           />
-          <button @click="goToPage" class="pagination-button">Ir</button>
-          <button
-            @click="nextPage"
-            :disabled="currentPage === totalPages"
-            class="pagination-button"
-          >
-            Siguiente
-          </button>
+
+          <DashboardCard
+            :value="approvedTotal"
+            label="Aprobadas"
+            icon="fas fa-check-circle"
+            color="success"
+            :description="`Afiliaciones confirmadas`"
+          />
+
+          <DashboardCard
+            :value="pendingTotal"
+            label="Pendientes"
+            icon="fas fa-clock"
+            color="warning"
+            :description="`Esperando aprobación`"
+          />
+
+          <DashboardCard
+            :value="totalAmount"
+            label="Monto Total"
+            icon="fas fa-money-bill-wave"
+            color="info"
+            :show-currency="true"
+            :description="`Valor de todas las afiliaciones`"
+          />
         </div>
       </div>
 
-      <button v-if="showScrollToTop" @click="scrollToTop" class="scroll-to-top">
-        <i class="fa-solid fa-arrow-up"></i>
-      </button>
+      <!-- Modern Table -->
+      <div class="container">
+        <ModernTable
+          :data="tableData"
+          :columns="tableColumns"
+          title="Lista de Afiliaciones"
+          subtitle="Gestiona y aprueba afiliaciones de usuarios"
+          :actions="tableActions"
+          :item-actions="itemActions"
+          :show-filters="true"
+          :show-pagination="true"
+          :server-pagination="true"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-items="totalItems"
+          :items-per-page="itemsPerPage"
+          search-placeholder="Buscar por nombre, DNI o oficina..."
+          :filters="tableFilters"
+          @action="handleTableAction"
+          @item-action="handleItemAction"
+          @search="handleSearch"
+          @filter="handleFilter"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
+        >
+          <template #cell-user="{ value }">
+            <span v-if="value && value.name">
+              {{ value.name
+              }}<span v-if="value.dni"> (DNI: {{ value.dni }}</span
+              ><span v-if="value.phone">, Celular: {{ value.phone }}</span
+              ><span v-if="value.dni">)</span>
+            </span>
+            <span v-else>N/A</span>
+          </template>
+          <template #cell-plan="{ value }">
+            <span v-if="value && value.name">
+              {{ value.name
+              }}<span v-if="value.amount"> (S/ {{ value.amount }})</span>
+            </span>
+            <span v-else>N/A</span>
+          </template>
+          <template #cell-office="{ row }">
+            {{ getOfficeName(row.raw.officeId || row.raw.office) }}
+          </template>
+          <template #cell-voucher="{ row }">
+            <span v-if="row.voucher.isImage">
+              <img
+                :src="row.voucher.url"
+                alt="Voucher"
+                class="voucher-thumb"
+                @click="openImageModal(row.voucher.url)"
+                style="
+                  max-width: 60px;
+                  max-height: 60px;
+                  cursor: pointer;
+                  border-radius: 6px;
+                  border: 1px solid #eee;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                "
+              />
+            </span>
+            <span v-else>{{ row.voucher.url }}</span>
+          </template>
+        </ModernTable>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" v-if="loading">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p>Cargando afiliaciones...</p>
+        </div>
+      </div>
+
+      <div
+        v-if="showImageModal"
+        class="image-modal-overlay"
+        @click.self="closeImageModal"
+      >
+        <div class="image-modal-content">
+          <button class="image-modal-close" @click="closeImageModal">
+            &times;
+          </button>
+          <img
+            :src="imageModalUrl"
+            alt="Voucher grande"
+            class="image-modal-img"
+          />
+        </div>
+      </div>
     </section>
   </Layout>
 </template>
 
 <script>
 import Layout from "@/views/Layout";
+import DashboardCard from "@/components/DashboardCard";
+import ModernTable from "@/components/ModernTable";
 import api from "@/api";
+import { debounce } from "lodash";
 
 const INVOICE_ROOT = process.env.VUE_APP_INVOICE_ROOT;
 console.log({ INVOICE_ROOT });
 
 export default {
-  components: { Layout },
+  components: {
+    Layout,
+    DashboardCard,
+    ModernTable,
+  },
   data() {
     return {
       affiliations: [],
+      allAffiliations: [],
       loading: true,
-      sending: false,
       title: null,
       search: null,
       INVOICE_ROOT,
@@ -262,27 +189,240 @@ export default {
       itemsPerPage: 20,
       totalItems: 0,
       totalPages: 0,
-      pageInput: 1,
-      showScrollToTop: false,
-      accounts: [],
+      approvedTotal: 0,
+      pendingTotal: 0,
+      approvedAmount: 0,
+      showImageModal: false,
+      imageModalUrl: "",
+
+      // Table configuration
+      tableColumns: [
+        {
+          key: "id",
+          label: "#",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "date",
+          label: "Fecha",
+          sortable: true,
+          type: "date",
+        },
+        {
+          key: "user",
+          label: "Usuario",
+          sortable: true,
+        },
+        {
+          key: "office",
+          label: "Oficina",
+          sortable: true,
+        },
+        {
+          key: "plan",
+          label: "Plan",
+          sortable: true,
+        },
+        {
+          key: "total",
+          label: "Total",
+          sortable: true,
+          type: "currency",
+        },
+        {
+          key: "products",
+          label: "Productos",
+          sortable: false,
+        },
+        {
+          key: "pay_method",
+          label: "Medio de Pago",
+          sortable: true,
+        },
+        {
+          key: "voucher",
+          label: "Voucher",
+          sortable: false,
+        },
+        {
+          key: "status",
+          label: "Estado",
+          sortable: true,
+          type: "status",
+        },
+      ],
+      tableActions: [
+        {
+          key: "refresh",
+          label: "Actualizar",
+          icon: "fas fa-sync-alt",
+          class: "is-info",
+        },
+        {
+          key: "export",
+          label: "Exportar",
+          icon: "fas fa-file-excel",
+          class: "is-success",
+        },
+      ],
+      itemActions: [
+        {
+          key: "approve",
+          label: "Aprobar",
+          icon: "fas fa-check",
+          class: "is-success",
+          condition: (item) => item.status === "pending",
+        },
+        {
+          key: "reject",
+          label: "Rechazar",
+          icon: "fas fa-times",
+          class: "is-danger",
+          condition: (item) => item.status === "pending",
+        },
+        {
+          key: "edit",
+          label: "Editar",
+          icon: "fas fa-edit",
+          class: "is-info",
+        },
+        {
+          key: "invoice",
+          label: "Boleta",
+          icon: "fas fa-file-invoice",
+          class: "is-warning",
+          condition: (item) => item.status === "approved",
+        },
+      ],
+      tableFilters: [
+        {
+          key: "status",
+          label: "Estado",
+          type: "select",
+          options: [
+            { value: "", label: "Todos" },
+            { value: "pending", label: "Pendiente" },
+            { value: "approved", label: "Aprobada" },
+            { value: "rejected", label: "Rechazada" },
+          ],
+        },
+        {
+          key: "pay_method",
+          label: "Medio de Pago",
+          type: "select",
+          options: [
+            { value: "", label: "Todos" },
+            { value: "cash", label: "Efectivo" },
+            { value: "bank", label: "Banco" },
+          ],
+        },
+      ],
     };
   },
   computed: {
+    accounts() {
+      return this.$store.state.accounts;
+    },
     account() {
       return this.$store.state.account;
     },
+    tableData() {
+      return this.affiliations.map((affiliation, index) => {
+        // Buscar el nombre bonito de la oficina usando el id original
+        let officeName = "N/A";
+        const officeId = String(affiliation.officeId || affiliation.office);
+        // Log para depuración de ids
+        console.log(
+          "Buscando officeId:",
+          officeId,
+          "en accounts:",
+          this.accounts.map((a) => a.id)
+        );
+        // Forzar comparación de ids como string
+        const officeObj = this.accounts.find((x) => String(x.id) === officeId);
+        if (officeObj && officeObj.name) {
+          officeName = officeObj.name;
+        } else if (typeof officeId === "string" && officeId) {
+          officeName = officeId.charAt(0).toUpperCase() + officeId.slice(1);
+        }
+        // Log para depuración
+        console.log(
+          `Afiliación: ${affiliation.id}, officeId: ${officeId}, officeName: ${officeName}`
+        );
+
+        return {
+          id:
+            this.totalItems -
+            (this.currentPage - 1) * this.itemsPerPage -
+            index,
+          date: new Date(affiliation.date).toLocaleDateString(),
+          user: {
+            name: `${affiliation.name} ${affiliation.lastName}`,
+            dni: affiliation.dni,
+            phone: affiliation.phone,
+          },
+          office: officeName,
+          plan: {
+            name: (affiliation.plan && affiliation.plan.name) || "",
+            amount: (affiliation.plan && affiliation.plan.amount) || 0,
+          },
+          total: (affiliation.plan && affiliation.plan.amount) || 0,
+          products: this.formatProducts(affiliation),
+          pay_method: this.formatPayMethod(affiliation),
+          voucher: this.formatVoucher(affiliation),
+          status: affiliation.status,
+          raw: affiliation,
+        };
+      });
+    },
+    approvedAffiliations() {
+      return this.allAffiliations.filter((a) => a.status === "approved");
+    },
+    pendingAffiliations() {
+      return this.allAffiliations.filter((a) => a.status === "pending");
+    },
+    totalAmount() {
+      return this.allAffiliations.reduce(
+        (sum, a) => sum + ((a.plan && a.plan.amount) || 0),
+        0
+      );
+    },
+  },
+  watch: {
+    accounts: {
+      handler() {
+        // Remap office names in affiliations when accounts change
+        if (this.affiliations && this.accounts) {
+          this.affiliations.forEach((affiliation) => {
+            const office = this.accounts.find(
+              (x) => x.id == affiliation.officeId
+            );
+            if (office && office.name) {
+              affiliation.office = office.name;
+            } else if (
+              typeof affiliation.officeId === "string" &&
+              affiliation.officeId
+            ) {
+              affiliation.office =
+                affiliation.officeId.charAt(0).toUpperCase() +
+                affiliation.officeId.slice(1);
+            } else {
+              affiliation.office = "N/A";
+            }
+          });
+        }
+      },
+      immediate: true,
+      deep: true,
+    },
   },
   filters: {
-    status(val) {
-      if (val == "approved") return "Aprobada";
-      if (val == "pending") return "Pendiente";
-      if (val == "rejected") return "Rechazada";
-    },
-    branch(val) {
-      if (val == -1) return "Automático";
-      if (val == 0) return "1";
-      if (val == 1) return "2";
-      if (val == 2) return "3";
+    status(value) {
+      if (value == "approved") return "Aprobada";
+      if (value == "pending") return "Pendiente";
+      if (value == "rejected") return "Rechazada";
+      return value;
     },
     date(val) {
       return new Date(val).toLocaleDateString();
@@ -292,378 +432,431 @@ export default {
     this.GET(to.params.filter);
     next();
   },
-  created() {
+  async created() {
     const account = JSON.parse(localStorage.getItem("session"));
-
     this.$store.commit("SET_ACCOUNT", account);
-
-    this.GET(this.$route.params.filter);
-  },
-  mounted() {
-    window.addEventListener("scroll", this.handleScroll);
-  },
-  beforeDestroy() {
-    window.removeEventListener("scroll", this.handleScroll);
+    await this.GET(this.$route.params.filter);
+    await this.fetchStatusTotals();
   },
   methods: {
-    async GET(filter) {
+    async GET(filter = "all") {
       this.loading = true;
 
-      const data2 = await api.offices.GET();
-      console.log({ data2 });
-      this.accounts = data2.data.offices;
+      try {
+        console.log("Loading affiliations with params:", {
+          filter,
+          account: this.account.id,
+          page: this.currentPage,
+          limit: this.itemsPerPage,
+          search: this.search,
+        });
 
-      const { data } = await api.affiliations.GET({
-        filter,
-        account: this.account.id,
-        page: this.currentPage,
-        limit: this.itemsPerPage,
-        search: this.search || undefined,
-      });
-      console.log({ data });
+        const { data } = await api.Affiliations.GET({
+          filter,
+          account: this.account.id,
+          page: this.currentPage,
+          limit: this.itemsPerPage,
+          search: this.search,
+        });
 
-      this.loading = false;
+        // Obtener todas las afiliaciones para los totales
+        const { data: allData } = await api.Affiliations.GET({ all: true });
+        this.allAffiliations = allData.affiliations || [];
+        this.affiliations = data.affiliations || [];
+        this.totalItems = data.totalItems || 0;
+        this.totalPages = data.totalPages || 0;
 
-      if (data.error && data.msg == "invalid filter")
-        this.$router.push("affiliations/all");
+        console.log("Processed affiliations:", {
+          count: this.affiliations.length,
+          totalItems: this.totalItems,
+          totalPages: this.totalPages,
+        });
 
-      this.affiliations = data.affiliations.map((i) => ({
-        ...i,
-        sending: false,
-        visible: true,
-        editing: false,
-        newVoucher: "",
-      }));
+        // Enriquecer con información de oficinas
+        console.log("Accounts:", this.accounts);
+        this.affiliations.forEach((affiliation) => {
+          if (!affiliation.officeId) {
+            affiliation.officeId = affiliation.office;
+          }
+          const office = this.accounts.find(
+            (x) => x.id == affiliation.officeId
+          );
+          if (office && office.name) {
+            affiliation.office = office.name;
+          } else if (
+            typeof affiliation.officeId === "string" &&
+            affiliation.officeId
+          ) {
+            affiliation.office =
+              affiliation.officeId.charAt(0).toUpperCase() +
+              affiliation.officeId.slice(1);
+          } else {
+            affiliation.office = "N/A";
+          }
+        });
+        console.log(
+          "Affiliations después de asignar oficina:",
+          this.affiliations
+        );
 
-      this.totalItems = data.total;
-      this.totalPages = data.totalPages;
-
-      this.affiliations.forEach((affiliation) => {
-        const office = this.accounts.find((x) => x.id == affiliation.office);
-        affiliation.office = office ? office.name : "";
-      });
-
-      if (filter == "all") this.title = "Todas las Afiliaciones";
-      if (filter == "pending") this.title = "Afiliaciones Pendientes";
-    },
-
-    async changePage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-        await this.GET(this.$route.params.filter);
+        if (filter == "all") this.title = "Todas las Afiliaciones";
+        if (filter == "pending") this.title = "Afiliaciones Pendientes";
+      } catch (error) {
+        console.error("Error loading affiliations:", error);
+        this.$toast.error("Error al cargar las afiliaciones");
+      } finally {
+        this.loading = false;
       }
     },
 
-    async nextPage() {
-      await this.changePage(this.currentPage + 1);
+    formatProducts(affiliation) {
+      if (affiliation.products) {
+        return affiliation.products
+          .filter((p) => p.total > 0)
+          .map((p) => `${p.total} ${p.name}`)
+          .join(", ");
+      }
+      if (affiliation.plan && affiliation.plan.products) {
+        const products = [];
+        affiliation.plan.products.forEach((group) => {
+          group.list.forEach((product) => {
+            if (product.total) {
+              products.push(`${product.total} ${product.name}`);
+            }
+          });
+        });
+        return products.join(", ");
+      }
+      return "N/A";
     },
 
-    async previousPage() {
-      await this.changePage(this.currentPage - 1);
+    formatPayMethod(affiliation) {
+      if (affiliation.pay_method === "cash") {
+        return "Efectivo";
+      }
+      if (affiliation.pay_method === "bank") {
+        return `Banco - ${affiliation.bank}`;
+      }
+      return affiliation.pay_method;
+    },
+
+    formatVoucher(affiliation) {
+      let voucherIsImage = false;
+      let voucherUrl = affiliation.voucher || "";
+      if (voucherUrl && typeof voucherUrl === "string") {
+        voucherIsImage = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(
+          voucherUrl
+        );
+      }
+      return voucherIsImage
+        ? { url: voucherUrl, isImage: true }
+        : { url: voucherUrl, isImage: false };
+    },
+
+    async handleTableAction(action) {
+      if (action === "refresh") {
+        await this.GET(this.$route.params.filter);
+      } else if (action === "export") {
+        this.download();
+      }
+    },
+
+    async handleItemAction({ action, item }) {
+      const affiliation = item.raw;
+      if (action === "approve") {
+        await this.approve(affiliation);
+      } else if (action === "reject") {
+        await this.reject(affiliation);
+      } else if (action === "edit") {
+        this.editVoucher(affiliation);
+      } else if (action === "invoice") {
+        window.open(`${this.INVOICE_ROOT}?id=${affiliation.id}`, "_blank");
+      }
+    },
+
+    handleSearch: debounce(function (search) {
+      this.search = search;
+      this.currentPage = 1;
+      this.GET(this.$route.params.filter);
+    }, 300),
+
+    handleFilter(filters) {
+      console.log("Filters applied:", filters);
+      this.currentPage = 1;
+      this.GET(this.$route.params.filter);
+    },
+
+    async handlePageChange(page) {
+      console.log("Page changed to:", page);
+      this.currentPage = page;
+      await this.GET(this.$route.params.filter);
+    },
+
+    async handlePageSizeChange(pageSize) {
+      console.log("Page size changed to:", pageSize);
+      this.itemsPerPage = pageSize;
+      this.currentPage = 1;
+      await this.GET(this.$route.params.filter);
     },
 
     async approve(affiliation) {
-      if (!confirm("Desea aprovar la afiliación?")) return;
+      if (!confirm("¿Desea aprobar esta afiliación?")) return;
 
-      this.sending = true;
       affiliation.sending = true;
 
-      let { data } = await api.affiliations.POST({
-        action: "approve",
-        id: affiliation.id,
-      });
-      console.log({ data });
+      try {
+        const { data } = await api.Affiliations.POST({
+          action: "approve",
+          id: affiliation.id,
+        });
 
-      affiliation.sending = false;
-      this.sending = false;
-
-      if (data.error && data.msg == "already approved")
-        return (affiliation.status = "approved");
-      if (data.error && data.msg == "already rejected")
-        return (affiliation.status = "rejected");
-      if (data.error && data.msg == "token unavailable")
-        return alert("No hay tokens disponibles");
-
-      affiliation.status = "approved";
-    },
-    async reject(affiliation) {
-      if (!confirm("Desea rechazar la afiliación?")) return;
-
-      this.sending = true;
-      affiliation.sending = true;
-
-      const { data } = await api.affiliations.POST({
-        action: "reject",
-        id: affiliation.id,
-      });
-      console.log({ data });
-
-      affiliation.sending = false;
-      this.sending = false;
-
-      if (data.error && data.msg == "already approved")
-        return (affiliation.status = "approved");
-      if (data.error && data.msg == "already rejected")
-        return (affiliation.status = "rejected");
-
-      affiliation.status = "rejected";
-    },
-    input() {
-      if (this.searchTimeout) {
-        clearTimeout(this.searchTimeout);
+        if (data.error && data.msg == "already approved") {
+          affiliation.status = "approved";
+        } else {
+          affiliation.status = "approved";
+        }
+      } catch (error) {
+        console.error("Error approving affiliation:", error);
+      } finally {
+        affiliation.sending = false;
       }
-
-      this.searchTimeout = setTimeout(async () => {
-        this.currentPage = 1;
-        await this.GET(this.$route.params.filter);
-      }, 1500);
     },
 
-    async check(affiliation) {
-      if (
-        !confirm("Seguro que desea marcar entregado? esto no se puede revertir")
-      )
-        return;
-      affiliation.delivered = true;
+    async reject(affiliation) {
+      if (!confirm("¿Desea rechazar esta afiliación?")) return;
 
-      const { data } = await api.affiliations.POST({
-        action: "check",
-        id: affiliation.id,
-      });
-    },
-    async uncheck(affiliation) {
-      if (affiliation.delivered) return;
-      affiliation.delivered = false;
+      affiliation.sending = true;
 
-      const { data } = await api.affiliations.POST({
-        action: "uncheck",
-        id: affiliation.id,
-      });
-    },
+      try {
+        const { data } = await api.Affiliations.POST({
+          action: "reject",
+          id: affiliation.id,
+        });
 
-    async revert(affiliation) {
-      if (!confirm("Desea revertir la afiliación?")) return;
-
-      console.log("revert ...");
-
-      const { data } = await api.affiliations.POST({
-        action: "revert",
-        id: affiliation.id,
-      });
-      location.reload();
-    },
-
-    async download() {
-      // Obtener todas las afiliaciones
-      const { data } = await api.affiliations.GET({
-        filter: this.$route.params.filter,
-        page: 1, // Puedes usar la página 1 para obtener todas las afiliaciones
-        limit: 1000, // Asegúrate de que el límite sea suficiente para obtener todas las afiliaciones
-        search: this.search || undefined,
-      });
-
-      let data_xls = [];
-
-      data.affiliations.forEach((a) => {
-        let disponible = 0,
-          no_disponible = 0;
-
-        if (a.amounts) {
-          if (a.remaining == null) {
-            no_disponible = a.amounts[0];
-            disponible = a.amounts[1];
-          } else {
-            disponible = a.amounts[0];
-          }
-        }
-
-        let cash = disponible + no_disponible;
-
-        let pay = 0;
-
-        if (a.amounts) {
-          if (a.remaining == null) {
-            pay = a.amounts[2];
-          } else {
-            pay = a.remaining;
-          }
-        } else {
-          pay = a.price;
-        }
-
-        let efectivo = 0,
-          banco = 0;
-
-        if (!a.pay_method) efectivo = pay;
-        if (a.pay_method == "cash") efectivo = pay;
-        if (a.pay_method == "bank") banco = pay;
-
-        if (!a.products) {
-          data_xls.push({
-            ID: a.id,
-            "USUARIO (NO. DE CÉDULA)": a.dni,
-            "NOMBRES COMPLETOS": a.name + " " + a.lastName,
-            "FECHA DE AFILIACIÓN": new Date(a.date).toLocaleDateString(),
-            PLAN: a.plan.name,
-            "VALOR DEL PLAN": a.plan.amount,
-            KASH: cash,
-            "SALDO DISPONIBLE DE CASH": disponible,
-            "SALDO NO DISPONIBLE DE CASH": no_disponible,
-            EFECTIVO: efectivo,
-            "FECHA EFECTIVO": new Date(a.date).toLocaleDateString(),
-            BANCO: banco,
-            "NOMBRE BANCO": a.bank,
-            "FECHA VOUCHER ": a.voucher_date
-              ? new Date(a.voucher_date).toLocaleDateString()
-              : "",
-            "NUMERO DE VOUCHER ": a.voucher_number,
-            VOUCHER: a.voucher,
-            "TOTAL APORTE": cash + pay,
-            PRODUCTO: "",
-            PRECIO: "",
-            ESTATUS: a.status,
-            OFICINA: a.office,
-            "ENTREGA DE PRODUCTOS": a.delivered,
-          });
-        } else {
-          for (let p of a.products) {
-            if (p.total) {
-              data_xls.push({
-                ID: a.id,
-                "USUARIO (NO. DE CÉDULA)": a.dni,
-                "NOMBRES COMPLETOS": a.name + " " + a.lastName,
-                "FECHA DE AFILIACIÓN": new Date(a.date).toLocaleDateString(),
-                PLAN: a.plan.name,
-                "VALOR DEL PLAN": a.plan.amount,
-                KASH: cash,
-                "SALDO DISPONIBLE DE CASH": disponible,
-                "SALDO NO DISPONIBLE DE CASH": no_disponible,
-                EFECTIVO: efectivo,
-                "FECHA EFECTIVO": new Date(a.date).toLocaleDateString(),
-                BANCO: banco,
-                "NOMBRE BANCO": a.bank,
-                "FECHA VOUCHER ": a.voucher_date
-                  ? new Date(a.voucher_date).toLocaleDateString()
-                  : "",
-                "NUMERO DE VOUCHER ": a.voucher_number,
-                VOUCHER: a.voucher,
-                "TOTAL APORTE": cash + pay,
-                PRODUCTO: p.name,
-                PRECIO: p.price,
-                ESTATUS: a.status,
-                OFICINA: a.office,
-                "ENTREGA DE PRODUCTOS": a.delivered ? "Entregado" : "Pendiente",
-              });
-            }
-          }
-        }
-      });
-
-      // Crear la hoja de Excel
-      const worksheet = XLSX.utils.json_to_sheet(data_xls);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Afiliaciones");
-
-      // Descargar el archivo
-      XLSX.writeFile(workbook, "afiliaciones.xlsx");
+        affiliation.status = "rejected";
+      } catch (error) {
+        console.error("Error rejecting affiliation:", error);
+      } finally {
+        affiliation.sending = false;
+      }
     },
 
     editVoucher(affiliation) {
-      console.log("Editando voucher para:", affiliation);
       affiliation.editing = true;
       affiliation.newVoucher = affiliation.voucher;
     },
 
     async saveVoucher(affiliation) {
-      if (!affiliation.newVoucher) return;
+      try {
+        const { data } = await api.Affiliations.POST({
+          action: "update_voucher",
+          id: affiliation.id,
+          voucher: affiliation.newVoucher,
+        });
 
-      const data = await api.affiliations.POST({
-        action: "updateVoucher",
-        id: affiliation.id,
-        voucher: affiliation.newVoucher,
-      });
-
-      if (!data.error) {
         affiliation.voucher = affiliation.newVoucher;
         affiliation.editing = false;
-      } else {
-        alert("Error al actualizar el voucher");
+      } catch (error) {
+        console.error("Error updating voucher:", error);
       }
     },
-    handleScroll() {
-      this.showScrollToTop = window.scrollY >= document.body.offsetHeight / 2;
+
+    download() {
+      // Implement download functionality
+      console.log("Downloading report...");
     },
-    scrollToTop() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+    openImageModal(url) {
+      this.imageModalUrl = url;
+      this.showImageModal = true;
     },
-    async goToPage() {
-      const page = Math.max(1, Math.min(this.pageInput, this.totalPages));
-      this.currentPage = page;
-      await this.GET(this.$route.params.filter);
+    closeImageModal() {
+      this.showImageModal = false;
+      this.imageModalUrl = "";
+    },
+
+    async fetchStatusTotals() {
+      try {
+        const { data: approved } = await api.Affiliations.GET({
+          filter: "approved",
+          page: 1,
+          limit: 1,
+          account: this.account.id,
+        });
+        this.approvedTotal = approved.total || 0;
+      } catch (e) {
+        this.approvedTotal = 0;
+      }
+      try {
+        const { data: pending } = await api.Affiliations.GET({
+          filter: "pending",
+          page: 1,
+          limit: 1,
+          account: this.account.id,
+        });
+        this.pendingTotal = pending.total || 0;
+      } catch (e) {
+        this.pendingTotal = 0;
+      }
+    },
+
+    getOfficeName(officeId) {
+      const officeObj = this.accounts.find(
+        (x) => String(x.id) === String(officeId)
+      );
+      if (officeObj && officeObj.name) {
+        return officeObj.name;
+      } else if (typeof officeId === "string" && officeId) {
+        return officeId.charAt(0).toUpperCase() + officeId.slice(1);
+      }
+      return "N/A";
     },
   },
 };
 </script>
 
-<style>
-.scroll-to-top {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  display: inline-block;
-  padding: 10px;
-  background-color: #007bff;
+<style scoped>
+.affiliations-section {
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.page-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  z-index: 1000;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-  transition: background-color 0.3s;
+  padding: 2rem 0;
+  margin-bottom: 2rem;
 }
 
-.scroll-to-top:hover {
-  background-color: #0056b3;
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.pagination {
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.page-subtitle {
+  margin: 0.5rem 0 0 0;
+  opacity: 0.9;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 20px 0;
+  z-index: 9999;
 }
 
-.pagination-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 10px 15px;
-  margin: 0 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.pagination-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.pagination-button:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.pagination-info {
-  margin: 0 10px;
-  font-weight: bold;
-}
-
-.pagination-input {
-  width: 50px;
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin: 0 5px;
+.loading-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
   text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.voucher-thumb {
+  transition: transform 0.2s;
+}
+.voucher-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.image-modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 90vw;
+  max-height: 90vh;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.image-modal-img {
+  max-width: 80vw;
+  max-height: 70vh;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+.image-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: #333;
+  cursor: pointer;
+  z-index: 2;
 }
 </style>

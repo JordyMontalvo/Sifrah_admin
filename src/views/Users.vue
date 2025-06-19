@@ -1,277 +1,539 @@
 <template>
   <Layout>
-    <i class="load" v-if="loading"></i>
-
-    <section v-if="!loading">
-      <div class="notification" style="margin-bottom: 0">
+    <section class="users-section">
+      <!-- Page Header -->
+      <div class="page-header">
         <div class="container">
-          <strong style="padding: 10px">{{ title }}</strong>
-          <router-link to="/reports" class="button is-primary">
-            <span class="icon">
-              <i class="fas fa-chart-line"></i>
-            </span>
-            <span>Ver Analytics</span>
-          </router-link>
-          <button class="button is-info" @click="exportToExcel">
-            Exportar a Excel
-          </button>
-          <input
-            class="input"
-            placeholder="Buscar por nombre"
-            v-model="search"
-            @input="debouncedInput"
-          />
-          <label for="itemsPerPage">Items por página:</label>
-          <select v-model="itemsPerPage" @change="fetchUsers">
-            <option value="20">20</option>
-            <option value="30">30</option>
-            <option value="40">40</option>
-            <option value="50">50</option>
-          </select>
-          <br /><br />
+          <div class="header-content">
+            <div class="header-left">
+              <h1 class="page-title">{{ title }}</h1>
+              <p class="page-subtitle">
+                Gestiona todos los usuarios del sistema
+              </p>
+            </div>
 
-          <small
-            >Total disponible: S/.
-            {{ Number(totalBalance).toFixed(2) }} &nbsp;&nbsp; / &nbsp;&nbsp;
-            Total no disponible:  S/.{{ totalVirtualBalance }}
-          </small>
+            <div class="header-actions">
+              <router-link to="/reports" class="button is-primary">
+                <span class="icon">
+                  <i class="fas fa-chart-line"></i>
+                </span>
+                <span>Ver Analytics</span>
+              </router-link>
+
+              <button class="button is-info" @click="exportToExcel">
+                <span class="icon">
+                  <i class="fas fa-file-excel"></i>
+                </span>
+                <span>Exportar Excel</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- Stats Cards -->
       <div class="container">
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Registro</th>
-                <th>Usuario</th>
-                <th>Estado</th>
-                <th>Código</th>
-                <th>Puntos</th>
-                <th>
-                  Saldo disponible
-                  <input type="checkbox" v-model="check" @change="fetchUsers" />
-                </th>
-                <th>No Disponible</th>
-                <th>Patrocinador</th>
-                <th>País</th>
-                <th>Ciudad</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(user, i) in sortedUsers"
-                :key="user.id"
-                v-show="user.visible"
-              >
-                <th>{{ totalItems - (currentPage - 1) * itemsPerPage - i }}</th>
-                <td>{{ user.date | date }}</td>
-                <td style="position: relative">
-                  <span v-if="!user.edit"
-                    >{{ user.name }} {{ user.lastName }}</span
-                  >
-
-                  <input
-                    class="input"
-                    v-model="user._name"
-                    placeholder="Nombre"
-                    style="max-width: 120px"
-                    v-if="user.edit"
-                  />
-                  <input
-                    class="input"
-                    v-model="user._lastName"
-                    placeholder="Apellido"
-                    style="max-width: 120px"
-                    v-if="user.edit"
-                  />
-                  <br />
-
-                  <a v-if="!user.edit">{{ user.dni }}</a>
-
-                  <input
-                    class="input"
-                    v-model="user._dni"
-                    placeholder="Documento"
-                    style="max-width: 120px"
-                    v-if="user.edit"
-                  />
-
-                  <input
-                    class="input"
-                    v-model="user._password"
-                    placeholder="Contraseña"
-                    style="max-width: 240px"
-                    v-if="user.edit"
-                  /><br />
-
-                  <select v-model="user._rank" v-if="user.edit">
-                    <option value="none">Ninguno</option>
-                    <option value="Bronce">Bronce</option>
-                    <option value="Plata">Plata</option>
-                    <option value="Oro">Oro</option>
-                    <option value="Platino">Platino</option>
-                    
-                  </select>
-
-                  <div style="position: absolute; top: 8px; right: -15px; gap: 10px; display: flex;flex-direction: column;">
-                    <i
-                      class="fa-regular fa-pen-to-square"
-                      style="color: #ccc; cursor: pointer; margin-right: 8px"
-                      v-if="!user.edit"
-                      @click="edit(user)"
-                    ></i>
-                    <i
-                      class="fa-solid fa-check"
-                      style="color: #ccc; cursor: pointer; margin-right: 8px"
-                      v-if="user.edit"
-                      @click="save(user)"
-                    ></i>
-                    <i
-                      class="fa-solid fa-xmark"
-                      style="color: #ccc; cursor: pointer; margin-right: 8px"
-                      v-if="user.edit"
-                      @click="cancel(user)"
-                    ></i>
-                  </div>
-                  <br />
-
-                  <p v-if="user.rank">rango: {{ user.rank | _rank }}</p>
-                  tel: {{ user.phone }} <br />
-                </td>
-                <td>
-                  <span v-if="user.activated">Activado</span>
-                  <span v-else-if="user.affiliated">Afiliado</span>
-                  <span v-else>Registrado</span>
-                </td>
-                <td>{{ user.token }}</td>
-                <td>
-                  <p v-if="!user.edit">{{ user.points }}</p>
-
-                  <input
-                    class="input"
-                    v-model="user._points"
-                    placeholder="Puntos"
-                    style="max-width: 120px"
-                    v-if="user.edit"
-                  />
-                </td>
-                <td>
-                  <!-- <span v-if="user.balance != 0">
-                    {{ user.balance | money }}
-                  </span> -->
-                  {{ user.balance | money }}
-                </td>
-                <td>
-                  {{ user.virtualbalance | money }} <br />
-                  <a v-if="user.virtualbalance > 0" @click="migrate(user)"
-                    >migrar saldo</a
-                  >
-                </td>
-                <td>
-                  <div v-if="user.parent">
-                    {{ user.parent.name }} {{ user.parent.lastName }} <br />
-
-                    <a v-if="!user.edit">{{ user.parent.dni }}</a>
-
-                    <input
-                      class="input"
-                      v-model="user._parent_dni"
-                      placeholder="Documento"
-                      style="max-width: 120px"
-                      v-if="user.edit"
-                    /><br />
-
-                    {{ user.parent.phone }}
-                  </div>
-                </td>
-                <td>{{ user.country }}</td>
-                <td>{{ user.city }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="pagination" v-if="!loading">
-          <button
-            @click="previousPage"
-            :disabled="currentPage === 1"
-            class="pagination-button"
-          >
-            Anterior
-          </button>
-          <span class="pagination-info">
-            Página {{ currentPage }} de {{ totalPages }}
-          </span>
-          <input
-            type="number"
-            v-model="pageInput"
-            @keyup.enter="goToPage"
-            min="1"
-            :max="totalPages"
-            class="pagination-input"
+        <div class="stats-grid">
+          <DashboardCard
+            :value="totalBalance"
+            label="Saldo Total Disponible"
+            icon="fas fa-wallet"
+            color="success"
+            :show-currency="true"
+            :description="`${totalItems} usuarios activos`"
           />
-          <button @click="goToPage" class="pagination-button">Ir</button>
-          <button
-            @click="nextPage"
-            :disabled="currentPage === totalPages"
-            class="pagination-button"
-          >
-            Siguiente
-          </button>
+
+          <DashboardCard
+            :value="totalVirtualBalance"
+            label="Saldo No Disponible"
+            icon="fas fa-lock"
+            color="warning"
+            :show-currency="true"
+            :description="`Saldo pendiente de migración`"
+          />
+
+          <DashboardCard
+            :value="totalItems"
+            label="Total Usuarios"
+            icon="fas fa-users"
+            color="primary"
+            :description="`Registrados en el sistema`"
+          />
+
+          <DashboardCard
+            :value="affiliatedTotal"
+            label="Usuarios Afiliados"
+            icon="fas fa-user-plus"
+            color="info"
+            :description="`Con plan activo`"
+          />
         </div>
       </div>
 
-      <button class="scroll-to-top" v-if="showScrollToTop" @click="scrollToTop">
-        <i class="fa-solid fa-arrow-up"></i>
-      </button>
+      <!-- Modern Table -->
+      <div class="container">
+        <ModernTable
+          :data="tableData"
+          :columns="tableColumns"
+          title="Lista de Usuarios"
+          subtitle="Gestiona y edita información de usuarios"
+          :actions="tableActions"
+          :item-actions="itemActions"
+          :show-filters="true"
+          :show-pagination="true"
+          :server-pagination="true"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-items="totalItems"
+          :items-per-page="itemsPerPage"
+          search-placeholder="Buscar por nombre, DNI o email..."
+          :filters="tableFilters"
+          @action="handleTableAction"
+          @item-action="handleItemAction"
+          @search="handleSearch"
+          @filter="handleFilter"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
+        />
+      </div>
+
+      <!-- Edit User Modal -->
+      <div class="modal" :class="{ 'is-active': showEditModal }">
+        <div class="modal-background" @click="closeEditModal"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Editar Usuario</p>
+            <button
+              class="delete"
+              aria-label="close"
+              @click="closeEditModal"
+            ></button>
+          </header>
+          <section class="modal-card-body">
+            <div class="form-grid">
+              <div class="field">
+                <label class="label">Nombre</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="editingUser.name"
+                    placeholder="Nombre del usuario"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Apellidos</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="editingUser.lastName"
+                    placeholder="Apellidos del usuario"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">DNI</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="editingUser.dni"
+                    placeholder="DNI del usuario"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Contraseña</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="password"
+                    v-model="editingUser.password"
+                    placeholder="Nueva contraseña (dejar vacío para no cambiar)"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Rango</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select v-model="editingUser.rank">
+                      <option value="user">Usuario</option>
+                      <option value="admin">Administrador</option>
+                      <option value="moderator">Moderador</option>
+                      <option value="vip">VIP</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Puntos</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="number"
+                    step="0.01"
+                    v-model.number="editingUser.points"
+                    placeholder="Puntos del usuario"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Ciudad</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="editingUser.city"
+                    placeholder="Ciudad del usuario"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">DNI de Patrocinador</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="editingUser.parentDni"
+                    placeholder="DNI del patrocinador"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-success" @click="saveUser">
+              Guardar Cambios
+            </button>
+            <button class="button" @click="closeEditModal">Cancelar</button>
+          </footer>
+        </div>
+      </div>
+
+      <!-- View User Details Modal -->
+      <div class="modal" :class="{ 'is-active': showViewModal }">
+        <div class="modal-background" @click="closeViewModal"></div>
+        <div class="modal-card" style="max-width: 600px">
+          <header
+            class="modal-card-head"
+            style="
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            "
+          >
+            <p class="modal-card-title">Detalles del Usuario</p>
+            <button
+              class="delete"
+              aria-label="close"
+              @click="closeViewModal"
+            ></button>
+          </header>
+          <section class="modal-card-body">
+            <div
+              style="
+                display: flex;
+                flex-direction: row;
+                gap: 32px;
+                align-items: flex-start;
+              "
+            >
+              <div
+                style="
+                  flex: 0 0 140px;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                "
+              >
+                <img
+                  :src="
+                    viewingUser.photo ||
+                    viewingUser.img ||
+                    'https://ui-avatars.com/api/?name=' +
+                      (viewingUser.name || 'U') +
+                      '&background=667eea&color=fff'
+                  "
+                  alt="Foto de perfil"
+                  style="
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                    margin-bottom: 12px;
+                  "
+                />
+                <div
+                  style="
+                    font-weight: 600;
+                    font-size: 1.1rem;
+                    text-align: center;
+                  "
+                >
+                  {{ viewingUser.name }} {{ viewingUser.lastName }}
+                </div>
+                <div
+                  style="font-size: 0.95rem; color: #888; text-align: center"
+                >
+                  {{ viewingUser.rank }}
+                </div>
+              </div>
+              <div
+                style="
+                  flex: 1;
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 12px 24px;
+                "
+              >
+                <div class="field"><b>DNI:</b> {{ viewingUser.dni }}</div>
+                <div class="field"><b>Puntos:</b> {{ viewingUser.points }}</div>
+                <div class="field"><b>Ciudad:</b> {{ viewingUser.city }}</div>
+                <div class="field"><b>País:</b> {{ viewingUser.country }}</div>
+                <div class="field"><b>Email:</b> {{ viewingUser.email }}</div>
+                <div class="field">
+                  <b>Teléfono:</b> {{ viewingUser.phone }}
+                </div>
+                <div class="field">
+                  <b>Fecha de Nacimiento:</b> {{ viewingUser.birthdate }}
+                </div>
+                <div class="field">
+                  <b>Fecha de Registro:</b> {{ viewingUser.date }}
+                </div>
+                <div class="field" style="grid-column: span 2">
+                  <b>Patrocinador:</b>
+                  {{
+                    viewingUser.parent
+                      ? viewingUser.parent.name +
+                        " " +
+                        viewingUser.parent.lastName
+                      : "N/A"
+                  }}
+                </div>
+                <div class="field">
+                  <b>Estado:</b> {{ getUserStatus(viewingUser) }}
+                </div>
+                <div class="field">
+                  <b>Saldo Disponible:</b> S/.
+                  {{ Number(viewingUser.balance).toFixed(2) }}
+                </div>
+                <div class="field">
+                  <b>Saldo No Disponible:</b> S/.
+                  {{ Number(viewingUser.virtualbalance).toFixed(2) }}
+                </div>
+                <div class="field"><b>Código:</b> {{ viewingUser.token }}</div>
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot" style="justify-content: flex-end">
+            <button class="button" @click="closeViewModal">Cerrar</button>
+          </footer>
+        </div>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" v-if="loading">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p>Cargando usuarios...</p>
+        </div>
+      </div>
     </section>
   </Layout>
 </template>
 
 <script>
 import Layout from "@/views/Layout";
+import DashboardCard from "@/components/DashboardCard";
+import ModernTable from "@/components/ModernTable";
 import api from "@/api";
 import { debounce } from "lodash";
+import Swal from "sweetalert2";
 
 export default {
-  components: { Layout },
+  components: {
+    Layout,
+    DashboardCard,
+    ModernTable,
+  },
   data() {
     return {
       users: [],
-
+      allUsers: [],
       loading: true,
-
       title: null,
-
       search: null,
       check: false,
-
-      show: false,
-
       currentPage: 1,
       itemsPerPage: 20,
       totalItems: 0,
       totalPages: 0,
-      searchTimeout: null,
       totalBalance: 0,
       totalVirtualBalance: 0,
-      showScrollToTop: false,
-      pageInput: 1,
+      affiliatedTotal: 0,
+
+      // Table configuration
+      tableColumns: [
+        {
+          key: "id",
+          label: "#",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "date",
+          label: "Fecha Registro",
+          sortable: true,
+          type: "date",
+        },
+        {
+          key: "name",
+          label: "Usuario",
+          sortable: true,
+        },
+        {
+          key: "status",
+          label: "Estado",
+          sortable: true,
+          type: "status",
+        },
+        {
+          key: "token",
+          label: "Código",
+          sortable: true,
+        },
+        {
+          key: "points",
+          label: "Puntos",
+          sortable: true,
+          type: "number",
+        },
+        {
+          key: "balance",
+          label: "Saldo Disponible",
+          sortable: true,
+          type: "currency",
+        },
+        {
+          key: "virtualbalance",
+          label: "No Disponible",
+          sortable: true,
+          type: "currency",
+        },
+        {
+          key: "parent",
+          label: "Patrocinador",
+          sortable: true,
+        },
+        {
+          key: "country",
+          label: "País",
+          sortable: true,
+        },
+        {
+          key: "city",
+          label: "Ciudad",
+          sortable: true,
+        },
+      ],
+      tableActions: [
+        {
+          key: "refresh",
+          label: "Actualizar",
+          icon: "fas fa-sync-alt",
+          class: "is-info",
+        },
+        {
+          key: "export",
+          label: "Exportar",
+          icon: "fas fa-download",
+          class: "is-success",
+        },
+      ],
+      itemActions: [
+        {
+          key: "edit",
+          label: "Editar",
+          icon: "fas fa-edit",
+          class: "is-warning",
+        },
+        {
+          key: "migrate",
+          label: "Migrar Saldo",
+          icon: "fas fa-exchange-alt",
+          class: "is-info",
+          condition: (item) => item.virtualbalance > 0,
+        },
+        {
+          key: "view",
+          label: "Ver Detalles",
+          icon: "fas fa-eye",
+          class: "is-primary",
+        },
+      ],
+      tableFilters: [
+        {
+          key: "status",
+          label: "Estado",
+          placeholder: "Filtrar por estado",
+          options: [
+            { value: "registered", label: "Registrado" },
+            { value: "affiliated", label: "Afiliado" },
+            { value: "activated", label: "Activado" },
+          ],
+        },
+      ],
+      showEditModal: false,
+      showViewModal: false,
+      editingUser: {
+        name: "",
+        lastName: "",
+        dni: "",
+        password: "",
+        rank: "user",
+        points: 0,
+        city: "",
+        parentDni: "",
+      },
+      viewingUser: {},
     };
   },
   computed: {
     sortedUsers() {
-      return this.users.sort((a, b) => new Date(b.date) - new Date(a.date)); // Asegúrate de que las fechas estén en un formato correcto
+      return this.users.sort((a, b) => new Date(b.date) - new Date(a.date));
     },
-    balance() {
-      const ret = this.users.reduce((total, user) => total + user.balance, 0);
-      return ret;
+    affiliatedUsers() {
+      return this.allUsers.filter((user) => user.affiliated);
     },
-    virtualBalance() {
-      const ret = this.users.reduce((a, b) => a + Number(b.virtualbalance), 0);
-
-      return ret;
+    tableData() {
+      return this.sortedUsers.map((user) => ({
+        ...user,
+        status: this.getUserStatus(user),
+        parent: user.parent
+          ? `${user.parent.name} ${user.parent.lastName}`
+          : "N/A",
+        name: `${user.name} ${user.lastName}`,
+        id: user.id || Math.random(),
+        balance:
+          user.balance != null
+            ? `S/. ${Number(user.balance).toFixed(2)}`
+            : "S/. 0.00",
+        virtualbalance:
+          user.virtualbalance != null
+            ? `S/. ${Number(user.virtualbalance).toFixed(2)}`
+            : "S/. 0.00",
+        raw: user,
+      }));
     },
   },
   filters: {
@@ -287,218 +549,486 @@ export default {
     this.GET(to.params.filter);
     next();
   },
-  created() {
+  async created() {
     const account = JSON.parse(localStorage.getItem("session"));
-
     this.$store.commit("SET_ACCOUNT", account);
-
-    this.GET(this.$route.params.filter);
-
+    await this.GET(this.$route.params.filter);
+    await this.fetchAffiliatedTotal();
     this.debouncedInput = debounce(this.input, 1500);
-    window.addEventListener("scroll", this.handleScroll);
-  },
-  beforeDestroy() {
-    window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
-    async fetchUsers() {
-      await this.GET(this.$route.params.filter); // Llama a GET para obtener usuarios
-    },
-    async GET(filter) {
+    async GET(filter = "all") {
       this.loading = true;
 
-      // GET data
-      const { data } = await api.users.GET({
-        filter,
-        page: this.currentPage,
-        limit: this.itemsPerPage,
-        search: this.search || undefined,
-        totalBalance: this.totalBalance,
-        totalVirtualBalance: this.totalVirtualBalance,
-        showAvailable: this.check,
-      });
-      console.log({ data });
+      try {
+        console.log("Loading users with params:", {
+          filter,
+          page: this.currentPage,
+          limit: this.itemsPerPage,
+          search: this.search,
+          showAvailable: this.check,
+        });
 
-      this.loading = false;
-      // error
-      if (data.error && data.msg == "invalid filter")
-        this.$router.push("activations/all");
+        const { data } = await api.users.GET({
+          filter,
+          page: this.currentPage,
+          limit: this.itemsPerPage,
+          search: this.search || undefined,
+          showAvailable: this.check,
+        });
 
-      // success
-      this.users = data.users
-        .map((i) => ({
-          ...i,
-          sending: false,
-          visible: true,
-          edit: false,
-          _name: "",
-          _lastName: "",
-          _dni: "",
-          _password: "",
-          _parent_dni: "",
-          _points: 0,
-          _rank: "",
-        }))
-        .reverse();
+        // Obtener todos los usuarios para los totales (limit alto)
+        const { data: allData } = await api.users.GET({
+          page: 1,
+          limit: 10000,
+        });
+        console.log("allData", allData);
+        this.allUsers = allData.users || [];
 
-      this.totalItems = data.total;
-      this.totalPages = data.totalPages;
-      this.totalBalance = data.totalBalance;
-      this.totalVirtualBalance = data.totalVirtualBalance;
-      this.showAvailable = data.showAvailable;
+        this.users = data.users || [];
+        this.totalItems = data.total || 0;
+        this.totalPages = data.totalPages || 0;
+        this.totalBalance = data.totalBalance || 0;
+        this.totalVirtualBalance = data.totalVirtualBalance || 0;
 
-      if (filter == "all") this.title = "Todos los usuarios";
-      if (filter == "affiliated") this.title = "Usuarios Afiliados";
-      if (filter == "activated") this.title = "Usuarios Activados";
-    },
-    async changePage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-        await this.GET(this.$route.params.filter);
+        console.log("Processed users:", {
+          count: this.users.length,
+          totalItems: this.totalItems,
+          totalPages: this.totalPages,
+        });
+
+        if (filter == "all") this.title = "Todos los usuarios";
+        if (filter == "affiliated") this.title = "Usuarios Afiliados";
+        if (filter == "activated") this.title = "Usuarios Activados";
+      } catch (error) {
+        console.error("Error loading users:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al cargar los usuarios",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } finally {
+        this.loading = false;
       }
     },
 
-    async nextPage() {
-      await this.changePage(this.currentPage + 1);
+    getUserStatus(user) {
+      if (user.activated) return "activated";
+      if (user.affiliated) return "affiliated";
+      return "registered";
     },
 
-    async previousPage() {
-      await this.changePage(this.currentPage - 1);
+    handleTableAction(action) {
+      switch (action.key) {
+        case "refresh":
+          this.GET(this.$route.params.filter);
+          break;
+        case "export":
+          this.exportToExcel();
+          break;
+      }
     },
-    async goToPage() {
-      const page = Math.max(1, Math.min(this.pageInput, this.totalPages));
+
+    handleItemAction({ action, item }) {
+      switch (action) {
+        case "edit":
+          this.editUser(item.raw || item);
+          break;
+        case "migrate":
+          this.migrateBalance(item.raw || item);
+          break;
+        case "view":
+          this.viewUser(item.raw || item);
+          break;
+      }
+    },
+
+    handleSearch(query) {
+      this.search = query;
+      this.currentPage = 1;
+      this.GET(this.$route.params.filter);
+    },
+
+    handleFilter(filters) {
+      console.log("Filters applied:", filters);
+      this.currentPage = 1;
+      this.GET(this.$route.params.filter);
+    },
+
+    async handlePageChange(page) {
+      console.log("Page changed to:", page);
       this.currentPage = page;
       await this.GET(this.$route.params.filter);
     },
+
+    async handlePageSizeChange(pageSize) {
+      console.log("Page size changed to:", pageSize);
+      this.itemsPerPage = pageSize;
+      this.currentPage = 1;
+      await this.GET(this.$route.params.filter);
+    },
+
+    editUser(user) {
+      console.log("editUser called", user);
+      this.showEditModal = false; // Forzar cierre previo
+      this.$nextTick(() => {
+        this.showEditModal = true; // Forzar apertura
+        console.log("showEditModal set to true");
+      });
+      this.editingUser = {
+        id: user.id,
+        name: user.name || "",
+        lastName: user.lastName || "",
+        dni: user.dni || "",
+        password: "", // Siempre vacío para nueva contraseña
+        rank: user.rank || "user",
+        points: user.points || 0,
+        city: user.city || "",
+        parentDni: user.parent && user.parent.dni ? user.parent.dni : "",
+      };
+    },
+
+    async migrateBalance(user) {
+      if (!confirm("¿Desea migrar el saldo no disponible?")) return;
+
+      try {
+        // Llamar al API
+        await api.users.POST({
+          action: "migrate",
+          id: user.id,
+        });
+
+        // Actualizar el usuario en la lista local
+        user.balance += user.virtualbalance;
+        user.virtualbalance = 0;
+
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Saldo migrado exitosamente",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        this.GET(this.$route.params.filter);
+      } catch (error) {
+        console.error("Error migrating balance:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al migrar saldo",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    },
+
+    viewUser(user) {
+      this.viewingUser = user;
+      this.showViewModal = true;
+    },
+
     async input() {
       this.GET(this.$route.params.filter);
     },
-    input2() {
-      console.log({ check });
-    },
-    async migrate(user) {
-      console.log("migrate ..");
-      console.log({ user });
 
-      if (!confirm("Desea migrar el saldo no disponible?")) return;
-
-      user.balance += user.virtualbalance;
-      user.virtualbalance = 0;
-
-      const { data } = await api.users.POST({ action: "migrate", id: user.id });
-      console.log({ data });
-    },
-    edit(user) {
-      user.edit = true;
-      if (!user._name) user._name = user.name;
-      if (!user._lastName) user._lastName = user.lastName;
-      if (!user._dni) user._dni = user.dni;
-      if (!user._points) user._points = user.points;
-
-      if (!user._parent_dni) user._parent_dni = user.parent.dni;
-      if (!user._rank) user._rank = user.rank;
-    },
-    async save(user) {
-      // post new name
-      const { data } = await api.users.POST({
-        action: "name",
-        id: user.id,
-        data: {
-          _name: user._name,
-          _lastName: user._lastName,
-          _dni: user._dni,
-          _password: user._password,
-
-          _parent_dni: user._parent_dni,
-          _points: user._points,
-          _rank: user._rank,
-        },
-      });
-
-      user.name = user._name;
-      user.lastName = user._lastName;
-      user.dni = user._dni;
-      user.points = user._points;
-      user.rank = user._rank;
-
-      user.parent.dni = user._parent_dni;
-
-      user.edit = false;
-    },
-    cancel(user) {
-      user.edit = false;
-    },
-    handleScroll() {
-      this.showScrollToTop = window.scrollY >= document.body.offsetHeight / 2;
-    },
-    scrollToTop() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
     async exportToExcel() {
-      // Obtener todos los usuarios
-      const { data } = await api.users.GET({
-        filter: this.$route.params.filter,
-        page: 1, // Puedes usar la página 1 para obtener todos los usuarios
-        limit: 1000, // Asegúrate de que el límite sea suficiente para obtener todos los usuarios
-        search: this.search || undefined,
-        totalBalance: this.totalBalance,
-        totalVirtualBalance: this.totalVirtualBalance,
-        showAvailable: this.check,
-      });
+      try {
+        const { data } = await api.users.GET({
+          filter: this.$route.params.filter,
+          page: 1,
+          limit: 1000,
+          search: this.search || undefined,
+          totalBalance: this.totalBalance,
+          totalVirtualBalance: this.totalVirtualBalance,
+          showAvailable: this.check,
+        });
 
-      const worksheet = XLSX.utils.json_to_sheet(
-        data.users.map((user) => ({
-          Nombre: user.name,
-          Apellido: user.lastName,
-          DNI: user.dni,
-          Puntos: user.points,
-          Saldo: user.balance,
-          País: user.country,
-          Email: user.email,
-          Teléfono: user.phone,
-          FechaNacimiento: user.birthdate,
-          FechaRegistro: user.date,
-          cuidad: user.city,
-        }))
-      );
+        const worksheet = XLSX.utils.json_to_sheet(
+          data.users.map((user) => ({
+            Nombre: user.name,
+            Apellido: user.lastName,
+            DNI: user.dni,
+            Puntos: user.points,
+            Saldo: user.balance,
+            País: user.country,
+            Email: user.email,
+            Teléfono: user.phone,
+            FechaNacimiento: user.birthdate,
+            FechaRegistro: user.date,
+            Ciudad: user.city,
+          }))
+        );
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios");
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios");
+        XLSX.writeFile(workbook, "usuarios.xlsx");
 
-      XLSX.writeFile(workbook, "usuarios.xlsx");
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Archivo exportado exitosamente",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error exporting to Excel:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al exportar archivo",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    },
+
+    closeEditModal() {
+      this.showEditModal = false;
+    },
+
+    closeViewModal() {
+      this.showViewModal = false;
+    },
+
+    async saveUser() {
+      try {
+        // Estructura que espera el servidor
+        const updateData = {
+          _name: this.editingUser.name,
+          _lastName: this.editingUser.lastName,
+          _dni: this.editingUser.dni || "",
+          _password: this.editingUser.password || "",
+          _points: this.editingUser.points || 0,
+          _rank: this.editingUser.rank || "user",
+          city: this.editingUser.city || "",
+          _parent_dni: this.editingUser.parentDni || "",
+        };
+
+        // Llamar al API
+        await api.users.POST({
+          action: "name",
+          id: this.editingUser.id,
+          data: updateData,
+        });
+
+        // Actualizar el usuario en la lista local
+        const index = this.users.findIndex((u) => u.id === this.editingUser.id);
+        if (index !== -1) {
+          this.users[index] = {
+            ...this.users[index],
+            name: this.editingUser.name,
+            lastName: this.editingUser.lastName,
+            points: this.editingUser.points,
+            rank: this.editingUser.rank,
+            dni: this.editingUser.dni,
+            city: this.editingUser.city,
+            parent: {
+              ...this.users[index].parent,
+              dni: this.editingUser.parentDni,
+            },
+          };
+        }
+
+        // Cerrar modal y mostrar éxito
+        this.closeEditModal();
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Usuario actualizado correctamente",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        await this.GET(this.$route.params.filter);
+      } catch (error) {
+        // Si la respuesta es 2xx, mostrar éxito igual
+        if (
+          error.response &&
+          (error.response.status === 200 || error.response.status === 204)
+        ) {
+          this.closeEditModal();
+          Swal.fire({
+            icon: "success",
+            title: "¡Éxito!",
+            text: "Usuario actualizado correctamente",
+            timer: 1800,
+            showConfirmButton: false,
+          });
+          await this.GET(this.$route.params.filter);
+          return;
+        }
+        // Si es otro error, mostrar error real
+        console.error("Error updating user:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al actualizar el usuario",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    },
+
+    async fetchAffiliatedTotal() {
+      try {
+        const { data } = await api.users.GET({
+          filter: "affiliated",
+          page: 1,
+          limit: 1,
+        });
+        this.affiliatedTotal = data.total || 0;
+      } catch (error) {
+        this.affiliatedTotal = 0;
+      }
+    },
+  },
+  watch: {
+    showEditModal(val) {
+      console.log("showEditModal changed:", val);
     },
   },
 };
 </script>
 
-<style>
-.scroll-to-top {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  display: inline-block;
-  padding: 10px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  z-index: 1000;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-.scroll-to-top:hover {
-  background-color: #0056b3;
-}
-.scroll-to-top i {
-  font-size: 20px;
+<style scoped>
+.users-section {
+  padding: 0;
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
+/* Page Header */
+.page-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 40px 0;
+  margin-bottom: 30px;
 }
-.pagination button {
-  margin: 0 5px;
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: white;
+}
+
+.header-left .page-subtitle {
+  font-size: 1.1rem;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.header-actions .button {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.header-actions .button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-content p {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+
+  .header-left .page-title {
+    font-size: 2rem;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Dark Mode Support */
+.dark-mode .page-header {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+.dark-mode .loading-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode .loading-content p {
+  color: #e2e8f0;
 }
 </style>
