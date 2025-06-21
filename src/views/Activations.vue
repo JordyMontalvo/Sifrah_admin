@@ -405,7 +405,17 @@ export default {
       return this.allActivations.filter((a) => a.status === "pending");
     },
     totalAmount() {
-      return this.allActivations.reduce((sum, a) => sum + (a.amount || 0), 0);
+      const total = this.allActivations.reduce(
+        (sum, a) => sum + (Number(a.price) || 0),
+        0
+      );
+      console.log(
+        "Calculando totalAmount con:",
+        this.allActivations,
+        "Resultado:",
+        total
+      );
+      return total;
     },
   },
   filters: {
@@ -452,9 +462,13 @@ export default {
 
         // Obtener todas las activaciones para los totales
         const { data: allData } = await api.Activations.GET({ all: true });
-        this.allActivations = allData.activations || [];
+        this.allActivations = Array.isArray(allData.activations)
+          ? allData.activations
+          : [];
+        console.log("allActivations:", this.allActivations);
         this.activations = data.activations || [];
-        this.totalItems = data.totalItems || 0;
+        this.totalItems =
+          data.totalItems || data.total || this.activations.length || 0;
         this.totalPages = data.totalPages || 0;
 
         console.log("Processed activations:", {
@@ -633,23 +647,33 @@ export default {
         const { data: approved } = await api.Activations.GET({
           filter: "approved",
           page: 1,
-          limit: 1,
+          limit: 99999, // Asegura traer todos si la API lo permite
           account: this.account.id,
         });
-        this.approvedTotal = approved.total || 0;
+        this.approvedTotal =
+          (approved.total !== undefined ? approved.total : null) ||
+          (approved.activations && approved.activations.length) ||
+          0;
+        console.log("Aprobadas:", this.approvedTotal, approved);
       } catch (e) {
         this.approvedTotal = 0;
+        console.warn("No se pudo obtener aprobadas", e);
       }
       try {
         const { data: pending } = await api.Activations.GET({
           filter: "pending",
           page: 1,
-          limit: 1,
+          limit: 99999,
           account: this.account.id,
         });
-        this.pendingTotal = pending.total || 0;
+        this.pendingTotal =
+          (pending.total !== undefined ? pending.total : null) ||
+          (pending.activations && pending.activations.length) ||
+          0;
+        console.log("Pendientes:", this.pendingTotal, pending);
       } catch (e) {
         this.pendingTotal = 0;
+        console.warn("No se pudo obtener pendientes", e);
       }
     },
 

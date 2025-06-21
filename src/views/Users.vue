@@ -331,7 +331,6 @@
                   <b>Saldo No Disponible:</b> S/.
                   {{ Number(viewingUser.virtualbalance).toFixed(2) }}
                 </div>
-                <div class="field"><b>Código:</b> {{ viewingUser.token }}</div>
               </div>
             </div>
           </section>
@@ -408,11 +407,6 @@ export default {
           type: "status",
         },
         {
-          key: "token",
-          label: "Código",
-          sortable: true,
-        },
-        {
           key: "points",
           label: "Puntos",
           sortable: true,
@@ -472,7 +466,7 @@ export default {
           label: "Migrar Saldo",
           icon: "fas fa-exchange-alt",
           class: "is-info",
-          condition: (item) => item.virtualbalance > 0,
+          condition: (item) => item.virtualbalanceRaw > 0,
         },
         {
           key: "view",
@@ -522,7 +516,9 @@ export default {
         parent: user.parent
           ? `${user.parent.name} ${user.parent.lastName}`
           : "N/A",
-        name: `${user.name} ${user.lastName}`,
+        name: `${user.name} ${user.lastName}\nDNI: ${user.dni || ""}\nCel: ${
+          user.phone || ""
+        }`,
         id: user.id || Math.random(),
         balance:
           user.balance != null
@@ -532,6 +528,8 @@ export default {
           user.virtualbalance != null
             ? `S/. ${Number(user.virtualbalance).toFixed(2)}`
             : "S/. 0.00",
+        virtualbalanceRaw:
+          user.virtualbalance != null ? Number(user.virtualbalance) : 0,
         raw: user,
       }));
     },
@@ -615,9 +613,9 @@ export default {
     },
 
     getUserStatus(user) {
-      if (user.activated) return "activated";
-      if (user.affiliated) return "affiliated";
-      return "registered";
+      if (user.activated) return "Activado";
+      if (user.affiliated) return "Afiliado";
+      return "Registrado";
     },
 
     handleTableAction(action) {
