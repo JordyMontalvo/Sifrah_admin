@@ -356,8 +356,7 @@
                 </div>
               </div>
             </div>
-
-            <!-- Nueva sección: Asignar a Planes -->
+            
             <div class="field">
               <label class="label">Asignar a Planes</label>
               <div class="plans-grid">
@@ -366,10 +365,7 @@
                   :key="plan.id"
                   class="checkbox-wrapper"
                 >
-                  <input
-                    type="checkbox"
-                    v-model="editingProduct.plans[plan.id]"
-                  />
+                  <input type="checkbox" v-model="editingProduct.plans[plan.id]" />
                   <span class="checkmark"></span>
                   <span class="plan-name">{{ plan.name }}</span>
                 </label>
@@ -457,6 +453,7 @@ export default {
         points: 0,
         weight: 0,
         img: "",
+        plans: {},
       },
 
       // Table configuration
