@@ -33,7 +33,7 @@
       <div class="container">
         <div class="stats-grid">
           <DashboardCard
-            :value="totalItems"
+            :value="totalAffiliations"
             label="Total Afiliaciones"
             icon="fas fa-handshake"
             color="primary"
@@ -189,8 +189,6 @@ export default {
       itemsPerPage: 20,
       totalItems: 0,
       totalPages: 0,
-      approvedTotal: 0,
-      pendingTotal: 0,
       approvedAmount: 0,
       showImageModal: false,
       imageModalUrl: "",
@@ -327,6 +325,24 @@ export default {
     account() {
       return this.$store.state.account;
     },
+    totalAffiliations() {
+      return this.allAffiliations.length;
+    },
+    approvedTotal() {
+      return this.allAffiliations.filter(
+        (a) => (a.status || "").toLowerCase() === "approved"
+      ).length;
+    },
+    pendingTotal() {
+      return this.allAffiliations.filter(
+        (a) => (a.status || "").toLowerCase() === "pending"
+      ).length;
+    },
+    totalAmount() {
+      return this.allAffiliations
+        .filter((a) => (a.status || "").toLowerCase() === "approved")
+        .reduce((sum, a) => sum + ((a.plan && a.plan.amount) || 0), 0);
+    },
     tableData() {
       return this.affiliations.map((affiliation, index) => {
         // Buscar el nombre bonito de la oficina usando el id original
@@ -351,11 +367,13 @@ export default {
           `Afiliación: ${affiliation.id}, officeId: ${officeId}, officeName: ${officeName}`
         );
 
+        // Calcular el índice global del registro en la lista completa
+        const globalIndex = (this.currentPage - 1) * this.itemsPerPage + index;
         return {
           id:
-            this.totalItems -
-            (this.currentPage - 1) * this.itemsPerPage -
-            index,
+            this.allAffiliations.length > 0
+              ? this.allAffiliations.length - globalIndex
+              : index + 1,
           date: new Date(affiliation.date).toLocaleDateString(),
           user: {
             name: `${affiliation.name} ${affiliation.lastName}`,
@@ -375,18 +393,6 @@ export default {
           raw: affiliation,
         };
       });
-    },
-    approvedAffiliations() {
-      return this.allAffiliations.filter((a) => a.status === "approved");
-    },
-    pendingAffiliations() {
-      return this.allAffiliations.filter((a) => a.status === "pending");
-    },
-    totalAmount() {
-      return this.allAffiliations.reduce(
-        (sum, a) => sum + ((a.plan && a.plan.amount) || 0),
-        0
-      );
     },
   },
   watch: {
@@ -436,7 +442,6 @@ export default {
     const account = JSON.parse(localStorage.getItem("session"));
     this.$store.commit("SET_ACCOUNT", account);
     await this.GET(this.$route.params.filter);
-    await this.fetchStatusTotals();
   },
   methods: {
     async GET(filter = "all") {
@@ -445,7 +450,7 @@ export default {
       try {
         console.log("Loading affiliations with params:", {
           filter,
-          account: this.account.id,
+          account: "admin",
           page: this.currentPage,
           limit: this.itemsPerPage,
           search: this.search,
@@ -453,14 +458,19 @@ export default {
 
         const { data } = await api.Affiliations.GET({
           filter,
-          account: this.account.id,
+          account: "admin",
           page: this.currentPage,
           limit: this.itemsPerPage,
           search: this.search,
         });
 
         // Obtener todas las afiliaciones para los totales
-        const { data: allData } = await api.Affiliations.GET({ all: true });
+        const { data: allData } = await api.Affiliations.GET({
+          filter: "all",
+          account: "admin",
+          page: 1,
+          limit: 10000,
+        });
         this.allAffiliations = allData.affiliations || [];
         this.affiliations = data.affiliations || [];
         this.totalItems = data.totalItems || 0;
@@ -673,31 +683,6 @@ export default {
     closeImageModal() {
       this.showImageModal = false;
       this.imageModalUrl = "";
-    },
-
-    async fetchStatusTotals() {
-      try {
-        const { data: approved } = await api.Affiliations.GET({
-          filter: "approved",
-          page: 1,
-          limit: 1,
-          account: this.account.id,
-        });
-        this.approvedTotal = approved.total || 0;
-      } catch (e) {
-        this.approvedTotal = 0;
-      }
-      try {
-        const { data: pending } = await api.Affiliations.GET({
-          filter: "pending",
-          page: 1,
-          limit: 1,
-          account: this.account.id,
-        });
-        this.pendingTotal = pending.total || 0;
-      } catch (e) {
-        this.pendingTotal = 0;
-      }
     },
 
     getOfficeName(officeId) {

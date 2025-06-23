@@ -503,14 +503,16 @@ export default {
       return statusClasses[status] || "status-default";
     },
     getStatusText(status) {
-      const statusTexts = {
-        active: "Activo",
-        inactive: "Inactivo",
-        pending: "Pendiente",
-        completed: "Completado",
-        cancelled: "Cancelado",
-      };
-      return statusTexts[status] || status;
+      switch (status) {
+        case "activated":
+          return "Activado";
+        case "affiliated":
+          return "Afiliado";
+        case "registered":
+          return "Registrado";
+        default:
+          return status;
+      }
     },
     formatCurrency(value) {
       if (!value) return "0.00";

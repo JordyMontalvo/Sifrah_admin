@@ -356,6 +356,25 @@
                 </div>
               </div>
             </div>
+
+            <!-- Nueva sección: Asignar a Planes -->
+            <div class="field">
+              <label class="label">Asignar a Planes</label>
+              <div class="plans-grid">
+                <label
+                  v-for="plan in plans"
+                  :key="plan.id"
+                  class="checkbox-wrapper"
+                >
+                  <input
+                    type="checkbox"
+                    v-model="editingProduct.plans[plan.id]"
+                  />
+                  <span class="checkmark"></span>
+                  <span class="plan-name">{{ plan.name }}</span>
+                </label>
+              </div>
+            </div>
           </section>
           <footer class="modal-card-foot">
             <button class="button is-success" @click="saveProduct">

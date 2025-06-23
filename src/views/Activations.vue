@@ -35,7 +35,7 @@
       <div class="container">
         <div class="stats-grid">
           <DashboardCard
-            :value="totalItems"
+            :value="totalActivations"
             label="Total Activaciones"
             icon="fas fa-bolt"
             color="primary"
@@ -121,7 +121,7 @@
           </template>
         </ModernTable>
       </div>
-
+      <!-- End of Modern Table -->
       <!-- Loading Overlay -->
       <div class="loading-overlay" v-if="loading">
         <div class="loading-content">
@@ -177,8 +177,7 @@ export default {
       itemsPerPage: 20,
       totalItems: 0,
       totalPages: 0,
-      approvedTotal: 0,
-      pendingTotal: 0,
+      approvedAmount: 0,
       showImageModal: false,
       imageModalUrl: "",
 
@@ -320,6 +319,24 @@ export default {
     account() {
       return this.$store.state.account;
     },
+    totalActivations() {
+      return this.allActivations.length;
+    },
+    approvedTotal() {
+      return this.allActivations.filter(
+        (a) => (a.status || "").toLowerCase() === "approved"
+      ).length;
+    },
+    pendingTotal() {
+      return this.allActivations.filter(
+        (a) => (a.status || "").toLowerCase() === "pending"
+      ).length;
+    },
+    totalAmount() {
+      return this.allActivations
+        .filter((a) => (a.status || "").toLowerCase() === "approved")
+        .reduce((sum, a) => sum + ((a.plan && a.plan.amount) || 0), 0);
+    },
     tableData() {
       return this.activations.map((activation, index) => {
         // Validar price y points
@@ -374,12 +391,12 @@ export default {
           voucherIsImage =
             /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(voucherUrl);
         }
-
+        const globalIndex = (this.currentPage - 1) * this.itemsPerPage + index;
         return {
           id:
-            this.totalItems -
-            (this.currentPage - 1) * this.itemsPerPage -
-            index,
+            this.allActivations.length > 0
+              ? this.allActivations.length - globalIndex
+              : index + 1,
           date: activation.date
             ? new Date(activation.date).toLocaleDateString()
             : "-",
@@ -397,25 +414,6 @@ export default {
           raw: activation,
         };
       });
-    },
-    approvedActivations() {
-      return this.allActivations.filter((a) => a.status === "approved");
-    },
-    pendingActivations() {
-      return this.allActivations.filter((a) => a.status === "pending");
-    },
-    totalAmount() {
-      const total = this.allActivations.reduce(
-        (sum, a) => sum + (Number(a.price) || 0),
-        0
-      );
-      console.log(
-        "Calculando totalAmount con:",
-        this.allActivations,
-        "Resultado:",
-        total
-      );
-      return total;
     },
   },
   filters: {
@@ -461,14 +459,14 @@ export default {
         });
 
         // Obtener todas las activaciones para los totales
-        const { data: allData } = await api.Activations.GET({ all: true });
-        this.allActivations = Array.isArray(allData.activations)
-          ? allData.activations
-          : [];
-        console.log("allActivations:", this.allActivations);
+        const { data: allData } = await api.Activations.GET({
+          filter: "all",
+          page: 1,
+          limit: 10000,
+        });
+        this.allActivations = allData.activations || [];
         this.activations = data.activations || [];
-        this.totalItems =
-          data.totalItems || data.total || this.activations.length || 0;
+        this.totalItems = data.totalItems || 0;
         this.totalPages = data.totalPages || 0;
 
         console.log("Processed activations:", {
@@ -650,13 +648,8 @@ export default {
           limit: 99999, // Asegura traer todos si la API lo permite
           account: this.account.id,
         });
-        this.approvedTotal =
-          (approved.total !== undefined ? approved.total : null) ||
-          (approved.activations && approved.activations.length) ||
-          0;
-        console.log("Aprobadas:", this.approvedTotal, approved);
+        console.log("Aprobadas:", approved);
       } catch (e) {
-        this.approvedTotal = 0;
         console.warn("No se pudo obtener aprobadas", e);
       }
       try {
@@ -666,13 +659,8 @@ export default {
           limit: 99999,
           account: this.account.id,
         });
-        this.pendingTotal =
-          (pending.total !== undefined ? pending.total : null) ||
-          (pending.activations && pending.activations.length) ||
-          0;
-        console.log("Pendientes:", this.pendingTotal, pending);
+        console.log("Pendientes:", pending);
       } catch (e) {
-        this.pendingTotal = 0;
         console.warn("No se pudo obtener pendientes", e);
       }
     },

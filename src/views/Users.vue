@@ -314,9 +314,9 @@
                   <b>Patrocinador:</b>
                   {{
                     viewingUser.parent
-                      ? viewingUser.parent.name +
-                        " " +
-                        viewingUser.parent.lastName
+                      ? `${viewingUser.parent.name} ${
+                          viewingUser.parent.lastName
+                        } (DNI: ${viewingUser.parent.dni || ""})`
                       : "N/A"
                   }}
                 </div>
@@ -380,6 +380,7 @@ export default {
       totalBalance: 0,
       totalVirtualBalance: 0,
       affiliatedTotal: 0,
+      selectedStatus: null,
 
       // Table configuration
       tableColumns: [
@@ -510,16 +511,23 @@ export default {
       return this.allUsers.filter((user) => user.affiliated);
     },
     tableData() {
-      return this.sortedUsers.map((user) => ({
+      return this.sortedUsers.map((user, index) => ({
         ...user,
-        status: this.getUserStatus(user),
+        status: user.activated
+          ? "activated"
+          : user.affiliated
+          ? "affiliated"
+          : "registered",
         parent: user.parent
-          ? `${user.parent.name} ${user.parent.lastName}`
+          ? `${user.parent.name} ${user.parent.lastName} (DNI: ${
+              user.parent.dni || ""
+            })`
           : "N/A",
         name: `${user.name} ${user.lastName}\nDNI: ${user.dni || ""}\nCel: ${
           user.phone || ""
         }`,
-        id: user.id || Math.random(),
+        id:
+          this.totalItems - (this.currentPage - 1) * this.itemsPerPage - index,
         balance:
           user.balance != null
             ? `S/. ${Number(user.balance).toFixed(2)}`
@@ -544,6 +552,7 @@ export default {
     },
   },
   beforeRouteUpdate(to, from, next) {
+    this.selectedStatus = null;
     this.GET(to.params.filter);
     next();
   },
@@ -555,49 +564,71 @@ export default {
     this.debouncedInput = debounce(this.input, 1500);
   },
   methods: {
-    async GET(filter = "all") {
+    async GET() {
       this.loading = true;
-
       try {
-        console.log("Loading users with params:", {
-          filter,
-          page: this.currentPage,
-          limit: this.itemsPerPage,
-          search: this.search,
-          showAvailable: this.check,
-        });
-
-        const { data } = await api.users.GET({
-          filter,
-          page: this.currentPage,
-          limit: this.itemsPerPage,
-          search: this.search || undefined,
-          showAvailable: this.check,
-        });
-
+        let filter = this.selectedStatus || this.$route.params.filter || "all";
+        let backendFilter = filter;
+        let users = [];
+        let totalItems = 0;
+        let totalPages = 0;
+        let totalBalance = 0;
+        let totalVirtualBalance = 0;
+        // Si el filtro es 'registered', pide todos y pagina en frontend
+        if (filter === "registered") {
+          backendFilter = "all";
+          const { data } = await api.users.GET({
+            filter: backendFilter,
+            page: 1,
+            limit: 10000,
+            search: this.search || undefined,
+            showAvailable: this.check,
+          });
+          users = (data.users || []).filter(
+            (user) =>
+              (!user.affiliated ||
+                user.affiliated === "false" ||
+                user.affiliated === 0) &&
+              (!user.activated ||
+                user.activated === "false" ||
+                user.activated === 0)
+          );
+          totalItems = users.length;
+          totalPages = Math.ceil(totalItems / this.itemsPerPage);
+          // Paginar en frontend
+          const skip = (this.currentPage - 1) * this.itemsPerPage;
+          users = users.slice(skip, skip + this.itemsPerPage);
+          totalBalance = data.totalBalance || 0;
+          totalVirtualBalance = data.totalVirtualBalance || 0;
+        } else {
+          const { data } = await api.users.GET({
+            filter: backendFilter,
+            page: this.currentPage,
+            limit: this.itemsPerPage,
+            search: this.search || undefined,
+            showAvailable: this.check,
+          });
+          users = data.users || [];
+          totalItems = data.total || 0;
+          totalPages = data.totalPages || 0;
+          totalBalance = data.totalBalance || 0;
+          totalVirtualBalance = data.totalVirtualBalance || 0;
+        }
         // Obtener todos los usuarios para los totales (limit alto)
         const { data: allData } = await api.users.GET({
           page: 1,
           limit: 10000,
         });
-        console.log("allData", allData);
         this.allUsers = allData.users || [];
-
-        this.users = data.users || [];
-        this.totalItems = data.total || 0;
-        this.totalPages = data.totalPages || 0;
-        this.totalBalance = data.totalBalance || 0;
-        this.totalVirtualBalance = data.totalVirtualBalance || 0;
-
-        console.log("Processed users:", {
-          count: this.users.length,
-          totalItems: this.totalItems,
-          totalPages: this.totalPages,
-        });
-
+        this.users = users;
+        this.totalItems = totalItems;
+        this.totalPages = totalPages;
+        this.totalBalance = totalBalance;
+        this.totalVirtualBalance = totalVirtualBalance;
         if (filter == "all") this.title = "Todos los usuarios";
         if (filter == "affiliated") this.title = "Usuarios Afiliados";
         if (filter == "activated") this.title = "Usuarios Activados";
+        if (filter == "registered") this.title = "Usuarios Registrados";
       } catch (error) {
         console.error("Error loading users:", error);
         Swal.fire({
@@ -650,9 +681,9 @@ export default {
     },
 
     handleFilter(filters) {
-      console.log("Filters applied:", filters);
+      this.selectedStatus = filters.status || null;
       this.currentPage = 1;
-      this.GET(this.$route.params.filter);
+      this.GET();
     },
 
     async handlePageChange(page) {
