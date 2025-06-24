@@ -292,6 +292,12 @@ export default {
           class: "is-warning",
           condition: (item) => item.status === "approved",
         },
+        {
+          key: "revert",
+          label: "Eliminar",
+          icon: "fas fa-trash",
+          class: "is-danger",
+        },
       ],
       tableFilters: [
         {
@@ -581,6 +587,8 @@ export default {
         this.editVoucher(affiliation);
       } else if (action === "invoice") {
         window.open(`${this.INVOICE_ROOT}?id=${affiliation.id}`, "_blank");
+      } else if (action === "revert") {
+        await this.deleteAffiliation(affiliation);
       }
     },
 
@@ -695,6 +703,51 @@ export default {
         return officeId.charAt(0).toUpperCase() + officeId.slice(1);
       }
       return "N/A";
+    },
+
+    async deleteAffiliation(affiliation) {
+      if (
+        !confirm(
+          "¿Desea eliminar esta afiliación? Esta acción no se puede deshacer."
+        )
+      )
+        return;
+      affiliation.sending = true;
+      try {
+        const { data } = await api.Affiliations.POST({
+          action: "revert",
+          id: affiliation.id,
+        });
+        console.log("Respuesta de revert:", data);
+        if (data && data.error === false) {
+          // Eliminar de la lista local
+          this.affiliations = this.affiliations.filter(
+            (a) => a.id !== affiliation.id
+          );
+          this.allAffiliations = this.allAffiliations.filter(
+            (a) => a.id !== affiliation.id
+          );
+          this.$toast.success("Afiliación eliminada correctamente");
+        } else {
+          this.$toast.error(
+            (data && data.msg) || "No se pudo eliminar la afiliación"
+          );
+        }
+      } catch (error) {
+        console.error("Error eliminando afiliación:", error);
+        let msg = "Error al eliminar la afiliación";
+        if (error && error.response && error.response.data) {
+          msg =
+            error.response.data.msg ||
+            JSON.stringify(error.response.data) ||
+            msg;
+        } else if (error && error.message) {
+          msg = error.message;
+        }
+        this.$toast.error(msg);
+      } finally {
+        affiliation.sending = false;
+      }
     },
   },
 };

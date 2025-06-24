@@ -356,7 +356,7 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="field">
               <label class="label">Asignar a Planes</label>
               <div class="plans-grid">
@@ -365,7 +365,10 @@
                   :key="plan.id"
                   class="checkbox-wrapper"
                 >
-                  <input type="checkbox" v-model="editingProduct.plans[plan.id]" />
+                  <input
+                    type="checkbox"
+                    v-model="editingProduct.plans[plan.id]"
+                  />
                   <span class="checkmark"></span>
                   <span class="plan-name">{{ plan.name }}</span>
                 </label>
@@ -663,11 +666,8 @@ export default {
 
     editProduct(product) {
       console.log("editProduct", product);
-      // Buscar el producto original por code o id
+      // Buscar el producto original por id
       let original = null;
-      if (product.code) {
-        original = this.products.find((p) => p.code === product.code);
-      }
       if (!original && product.id) {
         original = this.products.find((p) => p.id === product.id);
       }
