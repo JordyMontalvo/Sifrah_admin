@@ -73,8 +73,10 @@ class Affiliations {
 }
 
 class Collects {
-  GET({ filter, account }) {
-    return axios.get(`/admin/collects?filter=${filter}&&account=${account}`);
+  GET({ filter, account, page = 1, limit = 20 }) {
+    return axios.get(
+      `/admin/collects?filter=${filter}&&account=${account}&page=${page}&limit=${limit}`
+    );
   }
   POST({ action, id }) {
     return axios.post(`/admin/collects`, { action, id });

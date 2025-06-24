@@ -66,8 +66,8 @@
             :show-currency="true"
             :description="`Valor de todos los retiros`"
           />
-                  </div>
-                  </div>
+        </div>
+      </div>
 
       <!-- Modern Table -->
       <div class="container">
@@ -80,14 +80,21 @@
           :item-actions="itemActions"
           :show-filters="true"
           :show-pagination="true"
+          :current-page="currentPage"
+          :items-per-page="itemsPerPage"
+          :total-pages="totalPages"
+          :total-items="totalItems"
+          :server-pagination="true"
           search-placeholder="Buscar por nombre, DNI o oficina..."
           :filters="tableFilters"
           @action="handleTableAction"
           @item-action="handleItemAction"
           @search="handleSearch"
           @filter="handleFilter"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
         />
-                  </div>
+      </div>
 
       <!-- Loading Overlay -->
       <div class="loading-overlay" v-if="loading">
@@ -230,11 +237,7 @@ export default {
       return this.collects.map((collect, index) => ({
         id: index + 1,
         date: new Date(collect.date).toLocaleDateString(),
-        user: {
-          name: `${collect.name} ${collect.lastName}`,
-          username: collect.username,
-          phone: collect.phone,
-        },
+        user: `${collect.name} ${collect.lastName} (${collect.phone})`,
         account: this.formatAccount(collect),
         amount: parseFloat(collect.amount).toFixed(2),
         office: collect.office,
@@ -277,22 +280,24 @@ export default {
   methods: {
     async GET(filter) {
       this.loading = true;
-
       try {
         const { data } = await api.Collects.GET({
           filter,
           account: this.account.id,
+          page: this.currentPage,
+          limit: this.itemsPerPage,
         });
-
-      this.collects = data.collects
-          .map((i) => ({ ...i, sending: false, visible: true }))
-          .reverse();
-
-      this.collects.forEach((collect) => {
+        this.collects = data.collects.map((i) => ({
+          ...i,
+          sending: false,
+          visible: true,
+        }));
+        this.totalItems = data.total;
+        this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
+        this.collects.forEach((collect) => {
           const office = this.accounts.find((x) => x.id == collect.office);
           collect.office = (office && office.name) || "N/A";
         });
-
         if (filter == "all") this.title = "Todos los Retiros";
         if (filter == "pending") this.title = "Retiros Pendientes";
       } catch (error) {
@@ -381,6 +386,17 @@ export default {
     download() {
       // Implement download functionality
       console.log("Downloading report...");
+    },
+
+    handlePageChange(page) {
+      this.currentPage = page;
+      this.GET(this.$route.params.filter);
+    },
+
+    handlePageSizeChange(size) {
+      this.itemsPerPage = size;
+      this.currentPage = 1;
+      this.GET(this.$route.params.filter);
     },
   },
 };

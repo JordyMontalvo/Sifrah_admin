@@ -349,6 +349,10 @@ export default {
       return this.columns.filter((col) => !col.hidden);
     },
     filteredData() {
+      if (this.serverPagination) {
+        // Si la paginación y búsqueda es en el servidor, no filtrar localmente
+        return this.data;
+      }
       let data = [...this.data];
 
       // Apply search
