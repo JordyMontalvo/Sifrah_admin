@@ -326,8 +326,25 @@ export default {
       }
     },
 
-    async handleItemAction(action, item) {
-      const collect = item.raw;
+    async handleItemAction({ action, item }) {
+      let collect = null;
+      if (!item || !item.raw) {
+        // Intenta buscar el collect por id si item es un id
+        if (item && typeof item === "object" && item.id) {
+          collect = this.collects.find((c) => c.id === item.id);
+        } else if (typeof item === "number" || typeof item === "string") {
+          collect = this.collects.find((c) => c.id === item);
+        }
+        if (!collect) {
+          console.warn(
+            "Item o item.raw no definido en handleItemAction:",
+            item
+          );
+          return;
+        }
+      } else {
+        collect = item.raw;
+      }
 
       if (action === "approve") {
         await this.approve(collect);
@@ -368,11 +385,34 @@ export default {
 
         if (data.error && data.msg == "already approved") {
           collect.status = "approved";
+          this.$toast &&
+            this.$toast.info &&
+            this.$toast.info("Este retiro ya fue aprobado previamente.");
+        } else if (data.error) {
+          this.$toast &&
+            this.$toast.error &&
+            this.$toast.error(
+              "Error: " + (data.msg || "No se pudo aprobar el retiro.")
+            );
+        } else if (data.collect) {
+          // Actualiza la lista completa para asegurar sincronización
+          await this.GET(this.$route.params.filter);
+          this.$toast &&
+            this.$toast.success &&
+            this.$toast.success("Retiro aprobado correctamente.");
         } else {
           collect.status = "approved";
+          this.$toast &&
+            this.$toast.success &&
+            this.$toast.success("Retiro aprobado correctamente.");
         }
       } catch (error) {
         console.error("Error approving collect:", error);
+        this.$toast &&
+          this.$toast.error &&
+          this.$toast.error(
+            "Error de red o del servidor al aprobar el retiro."
+          );
       } finally {
         collect.sending = false;
       }

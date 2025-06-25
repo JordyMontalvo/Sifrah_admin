@@ -37,13 +37,6 @@ export default {
     // Load dark mode preference
     this.isDarkMode = localStorage.getItem("darkMode") === "true";
     this.applyDarkMode();
-
-    // Make toast available globally
-    this.$toast = this.$refs.toast;
-  },
-  mounted() {
-    // Make toast available globally after mount
-    this.$toast = this.$refs.toast;
   },
   methods: {
     applyDarkMode() {
