@@ -334,7 +334,10 @@ export default {
       return this.$store.state.account;
     },
     tableData() {
-      return this.transactions.map((transaction, index) => {
+      const sortedTransaccions = this.transactions
+        .slice()
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      return sortedTransaccions.map((transaction, index) => {
         // Usar la función helper para extraer el valor
         const amountValue = this.extractTransactionValue(transaction);
 
@@ -344,9 +347,6 @@ export default {
             (this.currentPage - 1) * this.itemsPerPage -
             index,
           transaction_id: transaction.id || "N/A",
-          date: this.formatDate(
-            transaction.date || transaction.createdAt || transaction.fecha
-          ),
           user_dest:
             `${(transaction.user_info && transaction.user_info.name) || ""} ${
               (transaction.user_info && transaction.user_info.lastName) || ""
@@ -471,29 +471,6 @@ export default {
         this.loading = false;
       }
     },
-
-    formatDate(date) {
-      if (!date) return "Sin fecha";
-      // Si es formato dd/mm/yyyy hh:mm, conviértelo a ISO
-      if (/^\d{2}\/\d{2}\/\d{4},? \d{2}:\d{2}/.test(date)) {
-        const [d, m, y, h, min] = date.match(/\d+/g);
-        date = `${y}-${m}-${d}T${h}:${min}:00`;
-      }
-      try {
-        const d = new Date(date);
-        if (isNaN(d.getTime())) return "Sin fecha";
-        return d.toLocaleDateString("es-ES", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      } catch (error) {
-        return "Sin fecha";
-      }
-    },
-
     formatCurrency(value) {
       // Si el valor ya es una cadena formateada, devolverlo tal como está
       if (typeof value === "string" && value.includes("S/")) {

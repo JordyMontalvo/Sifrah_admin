@@ -357,14 +357,7 @@ export default {
         // Buscar el nombre bonito de la oficina usando el id original
         let officeName = "N/A";
         const officeId = String(affiliation.officeId || affiliation.office);
-        // Log para depuración de ids
-        console.log(
-          "Buscando officeId:",
-          officeId,
-          "en accounts:",
-          this.accounts.map((a) => a.id)
-        );
-        // Forzar comparación de ids como string
+
         const officeObj = this.accounts.find((x) => String(x.id) === officeId);
         if (officeObj && officeObj.name) {
           officeName = officeObj.name;
@@ -383,9 +376,6 @@ export default {
             this.allAffiliations.length > 0
               ? this.allAffiliations.length - globalIndex
               : index + 1,
-          date: affiliation.date
-            ? new Date(affiliation.date).toLocaleDateString()
-            : "-",
           user: {
             name: `${affiliation.name} ${affiliation.lastName}`,
             dni: affiliation.dni,
@@ -402,6 +392,7 @@ export default {
           voucher: this.formatVoucher(affiliation),
           status: affiliation.status,
           raw: affiliation,
+          date: affiliation.date,
         };
       });
     },
