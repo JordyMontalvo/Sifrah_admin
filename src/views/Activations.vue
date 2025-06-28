@@ -338,6 +338,15 @@ export default {
         .reduce((sum, a) => sum + ((a.plan && a.plan.amount) || 0), 0);
     },
     tableData() {
+      function parseDate(dateStr) {
+        if (!dateStr) return null;
+        if (dateStr.includes("T")) return new Date(dateStr);
+        const parts = dateStr.split(/[\/\-]/);
+        if (parts.length === 3) {
+          return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        return new Date(dateStr);
+      }
       return this.activations.map((activation, index) => {
         // Validar price y points
         let price = "-";
@@ -398,7 +407,7 @@ export default {
               ? this.allActivations.length - globalIndex
               : index + 1,
           date: activation.date
-            ? new Date(activation.date).toLocaleDateString()
+            ? parseDate(activation.date).toLocaleDateString()
             : "-",
           user,
           office,

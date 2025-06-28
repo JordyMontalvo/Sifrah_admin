@@ -380,7 +380,7 @@ export default {
             this.allAffiliations.length > 0
               ? this.allAffiliations.length - globalIndex
               : index + 1,
-          date: new Date(affiliation.date).toLocaleDateString(),
+          date: parseDate(affiliation.date).toLocaleDateString(),
           user: {
             name: `${affiliation.name} ${affiliation.lastName}`,
             dni: affiliation.dni,
@@ -751,6 +751,16 @@ export default {
     },
   },
 };
+
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+  if (dateStr.includes("T")) return new Date(dateStr);
+  const parts = dateStr.split(/[\/\-]/);
+  if (parts.length === 3) {
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+  }
+  return new Date(dateStr);
+}
 </script>
 
 <style scoped>
