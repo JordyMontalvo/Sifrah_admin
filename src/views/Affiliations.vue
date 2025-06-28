@@ -380,7 +380,9 @@ export default {
             this.allAffiliations.length > 0
               ? this.allAffiliations.length - globalIndex
               : index + 1,
-          date: parseDate(affiliation.date).toLocaleDateString(),
+          date: affiliation.date
+            ? new Date(affiliation.date).toLocaleDateString()
+            : "-",
           user: {
             name: `${affiliation.name} ${affiliation.lastName}`,
             dni: affiliation.dni,
