@@ -365,6 +365,7 @@ export default {
           affiliation_id: transaction.affiliation_id || "-",
           virtual: transaction.virtual ? "Sí" : "No",
           raw: transaction,
+          date: transaction.date,
         };
       });
     },
