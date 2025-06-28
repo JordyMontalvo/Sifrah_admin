@@ -157,6 +157,123 @@
           />
         </div>
       </div>
+
+      <div class="modal" :class="{ 'is-active': showViewModal }">
+        <div class="modal-background" @click="showViewModal = false"></div>
+        <div class="modal-card modern-modal-card">
+          <header class="modal-card-head modern-modal-head">
+            <span class="modal-icon"><i class="fas fa-user-plus"></i></span>
+            <p class="modal-card-title">Detalles de la Afiliación</p>
+            <button
+              class="delete"
+              aria-label="close"
+              @click="showViewModal = false"
+            ></button>
+          </header>
+          <section class="modal-card-body modern-modal-body">
+            <div v-if="selectedAffiliation" class="details-grid">
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-hashtag"></i> ID:</span
+                >
+                <span class="detail-value">{{ selectedAffiliation.id }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-calendar-alt"></i> Fecha:</span
+                >
+                <span class="detail-value">{{
+                  formatDateTime(selectedAffiliation.date)
+                }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-user"></i> Usuario:</span
+                >
+                <span class="detail-value"
+                  >{{ selectedAffiliation.name }}
+                  {{ selectedAffiliation.lastName }}</span
+                >
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-id-card"></i> DNI:</span
+                >
+                <span class="detail-value">{{ selectedAffiliation.dni }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-building"></i> Oficina:</span
+                >
+                <span class="detail-value">{{
+                  selectedAffiliation.office
+                }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-cube"></i> Plan:</span
+                >
+                <span class="detail-value">{{
+                  selectedAffiliation.plan && selectedAffiliation.plan.name
+                }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-money-bill-wave"></i> Monto:</span
+                >
+                <span class="detail-value">{{
+                  selectedAffiliation.plan && selectedAffiliation.plan.amount
+                }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-box"></i> Productos:</span
+                >
+                <span class="detail-value">{{
+                  formatProducts(selectedAffiliation)
+                }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-credit-card"></i> Medio de Pago:</span
+                >
+                <span class="detail-value">{{
+                  formatPayMethod(selectedAffiliation)
+                }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-file-invoice"></i> Voucher:</span
+                >
+                <span class="detail-value"
+                  ><a
+                    v-if="selectedAffiliation.voucher"
+                    :href="selectedAffiliation.voucher.url"
+                    target="_blank"
+                    >Ver</a
+                  ></span
+                >
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-info-circle"></i> Estado:</span
+                >
+                <span class="detail-value">{{
+                  selectedAffiliation.status
+                }}</span>
+              </div>
+            </div>
+          </section>
+          <footer
+            class="modal-card-foot modern-modal-foot"
+            style="justify-content: flex-end"
+          >
+            <button class="button is-primary" @click="showViewModal = false">
+              <i class="fas fa-times"></i> Cerrar
+            </button>
+          </footer>
+        </div>
+      </div>
     </section>
   </Layout>
 </template>
@@ -192,6 +309,8 @@ export default {
       approvedAmount: 0,
       showImageModal: false,
       imageModalUrl: "",
+      showViewModal: false,
+      selectedAffiliation: null,
 
       // Table configuration
       tableColumns: [
@@ -280,12 +399,6 @@ export default {
           condition: (item) => item.status === "pending",
         },
         {
-          key: "edit",
-          label: "Editar",
-          icon: "fas fa-edit",
-          class: "is-info",
-        },
-        {
           key: "invoice",
           label: "Boleta",
           icon: "fas fa-file-invoice",
@@ -297,6 +410,12 @@ export default {
           label: "Eliminar",
           icon: "fas fa-trash",
           class: "is-danger",
+        },
+        {
+          key: "view",
+          label: "Ver Detalles",
+          icon: "fas fa-eye",
+          class: "is-primary",
         },
       ],
       tableFilters: [
@@ -376,6 +495,7 @@ export default {
             this.allAffiliations.length > 0
               ? this.allAffiliations.length - globalIndex
               : index + 1,
+          date: affiliation.date,
           user: {
             name: `${affiliation.name} ${affiliation.lastName}`,
             dni: affiliation.dni,
@@ -392,7 +512,7 @@ export default {
           voucher: this.formatVoucher(affiliation),
           status: affiliation.status,
           raw: affiliation,
-          date: affiliation.date,
+          balance: this.formatBalanceObj(affiliation.balance),
         };
       });
     },
@@ -562,6 +682,15 @@ export default {
         : { url: voucherUrl, isImage: false };
     },
 
+    formatBalanceObj(balance) {
+      if (!balance) return "-";
+      return `Disponible: S/. ${Number(balance.available).toFixed(
+        2
+      )}, No disponible: S/. ${Number(balance.notAvailable).toFixed(
+        2
+      )}, Por cobrar: S/. ${Number(balance.toCollect).toFixed(2)}`;
+    },
+
     async handleTableAction(action) {
       if (action === "refresh") {
         await this.GET(this.$route.params.filter);
@@ -582,6 +711,9 @@ export default {
         window.open(`${this.INVOICE_ROOT}?id=${affiliation.id}`, "_blank");
       } else if (action === "revert") {
         await this.deleteAffiliation(affiliation);
+      } else if (action === "view") {
+        this.selectedAffiliation = affiliation;
+        this.showViewModal = true;
       }
     },
 
@@ -742,6 +874,17 @@ export default {
         affiliation.sending = false;
       }
     },
+
+    formatDateTime(date) {
+      if (!date) return "-";
+      const d = new Date(date);
+      if (isNaN(d)) return date;
+      return (
+        d.toLocaleDateString() +
+        " " +
+        d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      );
+    },
   },
 };
 
@@ -899,5 +1042,71 @@ function parseDate(dateStr) {
   color: #333;
   cursor: pointer;
   z-index: 2;
+}
+.modern-modal-card {
+  max-width: 520px;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  background: #fff;
+  animation: modalPop 0.25s cubic-bezier(0.4, 2, 0.6, 1) 1;
+}
+@keyframes modalPop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.modern-modal-head {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: none;
+}
+.modal-icon {
+  font-size: 2rem;
+  margin-right: 8px;
+}
+.modern-modal-body {
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  background: #f8f9fa;
+}
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+}
+.detail-item {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+.detail-label {
+  font-size: 0.95rem;
+  color: #667eea;
+  font-weight: 600;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.detail-value {
+  font-size: 1.08rem;
+  color: #222;
+  font-weight: 500;
+  word-break: break-all;
+}
+.modern-modal-foot {
+  background: #f8f9fa;
+  border-top: none;
 }
 </style>
