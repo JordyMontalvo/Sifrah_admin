@@ -524,14 +524,7 @@ export default {
             this.allActivations.length > 0
               ? this.allActivations.length - globalIndex
               : index + 1,
-          date: activation.date
-            ? new Date(activation.date).toLocaleDateString() +
-              " " +
-              new Date(activation.date).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "-",
+
           user,
           office,
           products,
@@ -544,6 +537,7 @@ export default {
           balance: this.formatBalanceObj(this.formatBalance(activation)),
           status: activation.status || "-",
           raw: activation,
+          date: activation.date,
         };
       });
     },
