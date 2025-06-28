@@ -338,7 +338,10 @@ export default {
         .reduce((sum, a) => sum + ((a.plan && a.plan.amount) || 0), 0);
     },
     tableData() {
-      return this.activations.map((activation, index) => {
+      const sortedActivations = this.activations
+        .slice()
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      return sortedActivations.map((activation, index) => {
         // Validar price y points
         let price = "-";
         if (
@@ -397,9 +400,6 @@ export default {
             this.allActivations.length > 0
               ? this.allActivations.length - globalIndex
               : index + 1,
-          date: activation.date
-            ? new Date(activation.date).toLocaleDateString()
-            : "-",
           user,
           office,
           products,
@@ -412,6 +412,7 @@ export default {
           balance: this.formatBalance(activation) || "-",
           status: activation.status || "-",
           raw: activation,
+          date: activation.date,
         };
       });
     },

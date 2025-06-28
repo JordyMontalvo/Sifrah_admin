@@ -350,7 +350,10 @@ export default {
         .reduce((sum, a) => sum + ((a.plan && a.plan.amount) || 0), 0);
     },
     tableData() {
-      return this.affiliations.map((affiliation, index) => {
+      const sortedAffiliations = this.affiliations
+        .slice()
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      return sortedAffiliations.map((affiliation, index) => {
         // Buscar el nombre bonito de la oficina usando el id original
         let officeName = "N/A";
         const officeId = String(affiliation.officeId || affiliation.office);
