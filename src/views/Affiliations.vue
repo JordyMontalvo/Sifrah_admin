@@ -441,9 +441,6 @@ export default {
       if (value == "rejected") return "Rechazada";
       return value;
     },
-    date(val) {
-      return new Date(val).toLocaleDateString();
-    },
   },
   beforeRouteUpdate(to, from, next) {
     this.GET(to.params.filter);
