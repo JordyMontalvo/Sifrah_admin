@@ -350,6 +350,9 @@
                     @mousemove="pan"
                     @mouseup="stopPan"
                     @wheel="handleWheel"
+                    @touchstart="startPanTouch"
+                    @touchmove="panTouch"
+                    @touchend="stopPan"
                     :style="{
                       transform: `scale(${zoomLevel}) translate(${panX}px, ${panY}px)`,
                     }"
@@ -461,6 +464,9 @@
                       @mousemove="pan"
                       @mouseup="stopPan"
                       @wheel="handleWheel"
+                      @touchstart="startPanTouch"
+                      @touchmove="panTouch"
+                      @touchend="stopPan"
                       :style="{
                         transform: `scale(${zoomLevel}) translate(${panX}px, ${panY}px)`,
                       }"
@@ -1649,6 +1655,37 @@ export default {
       this.isPanning = false;
     },
 
+    startPanTouch(event) {
+      // No iniciar pan si se hace clic en elementos interactivos del árbol
+      if (
+        event.target.closest(
+          "span, .member-card, .btn, .tree-actions, .tree-header, .cascade-level, .level-header, .level-members"
+        )
+      )
+        return;
+
+      this.isPanning = true;
+      const touch = event.touches[0];
+      this.lastPanX = touch.clientX;
+      this.lastPanY = touch.clientY;
+      event.preventDefault();
+    },
+
+    panTouch(event) {
+      if (!this.isPanning) return;
+
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - this.lastPanX;
+      const deltaY = touch.clientY - this.lastPanY;
+
+      this.panX += deltaX / this.zoomLevel;
+      this.panY += deltaY / this.zoomLevel;
+
+      this.lastPanX = touch.clientX;
+      this.lastPanY = touch.clientY;
+      event.preventDefault();
+    },
+
     handleWheel(event) {
       if (event.ctrlKey || event.metaKey) {
         event.preventDefault();
@@ -2112,6 +2149,11 @@ ul.tree {
   padding: 2rem;
   min-width: 100%;
   min-height: 100%;
+  touch-action: pan-x pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 ul.tree:active {
@@ -2120,6 +2162,7 @@ ul.tree:active {
 
 ul.tree span {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .tree-container {
@@ -2550,6 +2593,11 @@ ul.tree span {
   position: relative;
   min-width: 100%;
   min-height: 100%;
+  touch-action: pan-x pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .cascade-container:active {
@@ -2558,6 +2606,7 @@ ul.tree span {
 
 .cascade-container .member-card {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .tree-container {
@@ -2575,6 +2624,11 @@ ul.tree {
   padding: 2rem;
   min-width: 100%;
   min-height: 100%;
+  touch-action: pan-x pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 ul.tree:active {
@@ -2583,6 +2637,7 @@ ul.tree:active {
 
 ul.tree span {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 /* Estilos para comparación */
@@ -2956,5 +3011,33 @@ ul.tree span {
 
 .dark-mode .stat-value {
   color: #4299e1;
+}
+
+/* Estilos específicos para móviles */
+@media (max-width: 768px) {
+  .tree-body {
+    overflow: hidden;
+    position: relative;
+    touch-action: pan-x pan-y;
+  }
+
+  ul.tree,
+  .cascade-container {
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  ul.tree span,
+  .cascade-container .member-card {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mejorar la respuesta táctil */
+  .tree-container {
+    overflow: hidden;
+    position: relative;
+    touch-action: pan-x pan-y;
+  }
 }
 </style>
