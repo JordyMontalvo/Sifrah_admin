@@ -13,6 +13,7 @@ import Activations from "./views/Activations.vue";
 // import Promos       from './views/Promos.vue'
 import Banner from "./views/Banner.vue";
 import Tree from "./views/Tree.vue";
+import MLMTree from "./views/MLMTree.vue";
 import Stock from "./views/Stock.vue";
 import Offices from "./views/Offices.vue";
 import Operations from "./views/Operations.vue";
@@ -101,6 +102,11 @@ const routes = [
   {
     path: "/tree",
     component: Tree,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/mlm-tree",
+    component: MLMTree,
     meta: { requiresAuth: true },
   },
   {

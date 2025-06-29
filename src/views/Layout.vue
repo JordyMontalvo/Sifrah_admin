@@ -141,6 +141,18 @@
                 <span>Red</span>
               </a>
 
+              <!-- MLM Tree -->
+        <!--      <a
+                class="navbar-item"
+                href="/mlm-tree"
+                v-if="account.type == 'admin'"
+              >
+                <span class="icon">
+                  <i class="fas fa-network-wired"></i>
+                </span>
+                <span>MLM</span>
+              </a>-->
+
               <!-- Payments Menu -->
               <div
                 class="navbar-item menu-trigger"
