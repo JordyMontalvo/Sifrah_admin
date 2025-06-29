@@ -2516,9 +2516,9 @@ ul.tree span {
 
   .zoom-level,
   .level-indicator {
-    font-size: 0.8rem;
-    padding: 0.4rem;
-    min-width: 45px;
+    font-size: 0.7rem;
+    padding: 0.25rem;
+    min-width: 35px;
   }
 
   .level-controls {
@@ -2893,7 +2893,8 @@ ul.tree span {
     max-width: 260px;
   }
 
-  .control-panel {
+  .control-panel,
+  .comparison-panel {
     padding: 0.75rem;
   }
 
@@ -2910,11 +2911,6 @@ ul.tree span {
     min-width: 40px;
   }
 
-  .comparison-panel {
-    min-width: 220px;
-    padding: 0.75rem;
-  }
-
   .mini-input {
     font-size: 0.8rem;
     padding: 0.4rem;
@@ -2924,6 +2920,37 @@ ul.tree span {
     width: 28px;
     height: 28px;
     font-size: 0.7rem;
+  }
+}
+
+/* Estilos específicos para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .floating-controls {
+    right: 0.25rem;
+    top: 0.25rem;
+    max-width: 240px;
+  }
+
+  .control-panel,
+  .comparison-panel {
+    padding: 0.5rem;
+  }
+
+  .control-group {
+    gap: 0.25rem;
+  }
+
+  .control-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+
+  .zoom-level,
+  .level-indicator {
+    font-size: 0.7rem;
+    padding: 0.25rem;
+    min-width: 35px;
   }
 }
 
