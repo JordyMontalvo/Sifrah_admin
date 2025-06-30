@@ -204,7 +204,7 @@ body.dark-mode {
 
 /* Container */
 .container {
-  max-width: 1200px;
+  max-width: 1350px;
   margin: 0 auto;
   padding: 0 20px;
 }

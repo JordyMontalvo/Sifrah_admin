@@ -164,10 +164,13 @@
                 <div class="control">
                   <div class="select is-fullwidth">
                     <select v-model="editingUser.rank">
-                      <option value="user">Usuario</option>
-                      <option value="admin">Administrador</option>
-                      <option value="moderator">Moderador</option>
-                      <option value="vip">VIP</option>
+                      <option value="none">Ninguno</option>
+                      <option value="active">ACTIVO</option>
+                      <option value="star">MASTER</option>
+                      <option value="master">PLATA</option>
+                      <option value="silver">PLATINO</option>
+                      <option value="gold">ORO</option>
+                      <option value="sapphire">ZAFIRO</option>
                     </select>
                   </div>
                 </div>
@@ -206,6 +209,32 @@
                     type="text"
                     v-model="editingUser.parentDni"
                     placeholder="DNI del patrocinador"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Plan</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select v-model="editingUser.plan">
+                      <option value="basic">EJECUTIVO</option>
+                      <option value="standard">DISTRIBUIDOR</option>
+                      <option value="master">EMPRESARIO</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Puntos de Afiliación</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="number"
+                    step="0.01"
+                    v-model.number="editingUser.affiliation_points"
+                    placeholder="Puntos de afiliación"
                   />
                 </div>
               </div>
@@ -285,7 +314,7 @@
                 <div
                   style="font-size: 0.95rem; color: #888; text-align: center"
                 >
-                  {{ viewingUser.rank }}
+                  {{ getRankLabel(viewingUser.rank) }}
                 </div>
               </div>
               <div
@@ -330,6 +359,9 @@
                 <div class="field">
                   <b>Saldo No Disponible:</b> S/.
                   {{ Number(viewingUser.virtualbalance).toFixed(2) }}
+                </div>
+                <div class="field">
+                  <b>Plan:</b> {{ getPlanLabel(viewingUser.plan) }}
                 </div>
               </div>
             </div>
@@ -402,6 +434,11 @@ export default {
           sortable: true,
         },
         {
+          key: "rankLabel",
+          label: "Rango",
+          sortable: false,
+        },
+        {
           key: "status",
           label: "Estado",
           sortable: true,
@@ -439,6 +476,16 @@ export default {
           key: "city",
           label: "Ciudad",
           sortable: true,
+        },
+        {
+          key: "planLabel",
+          label: "Plan",
+          sortable: false,
+        },
+        {
+          key: "affiliation_points",
+          label: "Puntos Afiliación",
+          sortable: false,
         },
       ],
       tableActions: [
@@ -499,6 +546,8 @@ export default {
         points: 0,
         city: "",
         parentDni: "",
+        plan: "",
+        affiliation_points: 0,
       },
       viewingUser: {},
     };
@@ -538,6 +587,10 @@ export default {
             : "S/. 0.00",
         virtualbalanceRaw:
           user.virtualbalance != null ? Number(user.virtualbalance) : 0,
+        rankLabel: this.getRankLabel(user.rank),
+        plan: user.plan || "",
+        planLabel: this.getPlanLabel(user.plan),
+        affiliation_pointsplan: user.affiliation_pointsplan || 0,
         raw: user,
       }));
     },
@@ -716,6 +769,8 @@ export default {
         points: user.points || 0,
         city: user.city || "",
         parentDni: user.parent && user.parent.dni ? user.parent.dni : "",
+        plan: user.plan || "",
+        affiliation_points: user.affiliation_points || 0,
       };
     },
 
@@ -833,6 +888,8 @@ export default {
           _rank: this.editingUser.rank || "user",
           city: this.editingUser.city || "",
           _parent_dni: this.editingUser.parentDni || "",
+          plan: this.editingUser.plan || "",
+          affiliation_points: this.editingUser.affiliation_points || 0,
         };
 
         // Llamar al API
@@ -857,6 +914,9 @@ export default {
               ...this.users[index].parent,
               dni: this.editingUser.parentDni,
             },
+            plan: this.editingUser.plan,
+            planLabel: this.getPlanLabel(this.editingUser.plan),
+            affiliation_points: this.editingUser.affiliation_points,
           };
         }
 
@@ -910,6 +970,24 @@ export default {
       } catch (error) {
         this.affiliatedTotal = 0;
       }
+    },
+
+    getRankLabel(val) {
+      if (val == "none") return "Ninguno";
+      if (val == "active") return "ACTIVO";
+      if (val == "star") return "MASTER";
+      if (val == "master") return "PLATA";
+      if (val == "silver") return "PLATINO";
+      if (val == "gold") return "ORO";
+      if (val == "sapphire") return "ZAFIRO";
+      return val;
+    },
+
+    getPlanLabel(val) {
+      if (val === "basic") return "EJECUTIVO";
+      if (val === "standard") return "DISTRIBUIDOR";
+      if (val === "master") return "EMPRESARIO";
+      return val || "";
     },
   },
   watch: {
