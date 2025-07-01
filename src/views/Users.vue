@@ -413,6 +413,7 @@ export default {
       totalVirtualBalance: 0,
       affiliatedTotal: 0,
       selectedStatus: null,
+      selectedBalance: null,
 
       // Table configuration
       tableColumns: [
@@ -522,6 +523,13 @@ export default {
           icon: "fas fa-eye",
           class: "is-primary",
         },
+        {
+          key: "delete_activation",
+          label: "Eliminar Activación",
+          icon: "fas fa-trash",
+          class: "is-danger",
+          condition: (item) => item.raw && item.raw.activated,
+        },
       ],
       tableFilters: [
         {
@@ -532,6 +540,15 @@ export default {
             { value: "registered", label: "Registrado" },
             { value: "affiliated", label: "Afiliado" },
             { value: "activated", label: "Activado" },
+          ],
+        },
+        {
+          key: "balance",
+          label: "Saldo",
+          placeholder: "Filtrar por saldo",
+          options: [
+            { value: "available", label: "Con saldo disponible" },
+            { value: "not_available", label: "Sin saldo disponible" },
           ],
         },
       ],
@@ -606,6 +623,7 @@ export default {
   },
   beforeRouteUpdate(to, from, next) {
     this.selectedStatus = null;
+    this.selectedBalance = null;
     this.GET(to.params.filter);
     next();
   },
@@ -627,6 +645,9 @@ export default {
         let totalPages = 0;
         let totalBalance = 0;
         let totalVirtualBalance = 0;
+        let showAvailable = undefined;
+        if (this.selectedBalance === "available") showAvailable = true;
+        if (this.selectedBalance === "not_available") showAvailable = false;
         // Si el filtro es 'registered', pide todos y pagina en frontend
         if (filter === "registered") {
           backendFilter = "all";
@@ -635,7 +656,7 @@ export default {
             page: 1,
             limit: 10000,
             search: this.search || undefined,
-            showAvailable: this.check,
+            showAvailable,
           });
           users = (data.users || []).filter(
             (user) =>
@@ -646,6 +667,10 @@ export default {
                 user.activated === "false" ||
                 user.activated === 0)
           );
+          // Filtro de saldo no disponible (saldo = 0)
+          if (this.selectedBalance === "not_available") {
+            users = users.filter((user) => Number(user.balance) === 0);
+          }
           totalItems = users.length;
           totalPages = Math.ceil(totalItems / this.itemsPerPage);
           // Paginar en frontend
@@ -659,9 +684,13 @@ export default {
             page: this.currentPage,
             limit: this.itemsPerPage,
             search: this.search || undefined,
-            showAvailable: this.check,
+            showAvailable,
           });
           users = data.users || [];
+          // Filtro de saldo no disponible (saldo = 0)
+          if (this.selectedBalance === "not_available") {
+            users = users.filter((user) => Number(user.balance) === 0);
+          }
           totalItems = data.total || 0;
           totalPages = data.totalPages || 0;
           totalBalance = data.totalBalance || 0;
@@ -724,6 +753,9 @@ export default {
         case "view":
           this.viewUser(item.raw || item);
           break;
+        case "delete_activation":
+          this.deleteActivation(item.raw || item);
+          break;
       }
     },
 
@@ -735,6 +767,7 @@ export default {
 
     handleFilter(filters) {
       this.selectedStatus = filters.status || null;
+      this.selectedBalance = filters.balance || null;
       this.currentPage = 1;
       this.GET();
     },
@@ -988,6 +1021,40 @@ export default {
       if (val === "standard") return "DISTRIBUIDOR";
       if (val === "master") return "EMPRESARIO";
       return val || "";
+    },
+
+    async deleteActivation(user) {
+      const confirmed = await Swal.fire({
+        title: "¿Eliminar activación?",
+        text: `¿Seguro que deseas eliminar la activación de ${user.name} ${user.lastName}?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+      });
+      if (!confirmed.isConfirmed) return;
+      try {
+        await api.users.POST({
+          action: "delete_activation",
+          id: user.id,
+        });
+        Swal.fire({
+          icon: "success",
+          title: "Activación eliminada",
+          text: "La activación del usuario ha sido eliminada.",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        await this.GET(this.$route.params.filter);
+      } catch (error) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo eliminar la activación.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
     },
   },
   watch: {

@@ -272,6 +272,7 @@ import DashboardCard from "@/components/DashboardCard";
 import ModernTable from "@/components/ModernTable";
 import api from "@/api";
 import { debounce } from "lodash";
+import Swal from "sweetalert2";
 
 const INVOICE_ROOT = process.env.VUE_APP_INVOICE_ROOT;
 
@@ -409,6 +410,12 @@ export default {
           label: "Ver Detalles",
           icon: "fas fa-eye",
           class: "is-primary",
+        },
+        {
+          key: "delete",
+          label: "Eliminar",
+          icon: "fas fa-trash",
+          class: "is-danger",
         },
       ],
       tableFilters: [
@@ -678,6 +685,8 @@ export default {
       } else if (action === "view") {
         this.selectedActivation = activation;
         this.showViewModal = true;
+      } else if (action === "delete") {
+        await this.deleteActivation(activation);
       }
     },
 
@@ -839,6 +848,39 @@ export default {
         " " +
         d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       );
+    },
+    async deleteActivation(activation) {
+      const confirmed = await Swal.fire({
+        title: "¿Eliminar activación?",
+        text: `¿Seguro que deseas eliminar la activación de ${activation.name} ${activation.lastName}?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+      });
+      if (!confirmed.isConfirmed) return;
+      try {
+        await api.Activations.POST({
+          action: "delete",
+          id: activation.id,
+        });
+        Swal.fire({
+          icon: "success",
+          title: "Activación eliminada",
+          text: "La activación ha sido eliminada.",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        await this.GET(this.$route.params.filter);
+      } catch (error) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo eliminar la activación.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
     },
   },
 };
