@@ -166,11 +166,12 @@
                     <select v-model="editingUser.rank">
                       <option value="none">Ninguno</option>
                       <option value="active">ACTIVO</option>
-                      <option value="star">MASTER</option>
-                      <option value="master">PLATA</option>
-                      <option value="silver">PLATINO</option>
+                      <option value="star">BRONCE</option>
+                      <option value="silver">PLATA</option>
                       <option value="gold">ORO</option>
-                      <option value="sapphire">ZAFIRO</option>
+                      <option value="ruby">RUBY</option>
+                      <option value="emerald">ESMERALDA</option>
+
                     </select>
                   </div>
                 </div>
