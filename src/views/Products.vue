@@ -217,6 +217,25 @@
                   />
                 </div>
               </div>
+
+              <div class="field">
+                <label class="label">Precios por Paquete de Afiliación</label>
+                <div class="plans-grid">
+                  <div
+                    v-for="plan in plans"
+                    :key="plan.id"
+                    class="plan-price-input"
+                  >
+                    <span class="plan-name">{{ plan.name }}</span>
+                    <input
+                      class="input"
+                      type="number"
+                      v-model.number="newProduct.prices[plan.id]"
+                      :placeholder="'Precio para ' + plan.name"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="field">
@@ -355,6 +374,25 @@
                   />
                 </div>
               </div>
+
+              <div class="field">
+                <label class="label">Precios por Paquete de Afiliación</label>
+                <div class="plans-grid">
+                  <div
+                    v-for="plan in plans"
+                    :key="plan.id"
+                    class="plan-price-input"
+                  >
+                    <span class="plan-name">{{ plan.name }}</span>
+                    <input
+                      class="input"
+                      type="number"
+                      v-model.number="editingProduct.prices[plan.id]"
+                      :placeholder="'Precio para ' + plan.name"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="field">
@@ -446,6 +484,7 @@ export default {
         weight: 0,
         img: "",
         plans: {},
+        prices: {},
       },
       editingProduct: {
         code: "",
@@ -457,6 +496,7 @@ export default {
         weight: 0,
         img: "",
         plans: {},
+        prices: {},
       },
 
       // Table configuration
@@ -684,6 +724,7 @@ export default {
         img: prod.img || "",
         id: prod.id || "",
         plans: prod.plans || {},
+        prices: prod.prices || {},
       };
       this.showEditModal = true;
     },
@@ -734,6 +775,7 @@ export default {
             description: this.newProduct.description,
             plans: this.newProduct.plans,
             weight: this.newProduct.weight,
+            prices: this.newProduct.prices,
           },
         });
         Swal.fire({
@@ -769,6 +811,7 @@ export default {
         weight: 0,
         img: "",
         plans: {},
+        prices: {},
       };
     },
 
@@ -818,6 +861,7 @@ export default {
           _description: this.editingProduct.description,
           _plans: this.editingProduct.plans,
           _weight: this.editingProduct.weight,
+          _prices: this.editingProduct.prices,
         };
 
         await api.products.POST({

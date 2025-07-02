@@ -1009,7 +1009,7 @@ export default {
     getRankLabel(val) {
       if (val == "none") return "Ninguno";
       if (val == "active") return "ACTIVO";
-      if (val == "star") return "MASTER";
+      if (val == "star") return "BRONCE";
       if (val == "master") return "PLATA";
       if (val == "silver") return "PLATINO";
       if (val == "gold") return "ORO";
