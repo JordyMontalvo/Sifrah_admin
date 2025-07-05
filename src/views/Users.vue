@@ -171,7 +171,6 @@
                       <option value="gold">ORO</option>
                       <option value="ruby">RUBY</option>
                       <option value="emerald">ESMERALDA</option>
-
                     </select>
                   </div>
                 </div>
@@ -550,6 +549,7 @@ export default {
           options: [
             { value: "available", label: "Con saldo disponible" },
             { value: "not_available", label: "Sin saldo disponible" },
+            { value: "virtual", label: "Saldo no disponible" },
           ],
         },
       ],
@@ -649,6 +649,7 @@ export default {
         let showAvailable = undefined;
         if (this.selectedBalance === "available") showAvailable = true;
         if (this.selectedBalance === "not_available") showAvailable = false;
+        if (this.selectedBalance === "virtual") showAvailable = true;
         // Si el filtro es 'registered', pide todos y pagina en frontend
         if (filter === "registered") {
           backendFilter = "all";
@@ -672,6 +673,10 @@ export default {
           if (this.selectedBalance === "not_available") {
             users = users.filter((user) => Number(user.balance) === 0);
           }
+          // Filtro de saldo no disponible (virtualbalance > 0)
+          if (this.selectedBalance === "virtual") {
+            users = users.filter((user) => Number(user.virtualbalance) > 0);
+          }
           totalItems = users.length;
           totalPages = Math.ceil(totalItems / this.itemsPerPage);
           // Paginar en frontend
@@ -691,6 +696,10 @@ export default {
           // Filtro de saldo no disponible (saldo = 0)
           if (this.selectedBalance === "not_available") {
             users = users.filter((user) => Number(user.balance) === 0);
+          }
+          // Filtro de saldo no disponible (virtualbalance > 0)
+          if (this.selectedBalance === "virtual") {
+            users = users.filter((user) => Number(user.virtualbalance) > 0);
           }
           totalItems = data.total || 0;
           totalPages = data.totalPages || 0;
@@ -1010,10 +1019,10 @@ export default {
       if (val == "none") return "Ninguno";
       if (val == "active") return "ACTIVO";
       if (val == "star") return "BRONCE";
-      if (val == "master") return "PLATA";
-      if (val == "silver") return "PLATINO";
+      if (val == "silver") return "PLATA";
+      if (val == "ruby") return "RUBY";
       if (val == "gold") return "ORO";
-      if (val == "sapphire") return "ZAFIRO";
+      if (val == "emerald") return "ESMERALDA";
       return val;
     },
 
