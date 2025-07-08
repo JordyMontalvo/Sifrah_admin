@@ -311,11 +311,17 @@ export default {
       if (!collect.cash) {
         return "En efectivo";
       }
-      return {
-        bank: collect.bank,
-        account: collect.account,
-        account_type: collect.account_type,
-      };
+      // Si collect.cash no existe, mostrar datos bancarios formateados
+      if (
+        typeof collect.bank === "string" &&
+        typeof collect.account === "string"
+      ) {
+        return `${collect.bank} - ${collect.account}${
+          collect.account_type ? ` (${collect.account_type})` : ""
+        }`;
+      }
+      // Si por alguna razón no hay datos, mostrar N/A
+      return "N/A";
     },
 
     async handleTableAction(action) {
