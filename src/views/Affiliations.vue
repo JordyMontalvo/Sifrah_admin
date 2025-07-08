@@ -130,6 +130,12 @@
             </span>
             <span v-else>{{ row.voucher.url }}</span>
           </template>
+          <template #cell-type="{ value }">
+            <span v-if="value === 'upgrade'" class="tag is-warning"
+              >Upgrade</span
+            >
+            <span v-else class="tag is-info">Afiliación</span>
+          </template>
         </ModernTable>
       </div>
 
@@ -262,6 +268,61 @@
                   selectedAffiliation.status
                 }}</span>
               </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-tag"></i> Tipo:</span
+                >
+                <span class="detail-value">
+                  <span v-if="selectedAffiliation.type === 'upgrade'"
+                    >Upgrade de plan</span
+                  >
+                  <span v-else>Afiliación normal</span>
+                </span>
+              </div>
+              <div v-if="selectedAffiliation.type === 'upgrade'">
+                <div class="detail-item">
+                  <span class="detail-label"
+                    ><i class="fas fa-arrow-up"></i> Plan anterior:</span
+                  >
+                  <span class="detail-value">{{
+                    selectedAffiliation.previousPlan &&
+                    selectedAffiliation.previousPlan.name
+                  }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label"
+                    ><i class="fas fa-donate"></i> Diferencia pagada:</span
+                  >
+                  <span class="detail-value"
+                    >S/
+                    {{
+                      selectedAffiliation.difference &&
+                      selectedAffiliation.difference.amount
+                    }}</span
+                  >
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label"
+                    ><i class="fas fa-box"></i> Productos adicionales:</span
+                  >
+                  <span class="detail-value">
+                    <span
+                      v-if="
+                        selectedAffiliation.difference &&
+                        selectedAffiliation.difference.products
+                      "
+                    >
+                      {{
+                        selectedAffiliation.difference.products
+                          .filter((p) => p.total > 0)
+                          .map((p) => `${p.total} ${p.name}`)
+                          .join(", ")
+                      }}
+                    </span>
+                    <span v-else>N/A</span>
+                  </span>
+                </div>
+              </div>
             </div>
           </section>
           <footer
@@ -367,6 +428,13 @@ export default {
           label: "Estado",
           sortable: true,
           type: "status",
+        },
+        {
+          key: "type",
+          label: "Tipo",
+          sortable: false,
+          formatter: (value, row) =>
+            value === "upgrade" ? "Upgrade" : "Afiliación",
         },
       ],
       tableActions: [
@@ -513,6 +581,9 @@ export default {
           status: affiliation.status,
           raw: affiliation,
           balance: this.formatBalanceObj(affiliation.balance),
+          type: affiliation.type, // Add type to the data object
+          previousPlan: affiliation.previousPlan, // Add previousPlan to the data object
+          difference: affiliation.difference, // Add difference to the data object
         };
       });
     },
