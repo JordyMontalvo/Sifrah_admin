@@ -98,6 +98,22 @@
           <template #cell-type="{ value }">
             {{ value.label }}
           </template>
+          <template #cell-user_dest="{ value }">
+            <div>
+              <div>{{ value.name }}</div>
+              <div v-if="value.dni" style="font-size: 0.9em; color: #888">
+                DNI: {{ value.dni }}
+              </div>
+            </div>
+          </template>
+          <template #cell-user_orig="{ value }">
+            <div>
+              <div>{{ value.name }}</div>
+              <div v-if="value.dni" style="font-size: 0.9em; color: #888">
+                DNI: {{ value.dni }}
+              </div>
+            </div>
+          </template>
         </ModernTable>
       </div>
 
@@ -347,14 +363,23 @@ export default {
             (this.currentPage - 1) * this.itemsPerPage -
             index,
           transaction_id: transaction.id || "N/A",
-          user_dest:
-            `${(transaction.user_info && transaction.user_info.name) || ""} ${
-              (transaction.user_info && transaction.user_info.lastName) || ""
-            }`.trim() || "N/A",
-          user_orig:
-            `${(transaction._user_info && transaction._user_info.name) || ""} ${
-              (transaction._user_info && transaction._user_info.lastName) || ""
-            }`.trim() || "N/A",
+          user_dest: {
+            name:
+              `${(transaction.user_info && transaction.user_info.name) || ""} ${
+                (transaction.user_info && transaction.user_info.lastName) || ""
+              }`.trim() || "N/A",
+            dni: (transaction.user_info && transaction.user_info.dni) || null,
+          },
+          user_orig: {
+            name:
+              `${
+                (transaction._user_info && transaction._user_info.name) || ""
+              } ${
+                (transaction._user_info && transaction._user_info.lastName) ||
+                ""
+              }`.trim() || "N/A",
+            dni: (transaction._user_info && transaction._user_info.dni) || null,
+          },
           type: {
             value: transaction.type || "unknown",
             label: this.getTransactionTypeName(transaction.type),
