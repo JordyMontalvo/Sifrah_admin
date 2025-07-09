@@ -534,7 +534,14 @@ export default {
     totalAmount() {
       return this.allAffiliations
         .filter((a) => (a.status || "").toLowerCase() === "approved")
-        .reduce((sum, a) => sum + ((a.plan && a.plan.amount) || 0), 0);
+        .reduce(
+          (sum, a) =>
+            sum +
+            (a.type === "upgrade"
+              ? (a.difference && a.difference.amount) || 0
+              : (a.plan && a.plan.amount) || 0),
+          0
+        );
     },
     tableData() {
       const sortedAffiliations = this.affiliations
@@ -574,7 +581,10 @@ export default {
             name: (affiliation.plan && affiliation.plan.name) || "",
             amount: (affiliation.plan && affiliation.plan.amount) || 0,
           },
-          total: (affiliation.plan && affiliation.plan.amount) || 0,
+          total:
+            affiliation.type === "upgrade"
+              ? (affiliation.difference && affiliation.difference.amount) || 0
+              : (affiliation.plan && affiliation.plan.amount) || 0,
           products: this.formatProducts(affiliation),
           pay_method: this.formatPayMethod(affiliation),
           voucher: this.formatVoucher(affiliation),
