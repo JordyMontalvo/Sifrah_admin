@@ -820,16 +820,29 @@ export default {
     async migrateBalance(user) {
       if (!confirm("¿Desea migrar el saldo no disponible?")) return;
 
+      console.log("🔄 Iniciando migración para usuario:", user.id);
+      console.log("Saldo virtual actual:", user.virtualbalance);
+      console.log("Saldo disponible actual:", user.balance);
+
       try {
         // Llamar al API
-        await api.users.POST({
+        const response = await api.users.POST({
           action: "migrate",
           id: user.id,
         });
 
+        console.log("✅ Respuesta del API:", response);
+
         // Actualizar el usuario en la lista local
+        const oldBalance = user.balance;
+        const oldVirtualBalance = user.virtualbalance;
+        
         user.balance += user.virtualbalance;
         user.virtualbalance = 0;
+
+        console.log("📊 Saldos actualizados:");
+        console.log("  - Saldo disponible: ", oldBalance, "→", user.balance);
+        console.log("  - Saldo virtual: ", oldVirtualBalance, "→", user.virtualbalance);
 
         Swal.fire({
           icon: "success",
@@ -838,14 +851,20 @@ export default {
           timer: 1800,
           showConfirmButton: false,
         });
-        this.GET(this.$route.params.filter);
+        
+        // Recargar datos para verificar cambios reales
+        console.log("🔄 Recargando datos de la tabla...");
+        await this.GET(this.$route.params.filter);
+        console.log("✅ Datos recargados");
       } catch (error) {
-        console.error("Error migrating balance:", error);
+        console.error("❌ Error migrating balance:", error);
+        console.error("Detalles del error:", (error.response && error.response.data) || error.message);
+        
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Error al migrar saldo",
-          timer: 2000,
+          text: "Error al migrar saldo: " + ((error.response && error.response.data && error.response.data.msg) || error.message),
+          timer: 3000,
           showConfirmButton: false,
         });
       }
