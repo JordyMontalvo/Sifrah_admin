@@ -1,6 +1,10 @@
 import axios from "axios";
 
-axios.defaults.baseURL = process.env.VUE_APP_SERVER + "/api";
+// Configuración temporal para debugging
+const SERVER_URL = process.env.VUE_APP_SERVER || "http://localhost:3000";
+console.log("🔧 API configurada para servidor:", SERVER_URL);
+
+axios.defaults.baseURL = SERVER_URL + "/api";
 
 class API {
   constructor({
@@ -22,6 +26,7 @@ class API {
     reports,
     Plans,
     transaction,
+    leadershipPredictions,
   }) {
     this.users = users;
     this.Affiliations = Affiliations;
@@ -41,6 +46,7 @@ class API {
     this.reports = reports;
     this.Plans = Plans;
     this.transaction = transaction;
+    this.leadershipPredictions = leadershipPredictions;
   }
 }
 
@@ -219,6 +225,20 @@ class Transaction {
   }
 }
 
+class LeadershipPredictions {
+  GET({ page = 1, limit = 20, filter = 'all', search = '' }) {
+    const filterParam = filter !== 'all' ? `&filter=${filter}` : '';
+    const searchParam = search ? `&search=${search}` : '';
+    return axios.get(
+      `/admin/leadership-predictions?page=${page}&limit=${limit}${filterParam}${searchParam}`
+    );
+  }
+
+  POST({ action, user_id }) {
+    return axios.post(`/admin/leadership-predictions-update`, { action, user_id });
+  }
+}
+
 export default new API({
   users: new Users(),
   Affiliations: new Affiliations(),
@@ -238,4 +258,5 @@ export default new API({
   reports: new Reports(),
   Plans: new Plans(),
   transaction: new Transaction(),
+  leadershipPredictions: new LeadershipPredictions(),
 });

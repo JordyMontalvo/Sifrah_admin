@@ -25,6 +25,7 @@ import Kadex from "./views/Kadex.vue";
 import Closed from "./views/Closed.vue";
 import Reports from "./views/Reports.vue";
 import Transaction from "./views/Trans.vue";
+import LeadershipPredictions from "./views/LeadershipPredictions.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -158,6 +159,11 @@ const routes = [
   {
     path: "/reports",
     component: Reports,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/leadership-predictions",
+    component: LeadershipPredictions,
     meta: { requiresAuth: true },
   },
 ];

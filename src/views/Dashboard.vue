@@ -113,6 +113,78 @@
               color="warning"
               :description="`${overviewStats.activePlans} en uso`"
             />
+
+            <DashboardCard
+              :value="leadershipStats.high_potential"
+              label="Alto Potencial"
+              icon="fas fa-crown"
+              color="success"
+              :description="`${leadershipStats.total_users} usuarios analizados`"
+              :trend="leadershipStats.avg_score"
+              trend-label="Score Promedio"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Leadership Insights -->
+      <div class="container">
+        <div class="leadership-insights">
+          <div class="insights-header">
+            <h2 class="section-title">
+              <i class="fas fa-crown"></i>
+              Insights de Liderazgo
+            </h2>
+            <router-link to="/leadership-predictions" class="button is-primary">
+              <span class="icon">
+                <i class="fas fa-chart-line"></i>
+              </span>
+              <span>Ver Detalles</span>
+            </router-link>
+          </div>
+          
+          <div class="insights-grid">
+            <div class="insight-card high-potential">
+              <div class="insight-header">
+                <i class="fas fa-star"></i>
+                <span>Alto Potencial</span>
+              </div>
+              <div class="insight-content">
+                <div class="insight-number">{{ leadershipStats.high_potential }}</div>
+                <div class="insight-description">Usuarios con score ≥70</div>
+                <div class="insight-percentage">
+                  {{ leadershipStats.high_potential > 0 ? Math.round((leadershipStats.high_potential / leadershipStats.total_users) * 100) : 0 }}% del total
+                </div>
+              </div>
+            </div>
+
+            <div class="insight-card medium-potential">
+              <div class="insight-header">
+                <i class="fas fa-arrow-up"></i>
+                <span>Medio Potencial</span>
+              </div>
+              <div class="insight-content">
+                <div class="insight-number">{{ leadershipStats.medium_potential }}</div>
+                <div class="insight-description">Score 40-69</div>
+                <div class="insight-percentage">
+                  {{ leadershipStats.medium_potential > 0 ? Math.round((leadershipStats.medium_potential / leadershipStats.total_users) * 100) : 0 }}% del total
+                </div>
+              </div>
+            </div>
+
+            <div class="insight-card growth-opportunity">
+              <div class="insight-header">
+                <i class="fas fa-seedling"></i>
+                <span>Oportunidad de Crecimiento</span>
+              </div>
+              <div class="insight-content">
+                <div class="insight-number">{{ leadershipStats.avg_score }}</div>
+                <div class="insight-description">Score promedio</div>
+                <div class="insight-percentage">
+                  {{ leadershipStats.max_score }} es el score máximo
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -326,9 +398,14 @@ export default {
           key: "reports",
           title: "Reportes",
           description: "Ver estadísticas y análisis detallados",
-          icon: "fas fa-chart-line",
-          route: "/reports",
-          color: "action-info",
+        },
+        {
+          key: "leadership",
+          title: "Predicciones de Liderazgo",
+          description: "Identificar usuarios con alto potencial de liderazgo",
+          icon: "fas fa-crown",
+          route: "/leadership-predictions",
+          color: "action-warning",
         },
         {
           key: "transactions",
@@ -384,6 +461,9 @@ export default {
 
         // Load recent activity
         this.loadRecentActivity();
+        
+        // Load leadership stats
+        this.loadLeadershipStats();
       } catch (error) {
         console.error("Error loading dashboard data:", error);
         this.$toast.error("Error al cargar datos del dashboard");
@@ -413,6 +493,31 @@ export default {
     refreshActivity() {
       this.loadRecentActivity();
       this.$toast.success("Actividad actualizada");
+    },
+
+    async loadLeadershipStats() {
+      try {
+        const response = await api.leadershipPredictions.GET({
+          page: 1,
+          limit: 1,
+          filter: 'all'
+        });
+        
+        if (response.data.success) {
+          this.leadershipStats = response.data.data.stats;
+        }
+      } catch (error) {
+        console.error("Error loading leadership stats:", error);
+        // Inicializar con valores por defecto
+        this.leadershipStats = {
+          total_users: 0,
+          high_potential: 0,
+          medium_potential: 0,
+          low_potential: 0,
+          avg_score: 0,
+          max_score: 0,
+        };
+      }
     },
 
     formatTime(date) {
@@ -854,6 +959,94 @@ export default {
   .status-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Leadership Insights */
+.leadership-insights {
+  margin-bottom: 40px;
+}
+
+.insights-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.insight-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+}
+
+.insight-card.high-potential {
+  border-left: 4px solid #48c774;
+}
+
+.insight-card.medium-potential {
+  border-left: 4px solid #ffdd57;
+}
+
+.insight-card.growth-opportunity {
+  border-left: 4px solid #3298dc;
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.insight-header i {
+  font-size: 1.2rem;
+}
+
+.high-potential .insight-header i {
+  color: #48c774;
+}
+
+.medium-potential .insight-header i {
+  color: #ffdd57;
+}
+
+.growth-opportunity .insight-header i {
+  color: #3298dc;
+}
+
+.insight-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.insight-description {
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.insight-percentage {
+  font-size: 0.875rem;
+  color: #999;
+  padding: 4px 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 /* Dark Mode Support */
