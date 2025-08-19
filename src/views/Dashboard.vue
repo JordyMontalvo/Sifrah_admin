@@ -377,6 +377,14 @@ export default {
           message: "75% de capacidad utilizada",
         },
       },
+      leadershipStats: {
+        total_users: 0,
+        high_potential: 0,
+        medium_potential: 0,
+        low_potential: 0,
+        avg_score: 0,
+        max_score: 0,
+      },
       quickActions: [
         {
           key: "users",
