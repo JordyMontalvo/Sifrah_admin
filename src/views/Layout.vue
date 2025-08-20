@@ -98,6 +98,14 @@
                 </span>
                 <span>Predicciones</span>
               </a>
+
+              <!-- AI Predictions -->
+              <a class="navbar-item" href="/ai-predictions">
+                <span class="icon">
+                  <i class="fas fa-robot"></i>
+                </span>
+                <span>IA Predictions</span>
+              </a>
             </div>
 
             <!-- Second Row - Management -->

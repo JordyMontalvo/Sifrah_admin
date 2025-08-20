@@ -27,6 +27,8 @@ class API {
     Plans,
     transaction,
     leadershipPredictions,
+    aiPredictions,
+    mlmApi,
   }) {
     this.users = users;
     this.Affiliations = Affiliations;
@@ -47,6 +49,8 @@ class API {
     this.Plans = Plans;
     this.transaction = transaction;
     this.leadershipPredictions = leadershipPredictions;
+    this.aiPredictions = aiPredictions;
+    this.mlmApi = mlmApi;
   }
 }
 
@@ -239,6 +243,33 @@ class LeadershipPredictions {
   }
 }
 
+class AIPredictions {
+  GET({ page = 1, limit = 20, filter = 'all', search = '' }) {
+    const filterParam = filter !== 'all' ? `&filter=${filter}` : '';
+    const searchParam = search ? `&search=${search}` : '';
+    return axios.get(
+      `/admin/ai-leadership-predictions?page=${page}&limit=${limit}${filterParam}${searchParam}`
+    );
+  }
+
+  POST({ action, user_id }) {
+    return axios.post(`/admin/ai-leadership-predictions-update`, { action, user_id });
+  }
+}
+
+class MLMApi {
+  GET(endpoint, params = {}) {
+    const queryString = Object.keys(params).length > 0 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    return axios.get(`/mlm-api/${endpoint}${queryString}`);
+  }
+
+  POST(endpoint, data = {}) {
+    return axios.post(`/mlm-api/${endpoint}`, data);
+  }
+}
+
 export default new API({
   users: new Users(),
   Affiliations: new Affiliations(),
@@ -259,4 +290,6 @@ export default new API({
   Plans: new Plans(),
   transaction: new Transaction(),
   leadershipPredictions: new LeadershipPredictions(),
+  aiPredictions: new AIPredictions(),
+  mlmApi: new MLMApi(),
 });

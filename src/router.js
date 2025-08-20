@@ -26,6 +26,7 @@ import Closed from "./views/Closed.vue";
 import Reports from "./views/Reports.vue";
 import Transaction from "./views/Trans.vue";
 import LeadershipPredictions from "./views/LeadershipPredictions.vue";
+import AIPredictions from "./views/AIPredictions.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -164,6 +165,11 @@ const routes = [
   {
     path: "/leadership-predictions",
     component: LeadershipPredictions,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/ai-predictions",
+    component: AIPredictions,
     meta: { requiresAuth: true },
   },
 ];
