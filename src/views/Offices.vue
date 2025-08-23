@@ -1375,7 +1375,7 @@ export default {
 }
 
 .cancel-btn:hover {
-  background-color: #dc1e1e;
+  background-color: #d52424;
 }
 
 @keyframes slideInRight {
