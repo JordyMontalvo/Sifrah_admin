@@ -11,6 +11,12 @@
             </div>
 
             <div class="header-actions">
+              <button class="button is-info" @click="clearAllNotifications" v-if="notifications.length > 0">
+                <span class="icon">
+                  <i class="fas fa-bell-slash"></i>
+                </span>
+                <span>Limpiar Notificaciones</span>
+              </button>
               <button class="button is-success" @click="showAddModal = true">
                 <span class="icon">
                   <i class="fas fa-plus"></i>
@@ -24,6 +30,15 @@
 
       <!-- Stats Cards -->
       <div class="container">
+        <div class="info-banner">
+          <div class="info-content">
+            <i class="fas fa-info-circle"></i>
+            <span>
+              <strong>Consejo:</strong> Para agregar la URL de Google Maps, ve a Google Maps, busca la ubicación de tu oficina, haz clic en "Compartir" y copia el enlace.
+            </span>
+          </div>
+        </div>
+        
         <div class="stats-grid">
           <DashboardCard
             :value="offices.length"
@@ -65,7 +80,12 @@
                 }"
                 @click="selected_office = office"
               >
-                <a>{{ office.name }}</a>
+                <a>
+                  {{ office.name }}
+                  <span v-if="office.googleMapsUrl" class="maps-indicator" title="Tiene Google Maps">
+                    <i class="fas fa-map-marker-alt"></i>
+                  </span>
+                </a>
               </li>
             </ul>
           </div>
@@ -76,6 +96,17 @@
           <div class="office-header">
             <h2 class="office-title">{{ selected_office.name }}</h2>
             <div class="office-actions">
+              <button
+                v-if="selected_office.googleMapsUrl"
+                class="button is-warning"
+                @click="openGoogleMaps"
+                title="Abrir en Google Maps"
+              >
+                <span class="icon">
+                  <i class="fas fa-map-marked-alt"></i>
+                </span>
+                <span>Ver Mapa</span>
+              </button>
               <button
                 class="button is-info"
                 @click="editOffice(selected_office)"
@@ -98,6 +129,20 @@
               <div class="info-item">
                 <label>Dirección:</label>
                 <span>{{ selected_office.address }}</span>
+              </div>
+              <div class="info-item">
+                <label>Google Maps:</label>
+                <span v-if="selected_office.googleMapsUrl">
+                  <a 
+                    :href="selected_office.googleMapsUrl" 
+                    target="_blank" 
+                    class="maps-link"
+                  >
+                    <i class="fas fa-map-marker-alt"></i>
+                    Ver en Google Maps
+                  </a>
+                </span>
+                <span v-else class="no-maps">No disponible</span>
               </div>
               <div class="info-item">
                 <label>Cuentas:</label>
@@ -251,18 +296,6 @@
               </div>
 
               <div class="field">
-                <label class="label">Contraseña</label>
-                <div class="control">
-                  <input
-                    class="input"
-                    type="password"
-                    v-model="editingOffice.password"
-                    placeholder="Nueva contraseña (dejar vacío para no cambiar)"
-                  />
-                </div>
-              </div>
-
-              <div class="field">
                 <label class="label">Dirección</label>
                 <div class="control">
                   <input
@@ -272,6 +305,19 @@
                     placeholder="Dirección de la oficina"
                   />
                 </div>
+              </div>
+
+              <div class="field">
+                <label class="label">URL de Google Maps</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="url"
+                    v-model="editingOffice.googleMapsUrl"
+                    placeholder="https://maps.google.com/..."
+                  />
+                </div>
+                <p class="help">Opcional: Enlace directo a la ubicación en Google Maps</p>
               </div>
 
               <div class="field">
@@ -295,11 +341,139 @@
         </div>
       </div>
 
+      <!-- Add Office Modal -->
+      <div class="modal" :class="{ 'is-active': showAddModal }">
+        <div class="modal-background" @click="closeAddModal"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Nueva Oficina</p>
+            <button
+              class="delete"
+              aria-label="close"
+              @click="closeAddModal"
+            ></button>
+          </header>
+          <section class="modal-card-body">
+            <div class="form-grid">
+              <div class="field">
+                <label class="label">Nombre *</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="newOffice.name"
+                    placeholder="Nombre de la oficina"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Email *</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="email"
+                    v-model="newOffice.email"
+                    placeholder="Email de la oficina"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Dirección *</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="newOffice.address"
+                    placeholder="Dirección de la oficina"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">URL de Google Maps</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="url"
+                    v-model="newOffice.googleMapsUrl"
+                    placeholder="https://maps.google.com/..."
+                  />
+                </div>
+                <p class="help">Opcional: Enlace directo a la ubicación en Google Maps</p>
+              </div>
+
+              <div class="field">
+                <label class="label">Cuentas</label>
+                <div class="control">
+                  <textarea
+                    class="textarea"
+                    v-model="newOffice.accounts"
+                    placeholder="Información de cuentas bancarias"
+                    rows="3"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-success" @click="createOffice" :disabled="!isValidNewOffice">
+              <span class="icon">
+                <i class="fas fa-plus"></i>
+              </span>
+              <span>Crear Oficina</span>
+            </button>
+            <button class="button is-light" @click="resetNewOfficeForm">
+              <span class="icon">
+                <i class="fas fa-undo"></i>
+              </span>
+              <span>Limpiar</span>
+            </button>
+            <button class="button" @click="closeAddModal">Cancelar</button>
+          </footer>
+        </div>
+      </div>
+
       <!-- Loading Overlay -->
       <div class="loading-overlay" v-if="loading">
         <div class="loading-content">
           <div class="spinner"></div>
           <p>Cargando oficinas...</p>
+        </div>
+      </div>
+
+      <!-- Custom Notifications -->
+      <div class="notifications-container">
+        <div 
+          v-for="notification in notifications" 
+          :key="notification.id"
+          :class="['notification', `notification-${notification.type}`, { 'removing': notification.removing }]"
+          @click="removeNotification(notification.id)"
+        >
+          <div class="notification-content">
+            <i :class="getNotificationIcon(notification.type)"></i>
+            <div class="notification-text">
+              <h4>{{ notification.title }}</h4>
+              <p>{{ notification.message }}</p>
+            </div>
+            <button class="notification-close" @click.stop="removeNotification(notification.id)">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Botones de confirmación para notificaciones de confirmación -->
+          <div v-if="notification.isConfirm" class="notification-actions">
+            <button class="notification-btn confirm-btn" @click="confirmAction(notification)">
+              Confirmar
+            </button>
+            <button class="notification-btn cancel-btn" @click="cancelAction(notification)">
+              Cancelar
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -324,10 +498,19 @@ export default {
       editingOffice: {
         name: "",
         email: "",
-        password: "",
         address: "",
+        googleMapsUrl: "",
         accounts: "",
       },
+      newOffice: {
+        name: "",
+        email: "",
+        address: "",
+        googleMapsUrl: "",
+        accounts: "",
+      },
+      notifications: [],
+      notificationId: 0,
     };
   },
 
@@ -352,6 +535,9 @@ export default {
       });
       return total;
     },
+    isValidNewOffice() {
+      return this.newOffice.name && this.newOffice.email && this.newOffice.address;
+    }
   },
 
   filters: {
@@ -446,16 +632,187 @@ export default {
       this.showEditModal = false;
     },
 
-    saveOffice() {
-      // Implementa la lógica para guardar los cambios de la oficina
-      console.log("Guardar cambios", this.editingOffice);
-      this.closeEditModal();
+    async saveOffice() {
+      try {
+        const { data } = await api.offices.POST({ 
+          id: this.editingOffice.id, 
+          office: this.editingOffice 
+        });
+        
+        // Actualizar la oficina en el array local
+        const index = this.offices.findIndex(o => o.id === this.editingOffice.id);
+        if (index !== -1) {
+          this.offices[index] = { ...this.offices[index], ...this.editingOffice };
+          this.selected_office = this.offices[index];
+        }
+        
+        this.closeEditModal();
+        this.showNotification('success', 'Éxito', 'Oficina actualizada exitosamente!');
+      } catch (error) {
+        console.error("Error al actualizar oficina:", error);
+        this.showNotification('error', 'Error', 'Error al actualizar oficina. Inténtalo de nuevo.');
+      }
     },
 
     toggleRecharge(i) {
       this.selected_office.recharges[i].show =
         !this.selected_office.recharges[i].show;
     },
+
+    closeAddModal() {
+      this.showAddModal = false;
+      this.newOffice = {
+        name: "",
+        email: "",
+        address: "",
+        googleMapsUrl: "",
+        accounts: "",
+      };
+    },
+
+    async createOffice() {
+      if (!this.isValidNewOffice) {
+        this.showNotification('error', 'Error', 'Por favor, complete todos los campos obligatorios.');
+        return;
+      }
+
+      // Mostrar notificación de confirmación
+      this.showConfirmNotification(
+        'Confirmar Creación',
+        '¿Está seguro de que desea crear esta nueva oficina?',
+        () => this.processCreateOffice(),
+        () => this.showNotification('info', 'Cancelado', 'Creación de oficina cancelada.')
+      );
+    },
+
+    async processCreateOffice() {
+      try {
+        this.loading = true;
+        
+        const { data } = await api.offices.POST({ office: this.newOffice });
+        console.log({ data });
+        
+        // Agregar la nueva oficina al array local
+        if (data.office) {
+          this.offices.push(data.office);
+          this.selected_office = data.office;
+          this.closeAddModal();
+          
+          // Mostrar mensaje de éxito
+          this.showNotification('success', 'Éxito', 'Oficina creada exitosamente!');
+        } else {
+          // Si no hay data.office, mostrar error
+          this.showNotification('error', 'Error', 'No se recibió confirmación del servidor');
+        }
+      } catch (error) {
+        console.error("Error al crear oficina:", error);
+        this.showNotification('error', 'Error', 'Error al crear oficina. Inténtalo de nuevo.');
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    openGoogleMaps() {
+      if (this.selected_office.googleMapsUrl) {
+        window.open(this.selected_office.googleMapsUrl, '_blank');
+      } else {
+        this.showNotification('warning', 'Advertencia', 'No hay URL de Google Maps disponible para esta oficina.');
+      }
+    },
+
+    resetNewOfficeForm() {
+      this.newOffice = {
+        name: "",
+        email: "",
+        address: "",
+        googleMapsUrl: "",
+        accounts: "",
+      };
+    },
+
+    // Métodos para notificaciones personalizadas
+    showNotification(type, title, message, duration = 5000) {
+      const notification = {
+        id: ++this.notificationId,
+        type,
+        title,
+        message,
+        timestamp: Date.now()
+      };
+      
+      this.notifications.push(notification);
+      
+      // Auto-remover después del tiempo especificado
+      setTimeout(() => {
+        this.removeNotification(notification.id);
+      }, duration);
+    },
+
+    showConfirmNotification(title, message, onConfirm, onCancel) {
+      const notification = {
+        id: ++this.notificationId,
+        type: 'info',
+        title,
+        message,
+        timestamp: Date.now(),
+        isConfirm: true,
+        onConfirm,
+        onCancel
+      };
+      
+      this.notifications.push(notification);
+      
+      // Auto-remover después de 10 segundos si no se confirma
+      setTimeout(() => {
+        if (this.notifications.find(n => n.id === notification.id)) {
+          this.removeNotification(notification.id);
+        }
+      }, 10000);
+    },
+
+    removeNotification(id) {
+      const notification = this.notifications.find(n => n.id === id);
+      if (notification) {
+        // Agregar clase para animación de salida
+        notification.removing = true;
+        
+        // Esperar a que termine la animación antes de remover
+        setTimeout(() => {
+          const index = this.notifications.findIndex(n => n.id === id);
+          if (index !== -1) {
+            this.notifications.splice(index, 1);
+          }
+        }, 300);
+      }
+    },
+
+    getNotificationIcon(type) {
+      const icons = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        warning: 'fas fa-exclamation-triangle',
+        info: 'fas fa-info-circle'
+      };
+      return icons[type] || icons.info;
+    },
+
+    confirmAction(notification) {
+      if (notification.onConfirm) {
+        notification.onConfirm();
+      }
+      this.removeNotification(notification.id);
+    },
+
+    cancelAction(notification) {
+      if (notification.onCancel) {
+        notification.onCancel();
+      }
+      this.removeNotification(notification.id);
+    },
+
+    clearAllNotifications() {
+      this.notifications = [];
+    }
   },
 };
 </script>
@@ -517,6 +874,32 @@ export default {
   margin-bottom: 40px;
 }
 
+/* Info Banner */
+.info-banner {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.info-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.info-content i {
+  font-size: 1.2rem;
+  color: #93c5fd;
+}
+
+.info-content strong {
+  font-weight: 600;
+}
+
 /* Office Tabs */
 .office-tabs {
   margin-bottom: 30px;
@@ -545,6 +928,28 @@ export default {
 
 .office-tabs .tabs li a:hover {
   color: #059669;
+}
+
+.maps-indicator {
+  margin-left: 8px;
+  color: #f59e0b;
+  font-size: 0.8rem;
+}
+
+.maps-indicator i {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Office Details */
@@ -603,6 +1008,36 @@ export default {
 .info-item span {
   color: #6b7280;
   font-size: 1rem;
+}
+
+.maps-link {
+  color: #10b981;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.maps-link:hover {
+  color: #059669;
+  text-decoration: underline;
+}
+
+.maps-link i {
+  font-size: 0.9rem;
+}
+
+.no-maps {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.help {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
 }
 
 /* Section Titles */
@@ -797,5 +1232,175 @@ export default {
     padding: 0;
     margin-bottom: 20px;
   }
+}
+
+/* Custom Notifications */
+.notifications-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+}
+
+.notification {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid;
+  overflow: hidden;
+  animation: slideInRight 0.3s ease-out;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.notification:hover {
+  transform: translateX(-5px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.notification-success {
+  border-left-color: #10b981;
+}
+
+.notification-error {
+  border-left-color: #ef4444;
+}
+
+.notification-warning {
+  border-left-color: #f59e0b;
+}
+
+.notification-info {
+  border-left-color: #3b82f6;
+}
+
+.notification-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+}
+
+.notification-content i {
+  font-size: 1.2rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.notification-success i {
+  color: #10b981;
+}
+
+.notification-error i {
+  color: #ef4444;
+}
+
+.notification-warning i {
+  color: #f59e0b;
+}
+
+.notification-info i {
+  color: #3b82f6;
+}
+
+.notification-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-text h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #111827;
+}
+
+.notification-text p {
+  font-size: 0.85rem;
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.notification-close:hover {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+
+.notification-btn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirm-btn {
+  background-color: #10b981;
+  color: white;
+  border: none;
+}
+
+.confirm-btn:hover {
+  background-color: #059669;
+}
+
+.cancel-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+}
+
+.cancel-btn:hover {
+  background-color: #dc2626;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.notification.removing {
+  animation: slideOutRight 0.3s ease-in forwards;
 }
 </style>
