@@ -139,13 +139,18 @@
               </div>
 
               <div class="field">
-                <label class="label">Nombre</label>
+                <label class="label">Nombre <span class="required">*</span></label>
                 <div class="control">
                   <input
                     class="input"
+                    :class="{ 'is-danger': validationErrors.name }"
                     v-model="newProduct.name"
                     placeholder="Nombre del producto"
+                    @input="clearValidationError('name')"
                   />
+                  <p v-if="validationErrors.name" class="help is-danger">
+                    {{ validationErrors.name }}
+                  </p>
                 </div>
               </div>
 
