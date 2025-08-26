@@ -182,6 +182,17 @@
               </div>
 
               <div class="field">
+                <label class="label">Sub-descripción</label>
+                <div class="control">
+                  <textarea
+                    class="textarea"
+                    v-model="newProduct.subdescription"
+                    placeholder="Sub-descripción del producto"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="field">
                 <label class="label">Precio</label>
                 <div class="control">
                   <input
@@ -332,6 +343,17 @@
                     class="textarea"
                     v-model="editingProduct.description"
                     placeholder="Descripción del producto"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Sub-descripción</label>
+                <div class="control">
+                  <textarea
+                    class="textarea"
+                    v-model="editingProduct.subdescription"
+                    placeholder="Sub-descripción del producto"
                   ></textarea>
                 </div>
               </div>
