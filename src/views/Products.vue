@@ -150,13 +150,18 @@
               </div>
 
               <div class="field">
-                <label class="label">Categoría</label>
+                <label class="label">Categoría <span class="required">*</span></label>
                 <div class="control">
                   <input
                     class="input"
+                    :class="{ 'is-danger': validationErrors.type }"
                     v-model="newProduct.type"
                     placeholder="Categoría del producto"
+                    @input="clearValidationError('type')"
                   />
+                  <p v-if="validationErrors.type" class="help is-danger">
+                    {{ validationErrors.type }}
+                  </p>
                 </div>
               </div>
 
@@ -498,6 +503,9 @@ export default {
         plans: {},
         prices: {},
       },
+      validationErrors: {
+        type: "",
+      },
 
       // Table configuration
       tableColumns: [
@@ -762,6 +770,50 @@ export default {
     },
 
     async addProduct() {
+      this.validationErrors = {}; // Clear previous errors
+      let hasError = false;
+
+      if (!this.newProduct.code) {
+        this.validationErrors.code = "El código del producto es obligatorio.";
+        hasError = true;
+      }
+      if (!this.newProduct.name) {
+        this.validationErrors.name = "El nombre del producto es obligatorio.";
+        hasError = true;
+      }
+      if (!this.newProduct.type) {
+        this.validationErrors.type = "La categoría del producto es obligatoria.";
+        hasError = true;
+      }
+      if (!this.newProduct.price) {
+        this.validationErrors.price = "El precio del producto es obligatorio.";
+        hasError = true;
+      }
+      if (!this.newProduct.points) {
+        this.validationErrors.points = "Los puntos del producto son obligatorios.";
+        hasError = true;
+      }
+      if (!this.newProduct.weight) {
+        this.validationErrors.weight = "El peso del producto es obligatorio.";
+        hasError = true;
+      }
+      if (!this.newProduct.img) {
+        this.validationErrors.img = "La URL de la imagen es obligatoria.";
+        hasError = true;
+      }
+      if (Object.keys(this.newProduct.plans).length === 0) {
+        this.validationErrors.plans = "Debe asignar el producto a al menos un plan.";
+        hasError = true;
+      }
+      if (Object.keys(this.newProduct.prices).length === 0) {
+        this.validationErrors.prices = "Debe definir el precio para al menos un plan.";
+        hasError = true;
+      }
+
+      if (hasError) {
+        return;
+      }
+
       try {
         await api.products.POST({
           action: "add",
@@ -813,6 +865,11 @@ export default {
         plans: {},
         prices: {},
       };
+      this.validationErrors = {}; // Clear validation errors
+    },
+
+    clearValidationError(field) {
+      this.validationErrors[field] = "";
     },
 
     async enableAllPlans() {
