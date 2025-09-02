@@ -123,8 +123,8 @@
           <div class="office-info">
             <div class="info-grid">
               <div class="info-item">
-                <label>Email:</label>
-                <span>{{ selected_office.email }}</span>
+                <label>Teléfono:</label>
+                <span>{{ selected_office.phone || 'No disponible' }}</span>
               </div>
               <div class="info-item">
                 <label>Dirección:</label>
@@ -284,13 +284,13 @@
               </div>
 
               <div class="field">
-                <label class="label">Email</label>
+                <label class="label">Teléfono</label>
                 <div class="control">
                   <input
                     class="input"
-                    type="email"
-                    v-model="editingOffice.email"
-                    placeholder="Email de la oficina"
+                    type="tel"
+                    v-model="editingOffice.phone"
+                    placeholder="Teléfono de la oficina"
                   />
                 </div>
               </div>
@@ -369,13 +369,13 @@
               </div>
 
               <div class="field">
-                <label class="label">Email *</label>
+                <label class="label">Teléfono *</label>
                 <div class="control">
                   <input
                     class="input"
-                    type="email"
-                    v-model="newOffice.email"
-                    placeholder="Email de la oficina"
+                    type="tel"
+                    v-model="newOffice.phone"
+                    placeholder="Teléfono de la oficina"
                     required
                   />
                 </div>
@@ -497,14 +497,14 @@ export default {
       showEditModal: false,
       editingOffice: {
         name: "",
-        email: "",
+        phone: "",
         address: "",
         googleMapsUrl: "",
         accounts: "",
       },
       newOffice: {
         name: "",
-        email: "",
+        phone: "",
         address: "",
         googleMapsUrl: "",
         accounts: "",
@@ -536,7 +536,7 @@ export default {
       return total;
     },
     isValidNewOffice() {
-      return this.newOffice.name && this.newOffice.email && this.newOffice.address;
+      return this.newOffice.name && this.newOffice.phone && this.newOffice.address;
     }
   },
 
@@ -663,7 +663,7 @@ export default {
       this.showAddModal = false;
       this.newOffice = {
         name: "",
-        email: "",
+        phone: "",
         address: "",
         googleMapsUrl: "",
         accounts: "",
@@ -723,7 +723,7 @@ export default {
     resetNewOfficeForm() {
       this.newOffice = {
         name: "",
-        email: "",
+        phone: "",
         address: "",
         googleMapsUrl: "",
         accounts: "",
