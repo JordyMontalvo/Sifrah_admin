@@ -13,7 +13,7 @@
           <div class="header-content">
             <div class="title-section">
               <h1 class="title">Gestión de Banners</h1>
-              <p class="subtitle"><br>
+              <p class="subtitle">
                 Administra las imágenes de los banners de la plataforma
               </p>
             </div>
@@ -35,16 +35,52 @@
           </div>
         </div>
 
-        <!-- Banner Cards -->
-        <div class="banner-grid">
+        <!-- Tabs Navigation -->
+        <div class="tabs-container">
+          <div class="tabs">
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'dashboard' }"
+              @click="activeTab = 'dashboard'"
+            >
+              <i class="fas fa-tachometer-alt"></i>
+              <span>Banners Dashboard</span>
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'activation' }"
+              @click="activeTab = 'activation'"
+            >
+              <i class="fas fa-store"></i>
+              <span>Banners Tienda</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dashboard Banners -->
+        <div v-if="activeTab === 'dashboard'" class="banner-grid">
           <BannerCard
-            v-for="(banner, index) in banners"
-            :key="index"
+            v-for="(banner, index) in dashboardBanners"
+            :key="'dashboard-' + index"
             :banner="banner"
             :position="index + 1"
             :loading="sendingStates[index]"
             @file-selected="onFileSelected"
             @save="saveBanner"
+            @error="showErrorMessage"
+          />
+        </div>
+
+        <!-- Activation Banners -->
+        <div v-if="activeTab === 'activation'" class="banner-grid">
+          <BannerCard
+            v-for="(banner, index) in activationBanners"
+            :key="'activation-' + index"
+            :banner="banner"
+            :position="banner.position"
+            :loading="activationSendingStates[banner.position]"
+            @file-selected="onActivationFileSelected"
+            @save="saveActivationBanner"
             @error="showErrorMessage"
           />
         </div>
@@ -77,18 +113,35 @@ export default {
       loading: true,
       sendingStates: [false, false, false],
       refreshing: false,
+      activeTab: 'dashboard',
 
-      // File storage
+      // File storage for dashboard banners
       selectedFiles: {
         1: null,
         2: null,
         3: null,
       },
+
+      // File storage for activation banners
+      activationSelectedFiles: {
+        left: null,
+        centerTop: null,
+        centerBottom: null,
+        right: null,
+      },
+
+      // Sending states for activation banners
+      activationSendingStates: {
+        left: false,
+        centerTop: false,
+        centerBottom: false,
+        right: false,
+      },
     };
   },
 
   computed: {
-    banners() {
+    dashboardBanners() {
       if (!this.banner) return [];
 
       return [
@@ -109,10 +162,47 @@ export default {
         {
           id: this.banner.id,
           img: this.banner.img3,
-          title: "Banner 2",
+          title: "Banner 3",
           description: "Banner terciario de la plataforma",
           dimensions: "1920 x 508 px",
         },
+      ];
+    },
+
+    activationBanners() {
+      return [
+        {
+          id: "activation_banners",
+          img: "",
+          title: "Banner Izquierda",
+          description: "Banner principal de la tienda (más ancho)",
+          dimensions: "600 x 400 px",
+          position: "left"
+        },
+        {
+          id: "activation_banners",
+          img: "",
+          title: "Banner Centro Arriba",
+          description: "Banner superior del centro",
+          dimensions: "300 x 190 px",
+          position: "centerTop"
+        },
+        {
+          id: "activation_banners",
+          img: "",
+          title: "Banner Centro Abajo",
+          description: "Banner inferior del centro",
+          dimensions: "300 x 190 px",
+          position: "centerBottom"
+        },
+        {
+          id: "activation_banners",
+          img: "",
+          title: "Banner Derecha",
+          description: "Banner lateral derecho (cuadrado)",
+          dimensions: "400 x 400 px",
+          position: "right"
+        }
       ];
     },
   },
@@ -202,6 +292,53 @@ export default {
         this.showErrorMessage("Error al actualizar los banners");
       } finally {
         this.refreshing = false;
+      }
+    },
+
+    // Methods for activation banners
+    onActivationFileSelected({ position, file, preview }) {
+      this.activationSelectedFiles[position] = file;
+      
+      // Update preview in banner data
+      const banner = this.activationBanners.find(b => b.position === position);
+      if (banner) {
+        banner.img = preview;
+      }
+    },
+
+    async saveActivationBanner(position) {
+      const file = this.activationSelectedFiles[position];
+
+      if (!file) {
+        this.showErrorMessage(
+          "Por favor selecciona una imagen antes de guardar"
+        );
+        return;
+      }
+
+      try {
+        this.activationSendingStates[position] = true;
+
+        const img = await lib.upload(file, file.name, "activation_banner");
+
+        // Por ahora simulamos la API, después conectaremos con el backend real
+        // await api.activationBanners.POST({
+        //   id: "activation_banners",
+        //   img,
+        //   position: position,
+        // });
+
+        console.log(`Guardando banner de activación ${position}:`, img);
+        
+        const banner = this.activationBanners.find(b => b.position === position);
+        this.showSuccessMessage(`Banner ${banner.title} guardado exitosamente`);
+        this.activationSelectedFiles[position] = null; // Clear selected file
+      } catch (error) {
+        console.error(`Error saving activation banner ${position}:`, error);
+        const banner = this.activationBanners.find(b => b.position === position);
+        this.showErrorMessage(`Error al guardar el banner ${banner.title}`);
+      } finally {
+        this.activationSendingStates[position] = false;
       }
     },
   },
@@ -314,6 +451,52 @@ export default {
   font-size: 1rem;
 }
 
+/* Tabs Styles */
+.tabs-container {
+  margin-bottom: 2rem;
+}
+
+.tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 4px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-button i {
+  font-size: 1rem;
+}
+
 .banner-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -348,6 +531,24 @@ export default {
   .refresh-button {
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
+  }
+
+  .tabs {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .tab-button span {
+    display: none;
+  }
+
+  .tab-button i {
+    font-size: 1.2rem;
   }
 }
 </style>

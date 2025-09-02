@@ -17,6 +17,7 @@ class API {
     kadex,
     closeds,
     promos,
+    activationBanners,
     promo,
     pay,
     wallet,
@@ -39,6 +40,7 @@ class API {
     this.kadex = kadex;
     this.closeds = closeds;
     this.promos = promos;
+    this.activationBanners = activationBanners;
     this.promo = promo;
     this.pay = pay;
     this.wallet = wallet;
@@ -149,6 +151,15 @@ class Promos {
   }
   POST({ id, img, pos }) {
     return axios.post(`/admin/promos`, { id, img, pos });
+  }
+}
+
+class ActivationBanners {
+  GET() {
+    return axios.get(`/admin/activation-banners`);
+  }
+  POST({ id, img, position }) {
+    return axios.post(`/admin/activation-banners`, { id, img, position });
   }
 }
 class Promo {
@@ -280,6 +291,7 @@ export default new API({
   kadex: new Kadex(),
   closeds: new Closeds(),
   promos: new Promos(),
+  activationBanners: new ActivationBanners(),
   promo: new Promo(),
   pay: new Pay(),
   wallet: new Wallet(),
