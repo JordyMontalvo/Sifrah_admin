@@ -110,6 +110,7 @@ export default {
   data() {
     return {
       banner: null,
+      activationBannersData: null,
       loading: true,
       sendingStates: [false, false, false],
       refreshing: false,
@@ -170,10 +171,12 @@ export default {
     },
 
     activationBanners() {
+      if (!this.activationBannersData) return [];
+
       return [
         {
           id: "activation_banners",
-          img: "",
+          img: this.activationBannersData.left || "",
           title: "Banner Izquierda",
           description: "Banner principal de la tienda (más ancho)",
           dimensions: "600 x 400 px",
@@ -181,7 +184,7 @@ export default {
         },
         {
           id: "activation_banners",
-          img: "",
+          img: this.activationBannersData.centerTop || "",
           title: "Banner Centro Arriba",
           description: "Banner superior del centro",
           dimensions: "300 x 190 px",
@@ -189,7 +192,7 @@ export default {
         },
         {
           id: "activation_banners",
-          img: "",
+          img: this.activationBannersData.centerBottom || "",
           title: "Banner Centro Abajo",
           description: "Banner inferior del centro",
           dimensions: "300 x 190 px",
@@ -197,7 +200,7 @@ export default {
         },
         {
           id: "activation_banners",
-          img: "",
+          img: this.activationBannersData.right || "",
           title: "Banner Derecha",
           description: "Banner lateral derecho (cuadrado)",
           dimensions: "400 x 400 px",
@@ -227,7 +230,9 @@ export default {
       try {
         this.loading = true;
         const { data } = await api.promos.GET();
+        const { data: activationData } = await api.activationBanners.GET();
         this.banner = data.banner;
+        this.activationBannersData = activationData.activationBanners;
       } catch (error) {
         console.error("Error fetching banners:", error);
         this.showErrorMessage("Error al cargar los banners");
@@ -299,10 +304,9 @@ export default {
     onActivationFileSelected({ position, file, preview }) {
       this.activationSelectedFiles[position] = file;
       
-      // Update preview in banner data
-      const banner = this.activationBanners.find(b => b.position === position);
-      if (banner) {
-        banner.img = preview;
+      // Update preview in activationBannersData instead of computed property
+      if (this.activationBannersData) {
+        this.activationBannersData[position] = preview;
       }
     },
 
@@ -321,18 +325,21 @@ export default {
 
         const img = await lib.upload(file, file.name, "activation_banner");
 
-        // Por ahora simulamos la API, después conectaremos con el backend real
-        // await api.activationBanners.POST({
-        //   id: "activation_banners",
-        //   img,
-        //   position: position,
-        // });
+        // Llamar a la API real para guardar el banner
+        await api.activationBanners.POST({
+          id: "activation_banners",
+          img,
+          position: position,
+        });
 
         console.log(`Guardando banner de activación ${position}:`, img);
         
         const banner = this.activationBanners.find(b => b.position === position);
         this.showSuccessMessage(`Banner ${banner.title} guardado exitosamente`);
         this.activationSelectedFiles[position] = null; // Clear selected file
+        
+        // Refresh the data to get updated banners
+        await this.fetchBanners();
       } catch (error) {
         console.error(`Error saving activation banner ${position}:`, error);
         const banner = this.activationBanners.find(b => b.position === position);
