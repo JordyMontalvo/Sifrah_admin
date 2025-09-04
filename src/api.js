@@ -209,6 +209,12 @@ class Offices {
   POST({ id, products, office }) {
     return axios.post(`/admin/offices`, { id, products, office });
   }
+  DELETE({ id }) {
+    return axios.delete(`/admin/offices`, { data: { id } });
+  }
+  PATCH({ id, action }) {
+    return axios.patch(`/admin/offices`, { id, action });
+  }
 }
 class Reports {
   GET({ filter }) {

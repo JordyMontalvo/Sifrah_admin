@@ -77,12 +77,16 @@
                 :class="{
                   'is-active':
                     selected_office && selected_office.id === office.id,
+                  'is-deactivated': office.active === false
                 }"
                 @click="selected_office = office"
               >
                 <a>
                   {{ office.name }}
-                  <span v-if="office.googleMapsUrl" class="maps-indicator" title="Tiene Google Maps">
+                  <span v-if="office.active === false" class="deactivated-indicator" title="Oficina Desactivada">
+                    <i class="fas fa-eye-slash"></i>
+                  </span>
+                  <span v-if="office.googleMapsUrl && office.active !== false" class="maps-indicator" title="Tiene Google Maps">
                     <i class="fas fa-map-marker-alt"></i>
                   </span>
                 </a>
@@ -92,9 +96,23 @@
         </div>
 
         <!-- Office Details -->
-        <div v-if="selected_office" class="office-details">
+        <div 
+          v-if="selected_office" 
+          class="office-details"
+          :data-deactivated="selected_office.active === false"
+        >
           <div class="office-header">
-            <h2 class="office-title">{{ selected_office.name }}</h2>
+            <div class="office-title-section">
+              <h2 class="office-title">{{ selected_office.name }}</h2>
+              <span v-if="selected_office.active === false" class="office-status-badge deactivated">
+                <i class="fas fa-eye-slash"></i>
+                DESACTIVADA
+              </span>
+              <span v-else class="office-status-badge active">
+                <i class="fas fa-check-circle"></i>
+                ACTIVA
+              </span>
+            </div>
             <div class="office-actions">
               <button
                 v-if="selected_office.googleMapsUrl"
@@ -115,6 +133,28 @@
                   <i class="fas fa-edit"></i>
                 </span>
                 <span>Editar</span>
+              </button>
+              <button
+                v-if="selected_office.active !== false"
+                class="button is-danger"
+                @click="deactivateOffice(selected_office)"
+                title="Desactivar oficina"
+              >
+                <span class="icon">
+                  <i class="fas fa-eye-slash"></i>
+                </span>
+                <span>Desactivar</span>
+              </button>
+              <button
+                v-else
+                class="button is-success"
+                @click="reactivateOffice(selected_office)"
+                title="Reactivar oficina"
+              >
+                <span class="icon">
+                  <i class="fas fa-eye"></i>
+                </span>
+                <span>Reactivar</span>
               </button>
             </div>
           </div>
@@ -812,6 +852,98 @@ export default {
 
     clearAllNotifications() {
       this.notifications = [];
+    },
+
+    deactivateOffice(office) {
+      // Mostrar notificación de confirmación
+      this.showConfirmNotification(
+        'Confirmar Desactivación',
+        `¿Está seguro de que desea desactivar la oficina "${office.name}"? La oficina dejará de aparecer en las listas pero conservará todos sus datos históricos.`,
+        () => this.processDeactivateOffice(office.id),
+        () => this.showNotification('info', 'Cancelado', 'Desactivación de oficina cancelada.')
+      );
+    },
+
+    async processDeactivateOffice(officeId) {
+      try {
+        this.loading = true;
+        
+        const { data } = await api.offices.DELETE({ id: officeId });
+        console.log({ data });
+        
+        if (data.error) {
+          // Si hay error del servidor, mostrar el mensaje específico
+          this.showNotification('error', 'Error', data.message);
+        } else {
+          // Actualizar el estado local de la oficina (no remover, solo marcar como inactiva)
+          const office = this.offices.find(o => o.id === officeId);
+          if (office) {
+            office.active = false;
+            // Si es la oficina seleccionada, actualizar también
+            if (this.selected_office && this.selected_office.id === officeId) {
+              this.selected_office.active = false;
+            }
+          }
+          
+          this.showNotification('success', 'Éxito', 'Oficina desactivada exitosamente!');
+        }
+      } catch (error) {
+        console.error("Error al desactivar oficina:", error);
+        
+        // Verificar si es un error de validación del servidor
+        if (error.response && error.response.data && error.response.data.message) {
+          this.showNotification('error', 'Error', error.response.data.message);
+        } else {
+          this.showNotification('error', 'Error', 'Error al desactivar oficina. Inténtalo de nuevo.');
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    reactivateOffice(office) {
+      // Mostrar notificación de confirmación
+      this.showConfirmNotification(
+        'Confirmar Reactivación',
+        `¿Está seguro de que desea reactivar la oficina "${office.name}"? La oficina volverá a estar disponible para todos los usuarios.`,
+        () => this.processReactivateOffice(office.id),
+        () => this.showNotification('info', 'Cancelado', 'Reactivación de oficina cancelada.')
+      );
+    },
+
+    async processReactivateOffice(officeId) {
+      try {
+        this.loading = true;
+        
+        const { data } = await api.offices.PATCH({ id: officeId, action: 'reactivate' });
+        console.log({ data });
+        
+        if (data.error) {
+          this.showNotification('error', 'Error', data.message);
+        } else {
+          // Actualizar el estado local de la oficina
+          const office = this.offices.find(o => o.id === officeId);
+          if (office) {
+            office.active = true;
+            // Si es la oficina seleccionada, actualizar también
+            if (this.selected_office && this.selected_office.id === officeId) {
+              this.selected_office.active = true;
+            }
+          }
+          
+          this.showNotification('success', 'Éxito', 'Oficina reactivada exitosamente!');
+        }
+      } catch (error) {
+        console.error("Error al reactivar oficina:", error);
+        
+        if (error.response && error.response.data && error.response.data.message) {
+          this.showNotification('error', 'Error', error.response.data.message);
+        } else {
+          this.showNotification('error', 'Error', 'Error al reactivar oficina. Inténtalo de nuevo.');
+        }
+      } finally {
+        this.loading = false;
+      }
     }
   },
 };
@@ -958,6 +1090,33 @@ export default {
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.office-details[data-deactivated="true"] {
+  background: #fafafa;
+  border-left: 4px solid #ef4444;
+}
+
+/* Indicadores de estado en pestañas */
+.office-tabs .tabs li.is-deactivated a {
+  color: #9ca3af;
+  opacity: 0.7;
+}
+
+.office-tabs .tabs li.is-deactivated.is-active a {
+  color: #ef4444;
+  border-bottom-color: #ef4444;
+}
+
+.deactivated-indicator {
+  margin-left: 8px;
+  color: #ef4444;
+  font-size: 0.8rem;
+}
+
+.deactivated-indicator i {
+  animation: pulse 2s infinite;
 }
 
 .office-header {
@@ -969,6 +1128,12 @@ export default {
   border-bottom: 1px solid #e5e7eb;
 }
 
+.office-title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .office-title {
   font-size: 1.8rem;
   font-weight: 700;
@@ -976,10 +1141,49 @@ export default {
   margin: 0;
 }
 
+.office-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.office-status-badge.active {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.office-status-badge.deactivated {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.office-status-badge i {
+  font-size: 0.8rem;
+}
+
+.office-actions {
+  display: flex;
+  gap: 12px;
+}
+
 .office-actions .button {
   padding: 10px 16px;
   border-radius: 8px;
   font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.office-actions .button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Office Info */
