@@ -188,6 +188,14 @@
                 <label>Cuentas:</label>
                 <span>{{ selected_office.accounts }}</span>
               </div>
+              <div class="info-item">
+                <label>Horario:</label>
+                <span>{{ selected_office.horario || 'No disponible' }}</span>
+              </div>
+              <div class="info-item">
+                <label>Días:</label>
+                <span>{{ selected_office.dias || 'No disponible' }}</span>
+              </div>
             </div>
           </div>
 
@@ -370,6 +378,81 @@
                   ></textarea>
                 </div>
               </div>
+
+              <div class="field">
+                <label class="label">Horario</label>
+                <div class="time-picker-container">
+                  <div class="time-picker-group">
+                    <label class="time-label">Desde:</label>
+                    <input 
+                      type="time" 
+                      class="time-input"
+                      v-model="editingOffice.horaInicio"
+                      @change="updateHorario('edit')"
+                    />
+                  </div>
+                  <div class="time-separator">
+                    <i class="fas fa-arrow-right"></i>
+                  </div>
+                  <div class="time-picker-group">
+                    <label class="time-label">Hasta:</label>
+                    <input 
+                      type="time" 
+                      class="time-input"
+                      v-model="editingOffice.horaFin"
+                      @change="updateHorario('edit')"
+                    />
+                  </div>
+                </div>
+                <div class="horario-preview" v-if="editingOffice.horario">
+                  <i class="fas fa-clock"></i>
+                  <span>{{ editingOffice.horario }}</span>
+                </div>
+                <p class="help">Selecciona las horas de atención de la oficina</p>
+              </div>
+
+              <div class="field">
+                <label class="label">Días</label>
+                <div class="days-picker-container">
+                  <div class="days-grid">
+                    <label 
+                      v-for="dia in diasSemana" 
+                      :key="dia.value"
+                      class="day-checkbox"
+                      :class="{ 'active': editingOffice.selectedDays && editingOffice.selectedDays.includes(dia.value) }"
+                    >
+                      <input 
+                        type="checkbox" 
+                        :value="dia.value"
+                        v-model="editingOffice.selectedDays"
+                        :checked="editingOffice.selectedDays && editingOffice.selectedDays.includes(dia.value)"
+                        @change="updateDias('edit')"
+                      />
+                      <span class="day-label">{{ dia.short }}</span>
+                      <span class="day-full">{{ dia.full }}</span>
+                    </label>
+                  </div>
+                  <div class="quick-select-buttons">
+                    <button type="button" class="quick-btn" @click="selectQuickDays('edit', 'weekdays')">
+                      L-V
+                    </button>
+                    <button type="button" class="quick-btn" @click="selectQuickDays('edit', 'weekend')">
+                      S-D
+                    </button>
+                    <button type="button" class="quick-btn" @click="selectQuickDays('edit', 'all')">
+                      Todos
+                    </button>
+                    <button type="button" class="quick-btn clear" @click="selectQuickDays('edit', 'none')">
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+                <div class="dias-preview" v-if="editingOffice.dias">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>{{ editingOffice.dias }}</span>
+                </div>
+                <p class="help">Selecciona los días de funcionamiento de la oficina</p>
+              </div>
             </div>
           </section>
           <footer class="modal-card-foot">
@@ -458,6 +541,80 @@
                   ></textarea>
                 </div>
               </div>
+
+              <div class="field">
+                <label class="label">Horario</label>
+                <div class="time-picker-container">
+                  <div class="time-picker-group">
+                    <label class="time-label">Desde:</label>
+                    <input 
+                      type="time" 
+                      class="time-input"
+                      v-model="newOffice.horaInicio"
+                      @change="updateHorario('new')"
+                    />
+                  </div>
+                  <div class="time-separator">
+                    <i class="fas fa-arrow-right"></i>
+                  </div>
+                  <div class="time-picker-group">
+                    <label class="time-label">Hasta:</label>
+                    <input 
+                      type="time" 
+                      class="time-input"
+                      v-model="newOffice.horaFin"
+                      @change="updateHorario('new')"
+                    />
+                  </div>
+                </div>
+                <div class="horario-preview" v-if="newOffice.horario">
+                  <i class="fas fa-clock"></i>
+                  <span>{{ newOffice.horario }}</span>
+                </div>
+                <p class="help">Selecciona las horas de atención de la oficina</p>
+              </div>
+
+              <div class="field">
+                <label class="label">Días</label>
+                <div class="days-picker-container">
+                  <div class="days-grid">
+                    <label 
+                      v-for="dia in diasSemana" 
+                      :key="dia.value"
+                      class="day-checkbox"
+                      :class="{ 'active': newOffice.selectedDays.includes(dia.value) }"
+                    >
+                      <input 
+                        type="checkbox" 
+                        :value="dia.value"
+                        v-model="newOffice.selectedDays"
+                        @change="updateDias('new')"
+                      />
+                      <span class="day-label">{{ dia.short }}</span>
+                      <span class="day-full">{{ dia.full }}</span>
+                    </label>
+                  </div>
+                  <div class="quick-select-buttons">
+                    <button type="button" class="quick-btn" @click="selectQuickDays('new', 'weekdays')">
+                      L-V
+                    </button>
+                    <button type="button" class="quick-btn" @click="selectQuickDays('new', 'weekend')">
+                      S-D
+                    </button>
+                    <button type="button" class="quick-btn" @click="selectQuickDays('new', 'all')">
+                      Todos
+                    </button>
+                    <button type="button" class="quick-btn clear" @click="selectQuickDays('new', 'none')">
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+                <div class="dias-preview" v-if="newOffice.dias">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>{{ newOffice.dias }}</span>
+                </div>
+                <p class="help">Selecciona los días de funcionamiento de la oficina</p>
+              </div>
             </div>
           </section>
           <footer class="modal-card-foot">
@@ -541,6 +698,11 @@ export default {
         address: "",
         googleMapsUrl: "",
         accounts: "",
+        horario: "",
+        horaInicio: "",
+        horaFin: "",
+        dias: "",
+        selectedDays: [],
       },
       newOffice: {
         name: "",
@@ -548,9 +710,23 @@ export default {
         address: "",
         googleMapsUrl: "",
         accounts: "",
+        horario: "",
+        horaInicio: "",
+        horaFin: "",
+        dias: "",
+        selectedDays: [],
       },
       notifications: [],
       notificationId: 0,
+      diasSemana: [
+        { value: 'lunes', short: 'L', full: 'Lunes' },
+        { value: 'martes', short: 'M', full: 'Martes' },
+        { value: 'miercoles', short: 'X', full: 'Miércoles' },
+        { value: 'jueves', short: 'J', full: 'Jueves' },
+        { value: 'viernes', short: 'V', full: 'Viernes' },
+        { value: 'sabado', short: 'S', full: 'Sábado' },
+        { value: 'domingo', short: 'D', full: 'Domingo' },
+      ],
     };
   },
 
@@ -665,6 +841,20 @@ export default {
 
     editOffice(office) {
       this.editingOffice = { ...office };
+      // Inicializar selectedDays como array vacío para que Vue lo detecte
+      this.$set(this.editingOffice, 'selectedDays', []);
+      
+      // Parsear horario existente si tiene formato "HH:MM AM/PM - HH:MM AM/PM"
+      this.parseExistingHorario(office.horario);
+      
+      // Usar $nextTick para asegurar que Vue actualice el DOM
+      this.$nextTick(() => {
+        // Pequeño delay adicional para asegurar que el DOM esté completamente actualizado
+        setTimeout(() => {
+          this.parseExistingDias(office.dias);
+        }, 10);
+      });
+      
       this.showEditModal = true;
     },
 
@@ -707,6 +897,11 @@ export default {
         address: "",
         googleMapsUrl: "",
         accounts: "",
+        horario: "",
+        horaInicio: "",
+        horaFin: "",
+        dias: "",
+        selectedDays: [],
       };
     },
 
@@ -767,6 +962,11 @@ export default {
         address: "",
         googleMapsUrl: "",
         accounts: "",
+        horario: "",
+        horaInicio: "",
+        horaFin: "",
+        dias: "",
+        selectedDays: [],
       };
     },
 
@@ -944,6 +1144,184 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    // Métodos para manejar el selector de horarios
+    updateHorario(formType) {
+      const form = formType === 'edit' ? this.editingOffice : this.newOffice;
+      
+      if (form.horaInicio && form.horaFin) {
+        const horaInicio = this.formatTime(form.horaInicio);
+        const horaFin = this.formatTime(form.horaFin);
+        form.horario = `${horaInicio} - ${horaFin}`;
+      } else {
+        form.horario = "";
+      }
+    },
+
+    formatTime(time24) {
+      if (!time24) return "";
+      
+      const [hours, minutes] = time24.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      
+      return `${hour12}:${minutes} ${ampm}`;
+    },
+
+    parseExistingHorario(horario) {
+      if (!horario) return;
+      
+      // Parsear formato "8:00 AM - 6:00 PM" a formato 24h
+      const match = horario.match(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      
+      if (match) {
+        const [, startHour, startMin, startAmPm, endHour, endMin, endAmPm] = match;
+        
+        // Convertir hora de inicio
+        let startHour24 = parseInt(startHour);
+        if (startAmPm.toUpperCase() === 'PM' && startHour24 !== 12) {
+          startHour24 += 12;
+        } else if (startAmPm.toUpperCase() === 'AM' && startHour24 === 12) {
+          startHour24 = 0;
+        }
+        
+        // Convertir hora de fin
+        let endHour24 = parseInt(endHour);
+        if (endAmPm.toUpperCase() === 'PM' && endHour24 !== 12) {
+          endHour24 += 12;
+        } else if (endAmPm.toUpperCase() === 'AM' && endHour24 === 12) {
+          endHour24 = 0;
+        }
+        
+        this.editingOffice.horaInicio = `${startHour24.toString().padStart(2, '0')}:${startMin}`;
+        this.editingOffice.horaFin = `${endHour24.toString().padStart(2, '0')}:${endMin}`;
+      }
+    },
+
+    // Métodos para manejar el selector de días
+    updateDias(formType) {
+      const form = formType === 'edit' ? this.editingOffice : this.newOffice;
+      
+      if (form.selectedDays.length === 0) {
+        form.dias = "";
+        return;
+      }
+
+      // Convertir los días seleccionados a texto
+      const diasOrdenados = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+      const selectedOrdered = diasOrdenados.filter(dia => form.selectedDays.includes(dia));
+      
+      form.dias = this.formatDaysText(selectedOrdered);
+    },
+
+    formatDaysText(selectedDays) {
+      const dayNames = {
+        'lunes': 'Lunes',
+        'martes': 'Martes', 
+        'miercoles': 'Miércoles',
+        'jueves': 'Jueves',
+        'viernes': 'Viernes',
+        'sabado': 'Sábado',
+        'domingo': 'Domingo'
+      };
+
+      if (selectedDays.length === 7) {
+        return 'Todos los días';
+      }
+
+      if (selectedDays.length === 5 && 
+          selectedDays.includes('lunes') && selectedDays.includes('martes') && 
+          selectedDays.includes('miercoles') && selectedDays.includes('jueves') && 
+          selectedDays.includes('viernes')) {
+        return 'Lunes a Viernes';
+      }
+
+      if (selectedDays.length === 6 && 
+          selectedDays.includes('lunes') && selectedDays.includes('martes') && 
+          selectedDays.includes('miercoles') && selectedDays.includes('jueves') && 
+          selectedDays.includes('viernes') && selectedDays.includes('sabado')) {
+        return 'Lunes a Sábado';
+      }
+
+      if (selectedDays.length === 2 && 
+          selectedDays.includes('sabado') && selectedDays.includes('domingo')) {
+        return 'Fines de semana';
+      }
+
+      // Para otros casos, mostrar los días individuales
+      return selectedDays.map(day => dayNames[day]).join(', ');
+    },
+
+    selectQuickDays(formType, option) {
+      const form = formType === 'edit' ? this.editingOffice : this.newOffice;
+      
+      switch(option) {
+        case 'weekdays':
+          form.selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
+          break;
+        case 'weekend':
+          form.selectedDays = ['sabado', 'domingo'];
+          break;
+        case 'all':
+          form.selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+          break;
+        case 'none':
+          form.selectedDays = [];
+          break;
+      }
+      
+      this.updateDias(formType);
+    },
+
+    parseExistingDias(dias) {
+      if (!dias) {
+        this.$set(this.editingOffice, 'selectedDays', []);
+        return;
+      }
+
+      // Mapeo de texto a días
+      const dayMappings = {
+        'lunes': 'lunes',
+        'martes': 'martes', 
+        'miércoles': 'miercoles',
+        'miercoles': 'miercoles',
+        'jueves': 'jueves',
+        'viernes': 'viernes',
+        'sábado': 'sabado',
+        'sabado': 'sabado',
+        'domingo': 'domingo'
+      };
+
+      let selectedDays = [];
+
+      // Casos especiales
+      if (dias.toLowerCase().includes('todos los días') || dias.toLowerCase().includes('lunes a domingo')) {
+        selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+      } else if (dias.toLowerCase().includes('lunes a viernes')) {
+        selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
+      } else if (dias.toLowerCase().includes('lunes a sábado') || dias.toLowerCase().includes('lunes a sabado')) {
+        selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+      } else if (dias.toLowerCase().includes('fines de semana')) {
+        selectedDays = ['sabado', 'domingo'];
+      } else {
+        // Buscar días individuales en el texto
+        Object.keys(dayMappings).forEach(dayName => {
+          if (dias.toLowerCase().includes(dayName.toLowerCase())) {
+            const dayValue = dayMappings[dayName];
+            if (!selectedDays.includes(dayValue)) {
+              selectedDays.push(dayValue);
+            }
+          }
+        });
+      }
+
+      // Usar $set para asegurar reactividad
+      this.$set(this.editingOffice, 'selectedDays', selectedDays);
+      
+      // Forzar actualización de la interfaz
+      this.$forceUpdate();
     }
   },
 };
@@ -1606,5 +1984,225 @@ export default {
 
 .notification.removing {
   animation: slideOutRight 0.3s ease-in forwards;
+}
+
+/* Time Picker Styles */
+.time-picker-container {
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.time-picker-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0;
+}
+
+.time-input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: white;
+  color: #374151;
+  min-width: 120px;
+  transition: all 0.2s ease;
+}
+
+.time-input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.time-separator {
+  display: flex;
+  align-items: center;
+  color: #9ca3af;
+  font-size: 1.2rem;
+  margin-top: 20px;
+}
+
+.horario-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #166534;
+}
+
+.horario-preview i {
+  color: #16a34a;
+}
+
+@media (max-width: 768px) {
+  .time-picker-container {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .time-separator {
+    transform: rotate(90deg);
+    margin: 0;
+  }
+  
+  .time-input {
+    min-width: 100px;
+  }
+}
+
+/* Days Picker Styles */
+
+
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.day-checkbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 6px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+}
+
+.day-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.day-checkbox:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+  transform: translateY(-2px);
+}
+
+.day-checkbox.active {
+  border-color: #10b981;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 600;
+}
+
+.day-label {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.day-full {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.quick-select-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-btn:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.quick-btn.clear {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.quick-btn.clear:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.dias-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ede9fe;
+  border: 1px solid #c4b5fd;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #5b21b6;
+}
+
+.dias-preview i {
+  color: #7c3aed;
+}
+
+@media (max-width: 768px) {
+  .days-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  
+  .day-checkbox {
+    padding: 10px 4px;
+  }
+  
+  .day-label {
+    font-size: 1rem;
+  }
+  
+  .day-full {
+    font-size: 0.7rem;
+  }
+  
+  .quick-select-buttons {
+    gap: 6px;
+  }
+  
+  .quick-btn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
 }
 </style>
