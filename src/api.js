@@ -29,7 +29,9 @@ class API {
     transaction,
     leadershipPredictions,
     aiPredictions,
+    aiQualityPredictions,
     mlmApi,
+    deliveryManagement,
   }) {
     this.users = users;
     this.Affiliations = Affiliations;
@@ -52,7 +54,9 @@ class API {
     this.transaction = transaction;
     this.leadershipPredictions = leadershipPredictions;
     this.aiPredictions = aiPredictions;
+    this.aiQualityPredictions = aiQualityPredictions;
     this.mlmApi = mlmApi;
+    this.deliveryManagement = deliveryManagement;
   }
 }
 
@@ -287,6 +291,49 @@ class MLMApi {
   }
 }
 
+class AIQualityPredictions {
+  GET(params = {}) {
+    const queryString = Object.keys(params).length > 0 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    return axios.get(`/admin/ai-leadership-predictions-quality${queryString}`);
+  }
+
+  POST(data = {}) {
+    return axios.post(`/admin/ai-leadership-predictions-quality`, data);
+  }
+}
+
+class DeliveryManagement {
+  GET(params = {}) {
+    const queryString = Object.keys(params).length > 0 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    return axios.get(`/admin/delivery-management${queryString}`);
+  }
+
+  POST(data = {}, params = {}) {
+    const queryString = Object.keys(params).length > 0 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    return axios.post(`/admin/delivery-management${queryString}`, data);
+  }
+
+  PUT(data = {}, params = {}) {
+    const queryString = Object.keys(params).length > 0 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    return axios.put(`/admin/delivery-management${queryString}`, data);
+  }
+
+  DELETE(params = {}) {
+    const queryString = Object.keys(params).length > 0 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    return axios.delete(`/admin/delivery-management${queryString}`);
+  }
+}
+
 export default new API({
   users: new Users(),
   Affiliations: new Affiliations(),
@@ -309,5 +356,7 @@ export default new API({
   transaction: new Transaction(),
   leadershipPredictions: new LeadershipPredictions(),
   aiPredictions: new AIPredictions(),
+  aiQualityPredictions: new AIQualityPredictions(),
   mlmApi: new MLMApi(),
+  deliveryManagement: new DeliveryManagement(),
 });

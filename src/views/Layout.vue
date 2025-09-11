@@ -100,12 +100,20 @@
               </a>
 
               <!-- AI Predictions -->
-              <a class="navbar-item" href="/ai-predictions">
+<!--               <a class="navbar-item" href="/ai-predictions">
                 <span class="icon">
                   <i class="fas fa-robot"></i>
                 </span>
-                <span>IA Predictions</span>
-              </a>
+                <span>IA Predictions</span> -->
+<!--               </a> -->
+
+              <!-- AI Quality Predictions -->
+<!--               <a class="navbar-item" href="/ai-quality-predictions">
+                <span class="icon">
+                  <i class="fas fa-gem"></i>
+                </span>
+                <span>IA Calidad</span>
+              </a> -->
             </div>
 
             <!-- Second Row - Management -->
@@ -131,6 +139,18 @@
                   <i class="fas fa-warehouse"></i>
                 </span>
                 <span>Inventario</span>
+              </a>
+
+              <!-- Delivery Management -->
+              <a 
+                class="navbar-item" 
+                href="/delivery-management"
+                v-if="account.type == 'admin'"
+              >
+                <span class="icon">
+                  <i class="fas fa-truck"></i>
+                </span>
+                <span>Delivery</span>
               </a>
 
               <!-- Banner -->

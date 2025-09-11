@@ -27,6 +27,8 @@ import Reports from "./views/Reports.vue";
 import Transaction from "./views/Trans.vue";
 import LeadershipPredictions from "./views/LeadershipPredictions.vue";
 import AIPredictions from "./views/AIPredictions.vue";
+import AIQualityPredictions from "./views/AIQualityPredictions.vue";
+import DeliveryManagement from "./views/DeliveryManagement.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -170,6 +172,16 @@ const routes = [
   {
     path: "/ai-predictions",
     component: AIPredictions,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/ai-quality-predictions",
+    component: AIQualityPredictions,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/delivery-management",
+    component: DeliveryManagement,
     meta: { requiresAuth: true },
   },
 ];
