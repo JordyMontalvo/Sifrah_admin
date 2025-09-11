@@ -238,18 +238,44 @@
         <div class="modal-body">
           <form @submit.prevent="saveDistrict">
             <div class="form-group">
-              <label>Nombre del Distrito</label>
-              <input v-model="districtForm.district_name" type="text" required placeholder="Ej: Miraflores" />
+<!--               <label>Nombre del Distrito</label>
+              <input 
+                v-model="districtForm.district_name" 
+                type="text" 
+                readonly
+                required 
+                placeholder="Ej: Miraflores" 
+                class="form-input"
+              /> -->
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label>Departamento</label>
-                <input v-model="districtForm.department" type="text" required placeholder="lima" />
+                <select v-model="districtForm.department" @change="onDistrictDepartmentChange" required>
+                  <option value="">Selecciona departamento</option>
+                  <option v-for="dept in availableDepartments" :key="dept.value" :value="dept.value">
+                    {{ dept.name }}
+                  </option>
+                </select>
               </div>
               <div class="form-group">
                 <label>Provincia</label>
-                <input v-model="districtForm.province" type="text" required placeholder="lima" />
+                <select v-model="districtForm.province" @change="onDistrictProvinceChange" required :disabled="!districtForm.department">
+                  <option value="">Selecciona provincia</option>
+                  <option v-for="prov in availableProvincesForDistrict" :key="prov.value" :value="prov.value">
+                    {{ prov.name }}
+                  </option>
+                </select>
               </div>
+            </div>
+            <div class="form-group">
+              <label>Distrito</label>
+              <select v-model="districtForm.district_name" required :disabled="!districtForm.province">
+                <option value="">Selecciona distrito</option>
+                <option v-for="district in availableDistrictsForAdmin" :key="district.value" :value="district.value">
+                  {{ district.name }}
+                </option>
+              </select>
             </div>
             <div class="form-group">
               <label>Asignar a Zona</label>
@@ -341,6 +367,11 @@ export default {
       zones: [],
       districts: [],
       agencies: [],
+      
+      // Datos geográficos para los selects
+      availableDepartments: [],
+      availableProvincesForDistrict: [],
+      availableDistrictsForAdmin: [],
       
       // Estados de modales - TODOS deben comenzar en false
       showCreateZoneModal: false,
@@ -650,23 +681,45 @@ export default {
       }
     },
     
-    editDistrict(district) {
-      this.editingDistrict = district
-      this.districtForm = {
-        district_name: district.district_name,
-        department: district.department,
-        province: district.province,
-        zone_id: district.zone_id
-      }
-      this.showEditDistrictModal = true
+    async editDistrict(district) {
+      console.log('✏️ Editando distrito:', district)
+      // Primero cerrar todos los modales
+      this.closeAllModals()
+      // Cargar departamentos
+      await this.loadDepartmentsForDistrict()
+      // Luego configurar la edición
+      this.$nextTick(async () => {
+        this.editingDistrict = district
+        this.districtForm = {
+          district_name: district.district_name || '',
+          department: district.department || '',
+          province: district.province || '',
+          zone_id: district.zone_id || ''
+        }
+        console.log('📝 Formulario distrito configurado:', this.districtForm)
+        
+        // Si hay departamento, cargar provincias
+        if (district.department) {
+          await this.loadProvincesForDistrict(district.department)
+          
+          // Si hay provincia también, cargar distritos
+          if (district.province) {
+            await this.loadDistrictsForAdmin(district.department, district.province)
+          }
+        }
+        
+        this.showEditDistrictModal = true
+      })
     },
     
 
     
-    openCreateDistrictModal() {
-      console.log('Abriendo modal crear distrito...')
+    async openCreateDistrictModal() {
+      console.log('🏘️ Abriendo modal crear distrito...')
       // Primero cerrar todos los modales
       this.closeAllModals()
+      // Cargar departamentos
+      await this.loadDepartmentsForDistrict()
       // Luego abrir el modal específico
       this.$nextTick(() => {
         this.showCreateDistrictModal = true
@@ -843,6 +896,68 @@ export default {
       this.newCoverageArea = ''
     },
     
+    // MÉTODOS PARA SELECTS EN CASCADA
+    async onDistrictDepartmentChange() {
+      console.log('🌍 Departamento cambiado a:', this.districtForm.department)
+      // Resetear provincia y distrito cuando cambia departamento
+      this.districtForm.province = ''
+      this.districtForm.district_name = ''
+      this.availableProvincesForDistrict = []
+      this.availableDistrictsForAdmin = []
+      
+      if (this.districtForm.department) {
+        await this.loadProvincesForDistrict(this.districtForm.department)
+      }
+    },
+
+    async onDistrictProvinceChange() {
+      console.log('🏙️ Provincia cambiada a:', this.districtForm.province)
+      // Resetear distrito cuando cambia provincia
+      this.districtForm.district_name = ''
+      this.availableDistrictsForAdmin = []
+      
+      if (this.districtForm.province && this.districtForm.department) {
+        await this.loadDistrictsForAdmin(this.districtForm.department, this.districtForm.province)
+      }
+    },
+
+    async loadDepartmentsForDistrict() {
+      try {
+        const { data } = await api.deliveryManagement.GET({ type: 'departments' })
+        this.availableDepartments = data.departments || []
+        console.log('✅ Departamentos cargados para distrito:', this.availableDepartments)
+      } catch (error) {
+        console.error('❌ Error cargando departamentos:', error)
+        this.availableDepartments = []
+      }
+    },
+
+    async loadProvincesForDistrict(department) {
+      try {
+        const { data } = await api.deliveryManagement.GET({ type: 'provinces', department: department })
+        this.availableProvincesForDistrict = data.provinces || []
+        console.log('✅ Provincias cargadas para distrito:', this.availableProvincesForDistrict)
+      } catch (error) {
+        console.error('❌ Error cargando provincias:', error)
+        this.availableProvincesForDistrict = []
+      }
+    },
+
+    async loadDistrictsForAdmin(department, province) {
+      try {
+        const { data } = await api.deliveryManagement.GET({ 
+          type: 'districts-admin', 
+          department: department, 
+          province: province 
+        })
+        this.availableDistrictsForAdmin = data.districts || []
+        console.log('✅ Distritos cargados para admin:', this.availableDistrictsForAdmin)
+      } catch (error) {
+        console.error('❌ Error cargando distritos admin:', error)
+        this.availableDistrictsForAdmin = []
+      }
+    },
+
     // UTILIDADES
     closeAllModals() {
       console.log('Cerrando todos los modales...')
@@ -1260,10 +1375,18 @@ table
     border-radius 8px
     font-size 1rem
     transition all 0.3s ease
+    background-color white
+    color #333
     
     &:focus
       outline none
       border-color #ff8c00
+      background-color #fff
+    
+    &:disabled
+      background-color #f5f5f5
+      color #999
+      cursor not-allowed
 
 .form-row
   display grid
