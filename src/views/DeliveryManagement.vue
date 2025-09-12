@@ -116,6 +116,65 @@
               </tr>
             </thead>
             <tbody>
+              <tr v-for="district in filteredDistricts" :key="district._id">
+                <td>{{ district.district_name }}</td>
+                <td>{{ district.department }}</td>
+                <td>{{ district.province }}</td>
+                <td>
+                  <span class="zone-badge">
+                    {{ district.zone_info ? district.zone_info.zone_name : 'Sin asignar' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="price-badge">
+                    S/ {{ district.zone_info ? district.zone_info.price.toFixed(2) : '0.00' }}
+                  </span>
+                </td>
+                <td>
+                  <span :class="district.active ? 'status-active' : 'status-inactive'">
+                    {{ district.active ? '✅ Activo' : '❌ Inactivo' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button @click="toggleDistrictStatus(district)" 
+                            :class="district.active ? 'btn-deactivate' : 'btn-activate'"
+                            :title="district.active ? 'Desactivar distrito' : 'Activar distrito'">
+                      {{ district.active ? '❌' : '✅' }}
+                    </button>
+                    <button @click="editDistrict(district)" class="btn-edit">✏️</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+<!--       departamentos<!--  -->
+
+<div v-if="activeTab === 'districts3'" class="districts-section3">
+        <div class="section-header">
+          <h2>🏘️ Asignación de Distritos</h2>
+          <button @click="openCreateDistrictModal" class="btn-primary">
+            ➕ Agregar Distrito
+          </button>
+        </div>
+
+        <div class="districts-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Distrito</th>
+                <th>Departamento</th>
+                <th>Provincia</th>
+                <th>Zona Asignada</th>
+                <th>Precio</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
               <tr v-for="district in districts" :key="district._id">
                 <td>{{ district.district_name }}</td>
                 <td>{{ district.department }}</td>
@@ -150,6 +209,7 @@
           </table>
         </div>
       </div>
+
 
       <!-- AGENCIAS DE TRANSPORTE -->
       <div v-if="activeTab === 'agencies'" class="agencies-section">
@@ -359,7 +419,8 @@ export default {
       tabs: [
         { key: 'zones', label: 'Zonas de Delivery', icon: '🎯' },
         { key: 'districts', label: 'Distritos', icon: '🏘️' },
-        { key: 'agencies', label: 'Agencias', icon: '🚛' }
+        { key: 'districts3', label: 'Departamentos', icon: '🌍' },
+        { key: 'agencies', label: 'Agencias', icon: '🚛' },
       ],
       
       // Datos
@@ -419,6 +480,10 @@ export default {
       return this.zones.reduce((sum, zone) => {
         return sum + (zone.price * zone.district_count * 10) // Estimación
       }, 0).toFixed(2)
+    },
+    filteredDistricts() {
+      // Filtra los distritos para mostrar solo los de Lima
+      return this.districts.filter(district => district.department === 'lima')
     }
   },
   
