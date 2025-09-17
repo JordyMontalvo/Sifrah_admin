@@ -122,7 +122,7 @@
               <div
                 class="navbar-item menu-trigger"
                 @click="toggleMenu('collects')"
-                v-if="account.type == 'admin'"
+                v-if="accountType === 'admin'"
               >
                 <span class="icon">
                   <i class="fas fa-money-bill-wave"></i>
@@ -145,7 +145,7 @@
               <a 
                 class="navbar-item" 
                 href="/delivery-management"
-                v-if="account.type == 'admin'"
+                v-if="accountType === 'admin'"
               >
                 <span class="icon">
                   <i class="fas fa-truck"></i>
@@ -157,7 +157,7 @@
               <a
                 class="navbar-item"
                 href="/banner"
-                v-if="account.type == 'admin'"
+                v-if="accountType === 'admin'"
               >
                 <span class="icon">
                   <i class="fas fa-image"></i>
@@ -169,7 +169,7 @@
               <a
                 class="navbar-item"
                 href="/tree"
-                v-if="account.type == 'admin'"
+                v-if="accountType === 'admin'"
               >
                 <span class="icon">
                   <i class="fas fa-sitemap"></i>
@@ -207,7 +207,7 @@
               <a
                 class="navbar-item"
                 href="/stock"
-                v-if="account.type == 'office'"
+                v-if="accountType === 'office'"
               >
                 <span class="icon">
                   <i class="fas fa-boxes"></i>
@@ -219,7 +219,7 @@
               <div
                 class="navbar-item menu-trigger"
                 @click="toggleMenu('offices')"
-                v-if="account.type == 'admin'"
+                v-if="accountType === 'admin'"
               >
                 <span class="icon">
                   <i class="fas fa-building"></i>
@@ -248,7 +248,7 @@
               <a
                 class="navbar-item"
                 href="/closed"
-                v-if="account.type == 'admin'"
+                v-if="accountType === 'admin'"
               >
                 <span class="icon">
                   <i class="fas fa-lock"></i>
@@ -275,7 +275,7 @@
     <!-- Office Notification -->
     <div
       class="notification is-primary office-notification"
-      v-if="account.type == 'office'"
+      v-if="accountType === 'office'"
     >
       <div class="container">
         <span class="icon">
@@ -441,10 +441,18 @@ export default {
     account() {
       return this.$store.state.account || {};
     },
+    // Agregar computed para debug
+    accountType() {
+      const account = this.$store.state.account;
+      console.log('Account type:', account && account.type);
+      return (account && account.type) || 'admin'; // Default a admin si no está disponible
+    },
   },
   mounted() {
     // Add scroll listener for FAB
     window.addEventListener("scroll", this.handleScroll);
+    // Debug: verificar el account al montar
+    console.log('Layout mounted, account:', this.$store.state.account);
   },
   beforeDestroy() {
     window.removeEventListener("scroll", this.handleScroll);
