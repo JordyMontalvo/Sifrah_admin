@@ -157,7 +157,7 @@
         <div class="section-header">
           <h2>🏘️ Asignación de Distritos</h2>
           <button @click="openCreateDistrictModal" class="btn-primary">
-            ➕ Agregar Distrito
+            ➕ Agregar Departamento
           </button>
         </div>
 
