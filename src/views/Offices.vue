@@ -381,77 +381,15 @@
 
               <div class="field">
                 <label class="label">Horario</label>
-                <div class="time-picker-container">
-                  <div class="time-picker-group">
-                    <label class="time-label">Desde:</label>
-                    <input 
-                      type="time" 
-                      class="time-input"
-                      v-model="editingOffice.horaInicio"
-                      @change="updateHorario('edit')"
-                    />
-                  </div>
-                  <div class="time-separator">
-                    <i class="fas fa-arrow-right"></i>
-                  </div>
-                  <div class="time-picker-group">
-                    <label class="time-label">Hasta:</label>
-                    <input 
-                      type="time" 
-                      class="time-input"
-                      v-model="editingOffice.horaFin"
-                      @change="updateHorario('edit')"
-                    />
-                  </div>
+                <div class="control">
+                  <textarea
+                    class="textarea"
+                    v-model="editingOffice.horario"
+                    placeholder="Ejemplo: Lunes a Viernes: 8:00 AM - 6:00 PM, Sábados: 9:00 AM - 2:00 PM"
+                    rows="3"
+                  ></textarea>
                 </div>
-                <div class="horario-preview" v-if="editingOffice.horario">
-                  <i class="fas fa-clock"></i>
-                  <span>{{ editingOffice.horario }}</span>
-                </div>
-                <p class="help">Selecciona las horas de atención de la oficina</p>
-              </div>
-
-              <div class="field">
-                <label class="label">Días</label>
-                <div class="days-picker-container">
-                  <div class="days-grid">
-                    <label 
-                      v-for="dia in diasSemana" 
-                      :key="dia.value"
-                      class="day-checkbox"
-                      :class="{ 'active': editingOffice.selectedDays && editingOffice.selectedDays.includes(dia.value) }"
-                    >
-                      <input 
-                        type="checkbox" 
-                        :value="dia.value"
-                        v-model="editingOffice.selectedDays"
-                        :checked="editingOffice.selectedDays && editingOffice.selectedDays.includes(dia.value)"
-                        @change="updateDias('edit')"
-                      />
-                      <span class="day-label">{{ dia.short }}</span>
-                      <span class="day-full">{{ dia.full }}</span>
-                    </label>
-                  </div>
-                  <div class="quick-select-buttons">
-                    <button type="button" class="quick-btn" @click="selectQuickDays('edit', 'weekdays')">
-                      L-V
-                    </button>
-                    <button type="button" class="quick-btn" @click="selectQuickDays('edit', 'weekend')">
-                      S-D
-                    </button>
-                    <button type="button" class="quick-btn" @click="selectQuickDays('edit', 'all')">
-                      Todos
-                    </button>
-                    <button type="button" class="quick-btn clear" @click="selectQuickDays('edit', 'none')">
-                      Limpiar
-                    </button>
-                  </div>
-                </div>
-                <div class="dias-preview" v-if="editingOffice.dias">
-                  <i class="fas fa-calendar-alt"></i>
-                  <span>{{ editingOffice.dias }}</span>
-                </div>
-                <p class="help">Selecciona los días de funcionamiento de la oficina</p>
+                <p class="help">Describe el horario de atención de la oficina</p>
               </div>
             </div>
           </section>
@@ -544,76 +482,15 @@
 
               <div class="field">
                 <label class="label">Horario</label>
-                <div class="time-picker-container">
-                  <div class="time-picker-group">
-                    <label class="time-label">Desde:</label>
-                    <input 
-                      type="time" 
-                      class="time-input"
-                      v-model="newOffice.horaInicio"
-                      @change="updateHorario('new')"
-                    />
-                  </div>
-                  <div class="time-separator">
-                    <i class="fas fa-arrow-right"></i>
-                  </div>
-                  <div class="time-picker-group">
-                    <label class="time-label">Hasta:</label>
-                    <input 
-                      type="time" 
-                      class="time-input"
-                      v-model="newOffice.horaFin"
-                      @change="updateHorario('new')"
-                    />
-                  </div>
+                <div class="control">
+                  <textarea
+                    class="textarea"
+                    v-model="newOffice.horario"
+                    placeholder="Ejemplo: Lunes a Viernes: 8:00 AM - 6:00 PM, Sábados: 9:00 AM - 2:00 PM"
+                    rows="3"
+                  ></textarea>
                 </div>
-                <div class="horario-preview" v-if="newOffice.horario">
-                  <i class="fas fa-clock"></i>
-                  <span>{{ newOffice.horario }}</span>
-                </div>
-                <p class="help">Selecciona las horas de atención de la oficina</p>
-              </div>
-
-              <div class="field">
-                <label class="label">Días</label>
-                <div class="days-picker-container">
-                  <div class="days-grid">
-                    <label 
-                      v-for="dia in diasSemana" 
-                      :key="dia.value"
-                      class="day-checkbox"
-                      :class="{ 'active': newOffice.selectedDays.includes(dia.value) }"
-                    >
-                      <input 
-                        type="checkbox" 
-                        :value="dia.value"
-                        v-model="newOffice.selectedDays"
-                        @change="updateDias('new')"
-                      />
-                      <span class="day-label">{{ dia.short }}</span>
-                      <span class="day-full">{{ dia.full }}</span>
-                    </label>
-                  </div>
-                  <div class="quick-select-buttons">
-                    <button type="button" class="quick-btn" @click="selectQuickDays('new', 'weekdays')">
-                      L-V
-                    </button>
-                    <button type="button" class="quick-btn" @click="selectQuickDays('new', 'weekend')">
-                      S-D
-                    </button>
-                    <button type="button" class="quick-btn" @click="selectQuickDays('new', 'all')">
-                      Todos
-                    </button>
-                    <button type="button" class="quick-btn clear" @click="selectQuickDays('new', 'none')">
-                      Limpiar
-                    </button>
-                  </div>
-                </div>
-                <div class="dias-preview" v-if="newOffice.dias">
-                  <i class="fas fa-calendar-alt"></i>
-                  <span>{{ newOffice.dias }}</span>
-                </div>
-                <p class="help">Selecciona los días de funcionamiento de la oficina</p>
+                <p class="help">Describe el horario de atención de la oficina</p>
               </div>
             </div>
           </section>
@@ -699,10 +576,7 @@ export default {
         googleMapsUrl: "",
         accounts: "",
         horario: "",
-        horaInicio: "",
-        horaFin: "",
         dias: "",
-        selectedDays: [],
       },
       newOffice: {
         name: "",
@@ -711,22 +585,10 @@ export default {
         googleMapsUrl: "",
         accounts: "",
         horario: "",
-        horaInicio: "",
-        horaFin: "",
         dias: "",
-        selectedDays: [],
       },
       notifications: [],
       notificationId: 0,
-      diasSemana: [
-        { value: 'lunes', short: 'L', full: 'Lunes' },
-        { value: 'martes', short: 'M', full: 'Martes' },
-        { value: 'miercoles', short: 'X', full: 'Miércoles' },
-        { value: 'jueves', short: 'J', full: 'Jueves' },
-        { value: 'viernes', short: 'V', full: 'Viernes' },
-        { value: 'sabado', short: 'S', full: 'Sábado' },
-        { value: 'domingo', short: 'D', full: 'Domingo' },
-      ],
     };
   },
 
@@ -841,20 +703,10 @@ export default {
 
     editOffice(office) {
       this.editingOffice = { ...office };
-      // Inicializar selectedDays como array vacío para que Vue lo detecte
-      this.$set(this.editingOffice, 'selectedDays', []);
-      
-      // Parsear horario existente si tiene formato "HH:MM AM/PM - HH:MM AM/PM"
-      this.parseExistingHorario(office.horario);
-      
-      // Usar $nextTick para asegurar que Vue actualice el DOM
-      this.$nextTick(() => {
-        // Pequeño delay adicional para asegurar que el DOM esté completamente actualizado
-        setTimeout(() => {
-          this.parseExistingDias(office.dias);
-        }, 10);
-      });
-      
+      // Asegurar que dias sea string vacío si no existe
+      if (!this.editingOffice.dias) {
+        this.editingOffice.dias = "";
+      }
       this.showEditModal = true;
     },
 
@@ -864,15 +716,21 @@ export default {
 
     async saveOffice() {
       try {
+        // Asegurar que dias sea string vacío
+        const officeData = {
+          ...this.editingOffice,
+          dias: ""
+        };
+        
         const { data } = await api.offices.POST({ 
           id: this.editingOffice.id, 
-          office: this.editingOffice 
+          office: officeData 
         });
         
         // Actualizar la oficina en el array local
         const index = this.offices.findIndex(o => o.id === this.editingOffice.id);
         if (index !== -1) {
-          this.offices[index] = { ...this.offices[index], ...this.editingOffice };
+          this.offices[index] = { ...this.offices[index], ...officeData };
           this.selected_office = this.offices[index];
         }
         
@@ -898,10 +756,7 @@ export default {
         googleMapsUrl: "",
         accounts: "",
         horario: "",
-        horaInicio: "",
-        horaFin: "",
         dias: "",
-        selectedDays: [],
       };
     },
 
@@ -924,7 +779,13 @@ export default {
       try {
         this.loading = true;
         
-        const { data } = await api.offices.POST({ office: this.newOffice });
+        // Asegurar que dias sea string vacío
+        const officeData = {
+          ...this.newOffice,
+          dias: ""
+        };
+        
+        const { data } = await api.offices.POST({ office: officeData });
         console.log({ data });
         
         // Agregar la nueva oficina al array local
@@ -963,10 +824,7 @@ export default {
         googleMapsUrl: "",
         accounts: "",
         horario: "",
-        horaInicio: "",
-        horaFin: "",
         dias: "",
-        selectedDays: [],
       };
     },
 
@@ -1146,183 +1004,6 @@ export default {
       }
     },
 
-    // Métodos para manejar el selector de horarios
-    updateHorario(formType) {
-      const form = formType === 'edit' ? this.editingOffice : this.newOffice;
-      
-      if (form.horaInicio && form.horaFin) {
-        const horaInicio = this.formatTime(form.horaInicio);
-        const horaFin = this.formatTime(form.horaFin);
-        form.horario = `${horaInicio} - ${horaFin}`;
-      } else {
-        form.horario = "";
-      }
-    },
-
-    formatTime(time24) {
-      if (!time24) return "";
-      
-      const [hours, minutes] = time24.split(':');
-      const hour = parseInt(hours);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const hour12 = hour % 12 || 12;
-      
-      return `${hour12}:${minutes} ${ampm}`;
-    },
-
-    parseExistingHorario(horario) {
-      if (!horario) return;
-      
-      // Parsear formato "8:00 AM - 6:00 PM" a formato 24h
-      const match = horario.match(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-      
-      if (match) {
-        const [, startHour, startMin, startAmPm, endHour, endMin, endAmPm] = match;
-        
-        // Convertir hora de inicio
-        let startHour24 = parseInt(startHour);
-        if (startAmPm.toUpperCase() === 'PM' && startHour24 !== 12) {
-          startHour24 += 12;
-        } else if (startAmPm.toUpperCase() === 'AM' && startHour24 === 12) {
-          startHour24 = 0;
-        }
-        
-        // Convertir hora de fin
-        let endHour24 = parseInt(endHour);
-        if (endAmPm.toUpperCase() === 'PM' && endHour24 !== 12) {
-          endHour24 += 12;
-        } else if (endAmPm.toUpperCase() === 'AM' && endHour24 === 12) {
-          endHour24 = 0;
-        }
-        
-        this.editingOffice.horaInicio = `${startHour24.toString().padStart(2, '0')}:${startMin}`;
-        this.editingOffice.horaFin = `${endHour24.toString().padStart(2, '0')}:${endMin}`;
-      }
-    },
-
-    // Métodos para manejar el selector de días
-    updateDias(formType) {
-      const form = formType === 'edit' ? this.editingOffice : this.newOffice;
-      
-      if (form.selectedDays.length === 0) {
-        form.dias = "";
-        return;
-      }
-
-      // Convertir los días seleccionados a texto
-      const diasOrdenados = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-      const selectedOrdered = diasOrdenados.filter(dia => form.selectedDays.includes(dia));
-      
-      form.dias = this.formatDaysText(selectedOrdered);
-    },
-
-    formatDaysText(selectedDays) {
-      const dayNames = {
-        'lunes': 'Lunes',
-        'martes': 'Martes', 
-        'miercoles': 'Miércoles',
-        'jueves': 'Jueves',
-        'viernes': 'Viernes',
-        'sabado': 'Sábado',
-        'domingo': 'Domingo'
-      };
-
-      if (selectedDays.length === 7) {
-        return 'Todos los días';
-      }
-
-      if (selectedDays.length === 5 && 
-          selectedDays.includes('lunes') && selectedDays.includes('martes') && 
-          selectedDays.includes('miercoles') && selectedDays.includes('jueves') && 
-          selectedDays.includes('viernes')) {
-        return 'Lunes a Viernes';
-      }
-
-      if (selectedDays.length === 6 && 
-          selectedDays.includes('lunes') && selectedDays.includes('martes') && 
-          selectedDays.includes('miercoles') && selectedDays.includes('jueves') && 
-          selectedDays.includes('viernes') && selectedDays.includes('sabado')) {
-        return 'Lunes a Sábado';
-      }
-
-      if (selectedDays.length === 2 && 
-          selectedDays.includes('sabado') && selectedDays.includes('domingo')) {
-        return 'Fines de semana';
-      }
-
-      // Para otros casos, mostrar los días individuales
-      return selectedDays.map(day => dayNames[day]).join(', ');
-    },
-
-    selectQuickDays(formType, option) {
-      const form = formType === 'edit' ? this.editingOffice : this.newOffice;
-      
-      switch(option) {
-        case 'weekdays':
-          form.selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
-          break;
-        case 'weekend':
-          form.selectedDays = ['sabado', 'domingo'];
-          break;
-        case 'all':
-          form.selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-          break;
-        case 'none':
-          form.selectedDays = [];
-          break;
-      }
-      
-      this.updateDias(formType);
-    },
-
-    parseExistingDias(dias) {
-      if (!dias) {
-        this.$set(this.editingOffice, 'selectedDays', []);
-        return;
-      }
-
-      // Mapeo de texto a días
-      const dayMappings = {
-        'lunes': 'lunes',
-        'martes': 'martes', 
-        'miércoles': 'miercoles',
-        'miercoles': 'miercoles',
-        'jueves': 'jueves',
-        'viernes': 'viernes',
-        'sábado': 'sabado',
-        'sabado': 'sabado',
-        'domingo': 'domingo'
-      };
-
-      let selectedDays = [];
-
-      // Casos especiales
-      if (dias.toLowerCase().includes('todos los días') || dias.toLowerCase().includes('lunes a domingo')) {
-        selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-      } else if (dias.toLowerCase().includes('lunes a viernes')) {
-        selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
-      } else if (dias.toLowerCase().includes('lunes a sábado') || dias.toLowerCase().includes('lunes a sabado')) {
-        selectedDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-      } else if (dias.toLowerCase().includes('fines de semana')) {
-        selectedDays = ['sabado', 'domingo'];
-      } else {
-        // Buscar días individuales en el texto
-        Object.keys(dayMappings).forEach(dayName => {
-          if (dias.toLowerCase().includes(dayName.toLowerCase())) {
-            const dayValue = dayMappings[dayName];
-            if (!selectedDays.includes(dayValue)) {
-              selectedDays.push(dayValue);
-            }
-          }
-        });
-      }
-
-      // Usar $set para asegurar reactividad
-      this.$set(this.editingOffice, 'selectedDays', selectedDays);
-      
-      // Forzar actualización de la interfaz
-      this.$forceUpdate();
-    }
   },
 };
 </script>
