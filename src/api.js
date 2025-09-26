@@ -32,6 +32,7 @@ class API {
     aiQualityPredictions,
     mlmApi,
     deliveryManagement,
+    paymentMethods,
   }) {
     this.users = users;
     this.Affiliations = Affiliations;
@@ -57,6 +58,7 @@ class API {
     this.aiQualityPredictions = aiQualityPredictions;
     this.mlmApi = mlmApi;
     this.deliveryManagement = deliveryManagement;
+    this.paymentMethods = paymentMethods;
   }
 }
 
@@ -334,6 +336,28 @@ class DeliveryManagement {
   }
 }
 
+class PaymentMethods {
+  GET() {
+    return axios.get(`/admin/payment-methods`);
+  }
+
+  POST({ paymentMethod }) {
+    return axios.post(`/admin/payment-methods`, { paymentMethod });
+  }
+
+  PUT({ id, paymentMethod }) {
+    return axios.put(`/admin/payment-methods`, { id, paymentMethod });
+  }
+
+  PATCH({ id, action }) {
+    return axios.patch(`/admin/payment-methods`, { id, action });
+  }
+
+  DELETE({ id }) {
+    return axios.delete(`/admin/payment-methods`, { data: { id } });
+  }
+}
+
 export default new API({
   users: new Users(),
   Affiliations: new Affiliations(),
@@ -359,4 +383,5 @@ export default new API({
   aiQualityPredictions: new AIQualityPredictions(),
   mlmApi: new MLMApi(),
   deliveryManagement: new DeliveryManagement(),
+  paymentMethods: new PaymentMethods(),
 });

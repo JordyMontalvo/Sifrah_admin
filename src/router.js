@@ -29,6 +29,7 @@ import LeadershipPredictions from "./views/LeadershipPredictions.vue";
 import AIPredictions from "./views/AIPredictions.vue";
 import AIQualityPredictions from "./views/AIQualityPredictions.vue";
 import DeliveryManagement from "./views/DeliveryManagement.vue";
+import PaymentMethods from "./views/PaymentMethods.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -182,6 +183,11 @@ const routes = [
   {
     path: "/delivery-management",
     component: DeliveryManagement,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/payment-methods",
+    component: PaymentMethods,
     meta: { requiresAuth: true },
   },
 ];

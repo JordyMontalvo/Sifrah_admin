@@ -17,6 +17,12 @@
                 </span>
                 <span>Limpiar Notificaciones</span>
               </button>
+              <button class="button is-warning" @click="goToPaymentMethods">
+                <span class="icon">
+                  <i class="fas fa-credit-card"></i>
+                </span>
+                <span>Métodos de Pago</span>
+              </button>
               <button class="button is-success" @click="showAddModal = true">
                 <span class="icon">
                   <i class="fas fa-plus"></i>
@@ -910,6 +916,10 @@ export default {
 
     clearAllNotifications() {
       this.notifications = [];
+    },
+
+    goToPaymentMethods() {
+      this.$router.push('/payment-methods');
     },
 
     deactivateOffice(office) {
