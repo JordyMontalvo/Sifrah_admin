@@ -88,6 +88,7 @@
                 <th>#</th>
                 <th>Cuenta</th>
                 <th>Titular</th>
+                <th>Banco</th>
                 <th>Tipo</th>
                 <th>Estado</th>
                 <th>Fecha Creación</th>
@@ -109,6 +110,11 @@
                 <td>
                   <div class="holder-info">
                     <span class="holder-name">{{ method.titular }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="bank-info">
+                    <span class="bank-name">{{ method.banco || 'No especificado' }}</span>
                   </div>
                 </td>
                 <td>
@@ -230,21 +236,31 @@
               </div>
 
               <div class="field">
+                <label class="label">Banco *</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="currentMethod.banco"
+                    placeholder="Nombre del banco (ej: BCP, Interbank, Yape, etc.)"
+                    required
+                  />
+                </div>
+                <p class="help">Nombre del banco o entidad financiera</p>
+              </div>
+
+              <div class="field">
                 <label class="label">Tipo *</label>
                 <div class="control">
-                  <div class="select is-fullwidth">
-                    <select v-model="currentMethod.tipo" required>
-                      <option value="">Seleccionar tipo</option>
-                      <option value="Bancario">Bancario</option>
-                      <option value="Tarjeta">Tarjeta</option>
-                      <option value="Digital">Digital</option>
-                      <option value="Efectivo">Efectivo</option>
-                      <option value="Transferencia">Transferencia</option>
-                      <option value="Otro">Otro</option>
-                    </select>
-                  </div>
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="currentMethod.tipo"
+                    placeholder="Tipo de cuenta (ej: Cuenta Corriente, Cuenta de Ahorros, Transferencia, etc.)"
+                    required
+                  />
                 </div>
-                <p class="help">Tipo de método de pago</p>
+                <p class="help">Tipo de cuenta o método de pago</p>
               </div>
 
               <div class="field">
@@ -345,6 +361,7 @@ export default {
       currentMethod: {
         cuenta: "",
         titular: "",
+        banco: "",
         tipo: "",
         active: true,
       },
@@ -361,7 +378,7 @@ export default {
       return this.paymentMethods.filter(method => !method.active).length;
     },
     isValidMethod() {
-      return this.currentMethod.cuenta && this.currentMethod.titular && this.currentMethod.tipo;
+      return this.currentMethod.cuenta && this.currentMethod.titular && this.currentMethod.banco && this.currentMethod.tipo;
     }
   },
 
@@ -434,6 +451,7 @@ export default {
       this.currentMethod = {
         cuenta: "",
         titular: "",
+        banco: "",
         tipo: "",
         active: true,
       };
@@ -772,13 +790,13 @@ export default {
   background: #fef2f2;
 }
 
-/* Account and Holder Info */
-.account-info, .holder-info {
+/* Account, Holder and Bank Info */
+.account-info, .holder-info, .bank-info {
   display: flex;
   flex-direction: column;
 }
 
-.account-number, .holder-name {
+.account-number, .holder-name, .bank-name {
   font-weight: 500;
   color: #111827;
 }
