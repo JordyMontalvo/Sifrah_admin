@@ -250,6 +250,70 @@
                   selectedActivation.status
                 }}</span>
               </div>
+
+              <!-- Datos de Delivery -->
+              <template v-if="selectedActivation.delivery_info">
+                <div class="detail-item">
+                  <span class="detail-label"><i class="fas fa-truck"></i> Método de entrega:</span>
+                  <span class="detail-value">{{ selectedActivation.delivery_info.method === 'delivery' ? 'Delivery' : 'Recojo en oficina' }}</span>
+                </div>
+
+                <!-- Recojo en oficina -->
+                <div class="detail-item" v-if="selectedActivation.delivery_info.method === 'pickup'">
+                  <span class="detail-label"><i class="fas fa-store"></i> Oficina de recojo:</span>
+                  <span class="detail-value">{{ getOfficeName(selectedActivation.office) }}</span>
+                </div>
+
+                <!-- Solo si es delivery -->
+                <template v-if="selectedActivation.delivery_info.method === 'delivery'">
+                  <div class="detail-item">
+                    <span class="detail-label"><i class="fas fa-user-check"></i> Receptor:</span>
+                    <span class="detail-value">{{ selectedActivation.delivery_info.recipient_name || '-' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label"><i class="fas fa-id-card"></i> Documento:</span>
+                    <span class="detail-value">{{ selectedActivation.delivery_info.recipient_document || '-' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label"><i class="fas fa-phone"></i> Celular:</span>
+                    <span class="detail-value">{{ selectedActivation.delivery_info.recipient_phone || '-' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label"><i class="fas fa-map-marker-alt"></i> Dirección:</span>
+                    <span class="detail-value">{{ selectedActivation.delivery_info.delivery_address || '-' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label"><i class="fas fa-globe"></i> Ubicación:</span>
+                    <span class="detail-value">{{ [selectedActivation.delivery_info.department, selectedActivation.delivery_info.province, selectedActivation.delivery_info.district].filter(Boolean).join(', ') || '-' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label"><i class="fas fa-tags"></i> Tipo de delivery:</span>
+                    <span class="detail-value">{{ selectedActivation.delivery_info.delivery_type || '-' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label"><i class="fas fa-money-bill"></i> Precio de delivery:</span>
+                    <span class="detail-value">{{ (selectedActivation.delivery_info.delivery_price != null) ? `S/. ${Number(selectedActivation.delivery_info.delivery_price).toFixed(2)}` : '-' }}</span>
+                  </div>
+
+                  <!-- Zona (para Lima) -->
+                  <div class="detail-item" v-if="selectedActivation.delivery_info.zone_info">
+                    <span class="detail-label"><i class="fas fa-map"></i> Zona:</span>
+                    <span class="detail-value">{{ selectedActivation.delivery_info.zone_info.zone_name }} ({{ selectedActivation.delivery_info.zone_info.zone_id }}) - S/. {{ Number(selectedActivation.delivery_info.zone_info.zone_price || 0).toFixed(2) }}</span>
+                  </div>
+
+                  <!-- Agencia (para envíos nacionales) -->
+                  <div class="detail-item" v-if="selectedActivation.delivery_info.agency || selectedActivation.delivery_info.agency_code">
+                    <span class="detail-label"><i class="fas fa-building"></i> Agencia:</span>
+                    <span class="detail-value">{{ selectedActivation.delivery_info.agency_name || selectedActivation.delivery_info.agency || selectedActivation.delivery_info.agency_code || '-' }}</span>
+                  </div>
+
+                  <!-- Notas -->
+                  <div class="detail-item" v-if="selectedActivation.delivery_info.delivery_notes">
+                    <span class="detail-label"><i class="fas fa-sticky-note"></i> Notas:</span>
+                    <span class="detail-value">{{ selectedActivation.delivery_info.delivery_notes }}</span>
+                  </div>
+                </template>
+              </template>
             </div>
           </section>
           <footer
@@ -404,6 +468,13 @@ export default {
           icon: "fas fa-file-invoice",
           class: "is-warning",
           condition: (item) => item.status === "approved",
+        },
+        {
+          key: "delivery",
+          label: "Delivery",
+          icon: "fas fa-truck",
+          class: "is-link",
+          condition: (item) => item.raw && item.raw.delivery_info,
         },
         {
           key: "view",
@@ -682,6 +753,9 @@ export default {
         this.editVoucher(activation);
       } else if (action === "invoice") {
         window.open(`${this.INVOICE_ROOT}?id=${activation.id}`, "_blank");
+      } else if (action === "delivery") {
+        this.selectedActivation = activation;
+        this.showViewModal = true;
       } else if (action === "view") {
         this.selectedActivation = activation;
         this.showViewModal = true;
