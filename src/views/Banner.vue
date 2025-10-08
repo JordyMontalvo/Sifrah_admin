@@ -79,6 +79,7 @@
             :banner="banner"
             :position="banner.position"
             :loading="activationSendingStates[banner.position]"
+            :showUrlInput="true"
             @file-selected="onActivationFileSelected"
             @save="saveActivationBanner"
             @error="showErrorMessage"
@@ -177,6 +178,7 @@ export default {
         {
           id: "activation_banners",
           img: this.activationBannersData.left || "",
+          url: this.activationBannersData.leftUrl || "",
           title: "Banner Izquierda",
           description: "Banner principal de la tienda (más ancho)",
           dimensions: "600 x 400 px",
@@ -185,6 +187,7 @@ export default {
         {
           id: "activation_banners",
           img: this.activationBannersData.centerTop || "",
+          url: this.activationBannersData.centerTopUrl || "",
           title: "Banner Centro Arriba",
           description: "Banner superior del centro",
           dimensions: "300 x 190 px",
@@ -193,6 +196,7 @@ export default {
         {
           id: "activation_banners",
           img: this.activationBannersData.centerBottom || "",
+          url: this.activationBannersData.centerBottomUrl || "",
           title: "Banner Centro Abajo",
           description: "Banner inferior del centro",
           dimensions: "300 x 190 px",
@@ -201,6 +205,7 @@ export default {
         {
           id: "activation_banners",
           img: this.activationBannersData.right || "",
+          url: this.activationBannersData.rightUrl || "",
           title: "Banner Derecha",
           description: "Banner lateral derecho (cuadrado)",
           dimensions: "400 x 400 px",
@@ -310,12 +315,13 @@ export default {
       }
     },
 
-    async saveActivationBanner(position) {
+    async saveActivationBanner(position, url) {
       const file = this.activationSelectedFiles[position];
+      const hasUrl = typeof url === 'string' && url.trim() !== '';
 
-      if (!file) {
+      if (!file && !hasUrl) {
         this.showErrorMessage(
-          "Por favor selecciona una imagen antes de guardar"
+          "Por favor selecciona una imagen o ingresa un enlace antes de guardar"
         );
         return;
       }
@@ -323,16 +329,20 @@ export default {
       try {
         this.activationSendingStates[position] = true;
 
-        const img = await lib.upload(file, file.name, "activation_banner");
+        let img;
+        if (file) {
+          img = await lib.upload(file, file.name, "activation_banner");
+        }
 
         // Llamar a la API real para guardar el banner
         await api.activationBanners.POST({
           id: "activation_banners",
           img,
           position: position,
+          url: hasUrl ? url.trim() : undefined,
         });
 
-        console.log(`Guardando banner de activación ${position}:`, img);
+        console.log(`Guardando banner de activación ${position}:`, img, url);
         
         const banner = this.activationBanners.find(b => b.position === position);
         this.showSuccessMessage(`Banner ${banner.title} guardado exitosamente`);

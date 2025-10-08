@@ -164,8 +164,8 @@ class ActivationBanners {
   GET() {
     return axios.get(`/admin/activation-banners`);
   }
-  POST({ id, img, position }) {
-    return axios.post(`/admin/activation-banners`, { id, img, position });
+  POST({ id, img, position, url }) {
+    return axios.post(`/admin/activation-banners`, { id, img, position, url });
   }
 }
 class Promo {

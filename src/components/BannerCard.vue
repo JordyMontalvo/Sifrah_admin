@@ -24,15 +24,8 @@
       <div class="upload-section">
         <label class="upload-button" :class="{ 'has-file': hasSelectedFile }">
           <i class="fas fa-upload"></i>
-          <span>{{
-            hasSelectedFile ? "Cambiar imagen" : "Seleccionar imagen"
-          }}</span>
-          <input
-            type="file"
-            accept="image/*"
-            @change="handleFileChange"
-            style="display: none"
-          />
+          <span>{{ hasSelectedFile ? "Cambiar imagen" : "Seleccionar imagen" }}</span>
+          <input type="file" accept="image/*" @change="handleFileChange" style="display: none" />
         </label>
 
         <!-- File Info -->
@@ -40,9 +33,7 @@
           <div class="file-details">
             <i class="fas fa-file-image"></i>
             <span class="file-name">{{ selectedFile.name }}</span>
-            <span class="file-size">{{
-              formatFileSize(selectedFile.size)
-            }}</span>
+            <span class="file-size">{{ formatFileSize(selectedFile.size) }}</span>
           </div>
           <button class="remove-file" @click="removeFile">
             <i class="fas fa-times"></i>
@@ -50,14 +41,25 @@
         </div>
       </div>
 
+      <!-- URL Input (optional) -->
+      <div v-if="showUrlInput" class="url-section">
+        <label class="url-label" for="banner-url">
+          <i class="fas fa-link"></i>
+          <span>Enlace del banner</span>
+        </label>
+        <input
+          id="banner-url"
+          type="text"
+          v-model="urlInput"
+          class="url-input"
+          placeholder="https://tu-enlace.com/ruta"
+        />
+        <small class="url-hint">Puedes ingresar un enlace externo (https://) o una ruta interna (/tienda/productos).</small>
+      </div>
+
       <!-- Save Button -->
       <div class="actions">
-        <button
-          class="save-button"
-          :class="{ loading: loading, disabled: !canSave }"
-          :disabled="!canSave || loading"
-          @click="handleSave"
-        >
+        <button class="save-button" :class="{ loading: loading, disabled: !canSave }" :disabled="!canSave || loading" @click="handleSave">
           <span v-if="!loading">
             <i class="fas fa-save"></i>
             Guardar
@@ -82,10 +84,14 @@ export default {
       required: true,
     },
     position: {
-      type: Number,
+      type: [Number, String],
       required: true,
     },
     loading: {
+      type: Boolean,
+      default: false,
+    },
+    showUrlInput: {
       type: Boolean,
       default: false,
     },
@@ -95,6 +101,7 @@ export default {
     return {
       selectedFile: null,
       imagePreview: null,
+      urlInput: "",
     };
   },
 
@@ -104,14 +111,23 @@ export default {
     },
 
     canSave() {
-      return this.hasSelectedFile;
+      const originalUrl = (this.banner && this.banner.url) || "";
+      return this.hasSelectedFile || (this.showUrlInput && (this.urlInput || "") !== originalUrl);
+    },
+  },
+
+  watch: {
+    banner: {
+      immediate: true,
+      handler(newVal) {
+        this.urlInput = (newVal && newVal.url) || "";
+      },
     },
   },
 
   methods: {
     handleFileChange(event) {
       const file = event.target.files[0];
-
       if (!file) return;
 
       // Validate file
@@ -133,12 +149,7 @@ export default {
 
     validateFile(file) {
       // Check file type
-      const allowedTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/webp",
-      ];
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
       if (!allowedTypes.includes(file.type)) {
         this.$emit("error", "Solo se permiten archivos JPG, PNG o WebP");
         return false;
@@ -170,7 +181,7 @@ export default {
 
     handleSave() {
       if (!this.canSave || this.loading) return;
-      this.$emit("save", this.position);
+      this.$emit("save", this.position, this.showUrlInput ? this.urlInput : undefined);
     },
 
     formatFileSize(bytes) {
@@ -325,6 +336,40 @@ export default {
 
 .remove-file:hover {
   background: #f8d7da;
+}
+
+/* URL input styles */
+.url-section {
+  margin: 1rem 0 1.5rem 0;
+}
+
+.url-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.url-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.url-input:focus {
+  border-color: #667eea;
+}
+
+.url-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #6c757d;
 }
 
 .actions {
