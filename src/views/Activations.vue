@@ -221,6 +221,30 @@
                   formatPayMethod(selectedActivation)
                 }}</span>
               </div>
+              
+              <!-- Información detallada del banco (si existe) -->
+              <template v-if="selectedActivation.pay_method === 'bank' && selectedActivation.bank_info">
+                <div class="detail-item">
+                  <span class="detail-label"
+                    ><i class="fas fa-university"></i> Cuenta:</span
+                  >
+                  <span class="detail-value">{{ selectedActivation.bank_info.account || 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label"
+                    ><i class="fas fa-user"></i> Titular:</span
+                  >
+                  <span class="detail-value">{{ selectedActivation.bank_info.holder || 'N/A' }}</span>
+                </div>
+              </template>
+              
+              <div class="detail-item" v-if="selectedActivation.voucher_number">
+                <span class="detail-label"
+                  ><i class="fas fa-hashtag"></i> Nº de Operación:</span
+                >
+                <span class="detail-value">{{ selectedActivation.voucher_number }}</span>
+              </div>
+              
               <div class="detail-item">
                 <span class="detail-label"
                   ><i class="fas fa-file-invoice"></i> Voucher:</span
@@ -710,9 +734,14 @@ export default {
         return "Efectivo";
       }
       if (activation.pay_method === "bank") {
-        return `Banco - ${activation.bank}`;
+        // Si existe bank_info, mostrar el nombre y tipo del método de pago
+        if (activation.bank_info) {
+          return `${activation.bank_info.name || activation.bank} - ${activation.bank_info.type || 'Transferencia'}`;
+        }
+        // Si solo existe bank (ID o nombre), mostrarlo
+        return `Transferencia - ${activation.bank || 'No especificado'}`;
       }
-      return activation.pay_method;
+      return activation.pay_method || "No especificado";
     },
 
     formatBalance(activation) {
