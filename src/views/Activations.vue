@@ -222,8 +222,8 @@
                 }}</span>
               </div>
               
-              <!-- Información detallada del banco (si existe) -->
-              <template v-if="selectedActivation.pay_method === 'bank' && selectedActivation.bank_info">
+              <!-- Información detallada del banco (solo si NO es efectivo) -->
+              <template v-if="selectedActivation.pay_method === 'bank' && selectedActivation.bank_info && !isEfectivo(selectedActivation)">
                 <div class="detail-item">
                   <span class="detail-label"
                     ><i class="fas fa-university"></i> Cuenta:</span
@@ -238,23 +238,24 @@
                 </div>
               </template>
               
-              <div class="detail-item" v-if="selectedActivation.voucher_number">
+              <!-- Número de operación -->
+              <div class="detail-item" v-if="selectedActivation.pay_method === 'bank' && selectedActivation.voucher_number">
                 <span class="detail-label"
                   ><i class="fas fa-hashtag"></i> Nº de Operación:</span
                 >
                 <span class="detail-value">{{ selectedActivation.voucher_number }}</span>
               </div>
               
-              <div class="detail-item">
+              <!-- Voucher/Comprobante -->
+              <div class="detail-item" v-if="selectedActivation.pay_method === 'bank' && selectedActivation.voucher">
                 <span class="detail-label"
-                  ><i class="fas fa-file-invoice"></i> Voucher:</span
+                  ><i class="fas fa-file-invoice"></i> Comprobante:</span
                 >
                 <span class="detail-value"
                   ><a
-                    v-if="selectedActivation.voucher"
                     :href="selectedActivation.voucher"
                     target="_blank"
-                    >Ver</a
+                    >Ver Comprobante</a
                   ></span
                 >
               </div>
@@ -729,18 +730,54 @@ export default {
       return "N/A";
     },
 
+    isEfectivo(activation) {
+      // Verificar si el método de pago es efectivo
+      if (activation.pay_method === "cash") {
+        return true;
+      }
+      
+      if (activation.pay_method === "bank" && activation.bank_info) {
+        const methodName = (activation.bank_info.name || '').toLowerCase();
+        const methodType = (activation.bank_info.type || '').toLowerCase();
+        return methodType.includes('efectivo') || methodName.includes('efectivo');
+      }
+      
+      if (activation.bank) {
+        return activation.bank.toLowerCase().includes('efectivo');
+      }
+      
+      return false;
+    },
+
     formatPayMethod(activation) {
+      // Efectivo (legacy)
       if (activation.pay_method === "cash") {
         return "Efectivo";
       }
+      
+      // Pago con comprobante (transferencia, yape, plin, efectivo, etc.)
       if (activation.pay_method === "bank") {
         // Si existe bank_info, mostrar el nombre y tipo del método de pago
         if (activation.bank_info) {
-          return `${activation.bank_info.name || activation.bank} - ${activation.bank_info.type || 'Transferencia'}`;
+          const methodName = activation.bank_info.name || activation.bank || '';
+          const methodType = activation.bank_info.type || '';
+          
+          // Si el tipo o nombre contiene "Efectivo", mostrar solo "Efectivo"
+          if (methodType.toLowerCase().includes('efectivo') || methodName.toLowerCase().includes('efectivo')) {
+            return "Efectivo";
+          }
+          
+          // Para otros métodos, mostrar nombre - tipo
+          return `${methodName} - ${methodType || 'Transferencia'}`;
         }
-        // Si solo existe bank (ID o nombre), mostrarlo
+        // Si solo existe bank (ID o nombre), verificar si es efectivo
+        if (activation.bank && activation.bank.toLowerCase().includes('efectivo')) {
+          return "Efectivo";
+        }
         return `Transferencia - ${activation.bank || 'No especificado'}`;
       }
+      
+      // Otros métodos o sin especificar
       return activation.pay_method || "No especificado";
     },
 
