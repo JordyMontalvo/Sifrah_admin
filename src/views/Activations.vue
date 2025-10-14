@@ -119,6 +119,19 @@
             </span>
             <span v-else>{{ row.voucher.url }}</span>
           </template>
+          <template #cell-status="{ row }">
+            <span 
+              class="status-badge" 
+              :class="{
+                'status-approved': row.status === 'approved',
+                'status-pending': row.status === 'pending',
+                'status-rejected': row.status === 'rejected',
+                'status-cancelled': row.status === 'cancelled'
+              }"
+            >
+              {{ row.status | status }}
+            </span>
+          </template>
         </ModernTable>
       </div>
       <!-- End of Modern Table -->
@@ -508,10 +521,11 @@ export default {
           class: "is-primary",
         },
         {
-          key: "delete",
-          label: "Eliminar",
-          icon: "fas fa-trash",
+          key: "cancel",
+          label: "Anular",
+          icon: "fas fa-ban",
           class: "is-danger",
+          condition: (item) => item.status !== "cancelled",
         },
       ],
       tableFilters: [
@@ -524,6 +538,7 @@ export default {
             { value: "pending", label: "Pendiente" },
             { value: "approved", label: "Aprobada" },
             { value: "rejected", label: "Rechazada" },
+            { value: "cancelled", label: "Anulada" },
           ],
         },
         {
@@ -650,6 +665,7 @@ export default {
       if (value == "approved") return "Aprobada";
       if (value == "pending") return "Pendiente";
       if (value == "rejected") return "Rechazada";
+      if (value == "cancelled") return "Anulada";
       return value;
     },
     date(val) {
@@ -825,8 +841,8 @@ export default {
       } else if (action === "view") {
         this.selectedActivation = activation;
         this.showViewModal = true;
-      } else if (action === "delete") {
-        await this.deleteActivation(activation);
+      } else if (action === "cancel") {
+        await this.cancelActivation(activation);
       }
     },
 
@@ -989,34 +1005,42 @@ export default {
         d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       );
     },
-    async deleteActivation(activation) {
+    async cancelActivation(activation) {
       const confirmed = await Swal.fire({
-        title: "¿Eliminar activación?",
-        text: `¿Seguro que deseas eliminar la activación de ${activation.name} ${activation.lastName}?`,
+        title: "¿Anular activación?",
+        html: `¿Seguro que deseas anular la activación de <strong>${activation.name} ${activation.lastName}</strong>?<br><br>
+        ${activation.status === 'approved' ? '<span style="color: #e74c3c;">⚠️ Esta activación fue aprobada. Se revertirán los puntos del usuario.</span>' : ''}`,
         icon: "warning",
         showCancelButton: true,
-        confirmButtonText: "Sí, eliminar",
+        confirmButtonText: "Sí, anular",
         cancelButtonText: "Cancelar",
+        confirmButtonColor: "#e74c3c",
       });
       if (!confirmed.isConfirmed) return;
       try {
         await api.Activations.POST({
-          action: "delete",
+          action: "cancel",
           id: activation.id,
         });
+        
+        // Actualizar el estado local en lugar de eliminar
+        activation.status = "cancelled";
+        
         Swal.fire({
           icon: "success",
-          title: "Activación eliminada",
-          text: "La activación ha sido eliminada.",
-          timer: 1800,
+          title: "Activación anulada",
+          text: "La activación ha sido anulada correctamente. Los puntos han sido revertidos.",
+          timer: 2000,
           showConfirmButton: false,
         });
         await this.GET(this.$route.params.filter);
+        await this.fetchStatusTotals();
       } catch (error) {
+        console.error("Error anulando activación:", error);
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "No se pudo eliminar la activación.",
+          text: "No se pudo anular la activación. Inténtalo de nuevo.",
           timer: 2000,
           showConfirmButton: false,
         });
@@ -1235,5 +1259,39 @@ export default {
 .modern-modal-foot {
   background: #f8f9fa;
   border-top: none;
+}
+
+/* Badges de estado */
+.status-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-approved {
+  background: linear-gradient(135deg, #00c9a7 0%, #00b894 100%);
+  color: white;
+}
+
+.status-pending {
+  background: linear-gradient(135deg, #ffd32a 0%, #f39c12 100%);
+  color: #333;
+}
+
+.status-rejected {
+  background: linear-gradient(135deg, #ff6b6b 0%, #e74c3c 100%);
+  color: white;
+}
+
+.status-cancelled {
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+  color: white;
+  text-decoration: line-through;
+  opacity: 0.8;
 }
 </style>
