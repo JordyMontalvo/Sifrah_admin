@@ -63,14 +63,17 @@ class API {
 }
 
 class Users {
-  GET({ filter, page = 1, limit = 10, search, showAvailable }) {
-    // Añadir showAvailable como parámetro
+  GET({ filter, page = 1, limit = 10, search, showAvailable, showVirtualBalance }) {
+    // Añadir showAvailable y showVirtualBalance como parámetros
     const searchParam = search ? `&search=${search}` : "";
-    const availableParam = showAvailable
+    const availableParam = showAvailable !== undefined
       ? `&showAvailable=${showAvailable}`
-      : ""; // Añadir el parámetro showAvailable
+      : "";
+    const virtualBalanceParam = showVirtualBalance !== undefined
+      ? `&showVirtualBalance=${showVirtualBalance}`
+      : "";
     return axios.get(
-      `/admin/users?filter=${filter}&page=${page}&limit=${limit}${searchParam}${availableParam}`
+      `/admin/users?filter=${filter}&page=${page}&limit=${limit}${searchParam}${availableParam}${virtualBalanceParam}`
     );
   }
   POST({ action, id, data }) {

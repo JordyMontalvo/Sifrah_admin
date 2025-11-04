@@ -345,6 +345,7 @@ import DashboardCard from "@/components/DashboardCard";
 import ModernTable from "@/components/ModernTable";
 import api from "@/api";
 import { debounce } from "lodash";
+import Swal from "sweetalert2";
 
 const INVOICE_ROOT = process.env.VUE_APP_INVOICE_ROOT;
 console.log({ INVOICE_ROOT });
@@ -474,6 +475,13 @@ export default {
           condition: (item) => item.status === "approved",
         },
         {
+          key: "cancel",
+          label: "Anular",
+          icon: "fas fa-ban",
+          class: "is-danger",
+          condition: (item) => item.status !== "cancelled",
+        },
+        {
           key: "revert",
           label: "Eliminar",
           icon: "fas fa-trash",
@@ -496,6 +504,7 @@ export default {
             { value: "pending", label: "Pendiente" },
             { value: "approved", label: "Aprobada" },
             { value: "rejected", label: "Rechazada" },
+            { value: "cancelled", label: "Anulada" },
           ],
         },
         {
@@ -631,6 +640,7 @@ export default {
       if (value == "approved") return "Aprobada";
       if (value == "pending") return "Pendiente";
       if (value == "rejected") return "Rechazada";
+      if (value == "cancelled") return "Anulada";
       return value;
     },
   },
@@ -790,6 +800,8 @@ export default {
         this.editVoucher(affiliation);
       } else if (action === "invoice") {
         window.open(`${this.INVOICE_ROOT}?id=${affiliation.id}`, "_blank");
+      } else if (action === "cancel") {
+        await this.cancelAffiliation(affiliation);
       } else if (action === "revert") {
         await this.deleteAffiliation(affiliation);
       } else if (action === "view") {
@@ -909,6 +921,47 @@ export default {
         return officeId.charAt(0).toUpperCase() + officeId.slice(1);
       }
       return "N/A";
+    },
+
+    async cancelAffiliation(affiliation) {
+      const confirmed = await Swal.fire({
+        title: "¿Anular afiliación?",
+        html: `¿Seguro que deseas anular la afiliación de <strong>${affiliation.name} ${affiliation.lastName}</strong>?<br><br>
+        ${affiliation.status === 'approved' ? '<span style="color: #e74c3c;">⚠️ Esta afiliación fue aprobada. Se revertirá el estado del usuario.</span>' : ''}`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, anular",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#e74c3c",
+      });
+      if (!confirmed.isConfirmed) return;
+      try {
+        await api.Affiliations.POST({
+          action: "cancel",
+          id: affiliation.id,
+        });
+        
+        // Actualizar el estado local en lugar de eliminar
+        affiliation.status = "cancelled";
+        
+        Swal.fire({
+          icon: "success",
+          title: "Afiliación anulada",
+          text: "La afiliación ha sido anulada correctamente. El estado del usuario ha sido revertido.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        await this.GET(this.$route.params.filter);
+      } catch (error) {
+        console.error("Error anulando afiliación:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo anular la afiliación. Inténtalo de nuevo.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
     },
 
     async deleteAffiliation(affiliation) {

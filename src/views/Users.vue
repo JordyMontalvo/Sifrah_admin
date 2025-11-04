@@ -647,9 +647,10 @@ export default {
         let totalBalance = 0;
         let totalVirtualBalance = 0;
         let showAvailable = undefined;
+        let showVirtualBalance = undefined;
         if (this.selectedBalance === "available") showAvailable = true;
         if (this.selectedBalance === "not_available") showAvailable = false;
-        if (this.selectedBalance === "virtual") showAvailable = true;
+        if (this.selectedBalance === "virtual") showVirtualBalance = true;
         // Si el filtro es 'registered', pide todos y pagina en frontend
         if (filter === "registered") {
           backendFilter = "all";
@@ -659,6 +660,7 @@ export default {
             limit: 10000,
             search: this.search || undefined,
             showAvailable,
+            showVirtualBalance,
           });
           users = (data.users || []).filter(
             (user) =>
@@ -673,10 +675,7 @@ export default {
           if (this.selectedBalance === "not_available") {
             users = users.filter((user) => Number(user.balance) === 0);
           }
-          // Filtro de saldo no disponible (virtualbalance > 0)
-          if (this.selectedBalance === "virtual") {
-            users = users.filter((user) => Number(user.virtualbalance) > 0);
-          }
+          // El filtro de saldo virtual se hace en el backend, no aquí
           totalItems = users.length;
           totalPages = Math.ceil(totalItems / this.itemsPerPage);
           // Paginar en frontend
@@ -691,16 +690,14 @@ export default {
             limit: this.itemsPerPage,
             search: this.search || undefined,
             showAvailable,
+            showVirtualBalance,
           });
           users = data.users || [];
           // Filtro de saldo no disponible (saldo = 0)
           if (this.selectedBalance === "not_available") {
             users = users.filter((user) => Number(user.balance) === 0);
           }
-          // Filtro de saldo no disponible (virtualbalance > 0)
-          if (this.selectedBalance === "virtual") {
-            users = users.filter((user) => Number(user.virtualbalance) > 0);
-          }
+          // El filtro de saldo virtual se hace en el backend, no aquí
           totalItems = data.total || 0;
           totalPages = data.totalPages || 0;
           totalBalance = data.totalBalance || 0;
