@@ -54,6 +54,14 @@
               <i class="fas fa-store"></i>
               <span>Banners Tienda</span>
             </button>
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'affiliation' }"
+              @click="activeTab = 'affiliation'"
+            >
+              <i class="fas fa-id-badge"></i>
+              <span>Banners Afiliación</span>
+            </button>
           </div>
         </div>
 
@@ -85,6 +93,20 @@
             @error="showErrorMessage"
           />
         </div>
+
+        <!-- Affiliation Banners -->
+        <div v-if="activeTab === 'affiliation'" class="banner-grid">
+          <BannerCard
+            v-for="(banner, index) in affiliationBanners"
+            :key="'affiliation-' + index"
+            :banner="banner"
+            :position="banner.position"
+            :loading="affiliationSendingStates[banner.position]"
+            @file-selected="onAffiliationFileSelected"
+            @save="saveAffiliationBanner"
+            @error="showErrorMessage"
+          />
+        </div>
       </section>
 
       <!-- Toast Component -->
@@ -112,6 +134,7 @@ export default {
     return {
       banner: null,
       activationBannersData: null,
+      affiliationBannersData: null,
       loading: true,
       sendingStates: [false, false, false],
       refreshing: false,
@@ -138,6 +161,18 @@ export default {
         centerTop: false,
         centerBottom: false,
         right: false,
+      },
+
+      // File storage for affiliation banners
+      affiliationSelectedFiles: {
+        hero: null,
+        kit: null,
+      },
+
+      // Sending states for affiliation banners
+      affiliationSendingStates: {
+        hero: false,
+        kit: false,
       },
     };
   },
@@ -213,6 +248,29 @@ export default {
         }
       ];
     },
+
+    affiliationBanners() {
+      if (!this.affiliationBannersData) return [];
+
+      return [
+        {
+          id: "affiliation_banners",
+          img: this.affiliationBannersData.hero || "",
+          title: "Banner Superior Afiliación",
+          description: "Imagen principal de la página de afiliación",
+          dimensions: "1920 x 400 px",
+          position: "hero",
+        },
+        {
+          id: "affiliation_banners",
+          img: this.affiliationBannersData.kit || "",
+          title: "Banner Kit de Inicio",
+          description: "Imagen mostrada en la sección Kit de Inicio",
+          dimensions: "900 x 150 px",
+          position: "kit",
+        },
+      ];
+    },
   },
 
   created() {
@@ -236,8 +294,10 @@ export default {
         this.loading = true;
         const { data } = await api.promos.GET();
         const { data: activationData } = await api.activationBanners.GET();
+        const { data: affiliationData } = await api.affiliationBanners.GET();
         this.banner = data.banner;
         this.activationBannersData = activationData.activationBanners;
+        this.affiliationBannersData = affiliationData.affiliationBanners;
       } catch (error) {
         console.error("Error fetching banners:", error);
         this.showErrorMessage("Error al cargar los banners");
@@ -356,6 +416,50 @@ export default {
         this.showErrorMessage(`Error al guardar el banner ${banner.title}`);
       } finally {
         this.activationSendingStates[position] = false;
+      }
+    },
+
+    // Methods for affiliation banners
+    onAffiliationFileSelected({ position, file, preview }) {
+      this.affiliationSelectedFiles[position] = file;
+
+      if (this.affiliationBannersData) {
+        this.affiliationBannersData[position] = preview;
+      }
+    },
+
+    async saveAffiliationBanner(position) {
+      const file = this.affiliationSelectedFiles[position];
+
+      if (!file) {
+        this.showErrorMessage("Por favor selecciona una imagen antes de guardar");
+        return;
+      }
+
+      try {
+        this.affiliationSendingStates[position] = true;
+
+        const img = await lib.upload(file, file.name, "affiliation_banner");
+
+        await api.affiliationBanners.POST({
+          id: "affiliation_banners",
+          img,
+          position,
+        });
+
+        const banner = this.affiliationBanners.find((b) => b.position === position);
+        const bannerTitle = banner ? banner.title : "Banner";
+        this.showSuccessMessage(`${bannerTitle} guardado exitosamente`);
+        this.affiliationSelectedFiles[position] = null;
+
+        await this.fetchBanners();
+      } catch (error) {
+        console.error(`Error saving affiliation banner ${position}:`, error);
+        const banner = this.affiliationBanners.find((b) => b.position === position);
+        const bannerTitle = banner ? banner.title : `Banner ${position}`;
+        this.showErrorMessage(`Error al guardar el ${bannerTitle}`);
+      } finally {
+        this.affiliationSendingStates[position] = false;
       }
     },
   },

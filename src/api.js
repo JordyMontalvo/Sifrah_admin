@@ -18,6 +18,7 @@ class API {
     closeds,
     promos,
     activationBanners,
+    affiliationBanners,
     promo,
     pay,
     wallet,
@@ -44,6 +45,7 @@ class API {
     this.closeds = closeds;
     this.promos = promos;
     this.activationBanners = activationBanners;
+    this.affiliationBanners = affiliationBanners;
     this.promo = promo;
     this.pay = pay;
     this.wallet = wallet;
@@ -169,6 +171,14 @@ class ActivationBanners {
   }
   POST({ id, img, position, url }) {
     return axios.post(`/admin/activation-banners`, { id, img, position, url });
+  }
+}
+class AffiliationBanners {
+  GET() {
+    return axios.get(`/admin/affiliation-banners`);
+  }
+  POST({ id, img, position }) {
+    return axios.post(`/admin/affiliation-banners`, { id, img, position });
   }
 }
 class Promo {
@@ -372,6 +382,7 @@ export default new API({
   closeds: new Closeds(),
   promos: new Promos(),
   activationBanners: new ActivationBanners(),
+  affiliationBanners: new AffiliationBanners(),
   promo: new Promo(),
   pay: new Pay(),
   wallet: new Wallet(),
