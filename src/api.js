@@ -34,6 +34,7 @@ class API {
     mlmApi,
     deliveryManagement,
     paymentMethods,
+    dashboardConfig,
   }) {
     this.users = users;
     this.Affiliations = Affiliations;
@@ -61,6 +62,7 @@ class API {
     this.mlmApi = mlmApi;
     this.deliveryManagement = deliveryManagement;
     this.paymentMethods = paymentMethods;
+    this.dashboardConfig = dashboardConfig;
   }
 }
 
@@ -371,6 +373,16 @@ class PaymentMethods {
   }
 }
 
+class DashboardConfig {
+  GET() {
+    return axios.get(`/admin/dashboard-config`);
+  }
+
+  POST({ text }) {
+    return axios.post(`/admin/dashboard-config`, { text });
+  }
+}
+
 export default new API({
   users: new Users(),
   Affiliations: new Affiliations(),
@@ -398,4 +410,5 @@ export default new API({
   mlmApi: new MLMApi(),
   deliveryManagement: new DeliveryManagement(),
   paymentMethods: new PaymentMethods(),
+  dashboardConfig: new DashboardConfig(),
 });

@@ -26,6 +26,13 @@
                 </span>
                 <span>Exportar Excel</span>
               </button>
+
+              <router-link to="/dashboard-config" class="button is-success">
+                <span class="icon">
+                  <i class="fas fa-cog"></i>
+                </span>
+                <span>Config. Dashboard</span>
+              </router-link>
             </div>
           </div>
         </div>

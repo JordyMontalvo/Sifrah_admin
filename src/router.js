@@ -30,6 +30,7 @@ import AIPredictions from "./views/AIPredictions.vue";
 import AIQualityPredictions from "./views/AIQualityPredictions.vue";
 import DeliveryManagement from "./views/DeliveryManagement.vue";
 import PaymentMethods from "./views/PaymentMethods.vue";
+import DashboardConfig from "./views/DashboardConfig.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -188,6 +189,11 @@ const routes = [
   {
     path: "/payment-methods",
     component: PaymentMethods,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/dashboard-config",
+    component: DashboardConfig,
     meta: { requiresAuth: true },
   },
 ];
