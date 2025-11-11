@@ -512,6 +512,12 @@ export default {
       ],
       itemActions: [
         {
+          key: "config_dashboard",
+          label: "Config. Dashboard",
+          icon: "fas fa-cog",
+          class: "is-info",
+        },
+        {
           key: "edit",
           label: "Editar",
           icon: "fas fa-edit",
@@ -758,6 +764,9 @@ export default {
 
     handleItemAction({ action, item }) {
       switch (action) {
+        case "config_dashboard":
+          this.configUserDashboard(item.raw || item);
+          break;
         case "edit":
           this.editUser(item.raw || item);
           break;
@@ -771,6 +780,14 @@ export default {
           this.deleteActivation(item.raw || item);
           break;
       }
+    },
+
+    configUserDashboard(user) {
+      // Navegar a la página de configuración del dashboard con el userId como query param
+      this.$router.push({ 
+        path: '/dashboard-config', 
+        query: { userId: user.id } 
+      });
     },
 
     handleSearch(query) {

@@ -8,8 +8,41 @@
             <div class="title-section">
               <h1 class="title">Configuración del Dashboard</h1>
               <p class="subtitle">
-                Edita el texto informativo que se muestra en la sección "Bono Viaje" del dashboard de los usuarios
+                Edita el texto informativo que se muestra en la sección "Bono Viaje" del dashboard{{ selectedUser ? ` del usuario ${selectedUser.name} ${selectedUser.lastName}` : ' (configuración global)' }}
               </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Selection -->
+        <div class="user-selection-card">
+          <div class="field">
+            <label class="label">
+              <i class="fas fa-user"></i>
+              Seleccionar Usuario (opcional)
+            </label>
+            <div class="control has-icons-left">
+              <div class="select is-fullwidth">
+                <select v-model="selectedUserId" @change="onUserChange">
+                  <option :value="null">Configuración Global (todos los usuarios)</option>
+                  <option v-for="user in users" :key="user.id" :value="user.id">
+                    {{ user.name }} {{ user.lastName }} (ID: {{ user.id }})
+                  </option>
+                </select>
+              </div>
+              <span class="icon is-small is-left">
+                <i class="fas fa-user"></i>
+              </span>
+            </div>
+            <p class="help">
+              Selecciona un usuario específico para configurar su dashboard personalizado, o deja "Configuración Global" para aplicar a todos los usuarios.
+            </p>
+          </div>
+          <div v-if="selectedUser" class="user-info-box">
+            <div class="user-info">
+              <strong>Usuario seleccionado:</strong> {{ selectedUser.name }} {{ selectedUser.lastName }}
+              <br>
+              <small>ID: {{ selectedUser.id }} | Email: {{ selectedUser.email || 'N/A' }}</small>
             </div>
           </div>
         </div>
@@ -29,7 +62,10 @@
                 Texto del Bono Viaje
               </h2>
               <p class="card-description">
-                Este texto se mostrará a todos los usuarios en la sección "Bono Viaje" de su dashboard.
+                {{ selectedUser 
+                  ? `Este texto se mostrará solo al usuario ${selectedUser.name} ${selectedUser.lastName} en la sección "Bono Viaje" de su dashboard.`
+                  : 'Este texto se mostrará a todos los usuarios en la sección "Bono Viaje" de su dashboard (a menos que tengan una configuración personalizada).'
+                }}
                 Puedes personalizarlo para informar sobre el estado o progreso del bono.
               </p>
             </div>
@@ -132,24 +168,56 @@ export default {
       saving: false,
       travelBonusText: "",
       originalText: "",
+      selectedUserId: null,
+      selectedUser: null,
+      users: [],
+      loadingUsers: false,
     };
   },
   created() {
+    // Verificar si hay un userId en la query string
+    const userId = this.$route.query.userId;
+    if (userId) {
+      this.selectedUserId = userId;
+    }
+    this.loadUsers();
     this.fetchConfig();
   },
   methods: {
+    async loadUsers() {
+      try {
+        this.loadingUsers = true;
+        const response = await api.users.GET({ filter: 'all', page: 1, limit: 1000 });
+        if (response.data && response.data.users) {
+          this.users = response.data.users;
+        }
+      } catch (error) {
+        console.error("Error loading users:", error);
+      } finally {
+        this.loadingUsers = false;
+      }
+    },
+
     async fetchConfig() {
       try {
         this.loading = true;
-        const response = await api.dashboardConfig.GET();
+        const response = await api.dashboardConfig.GET({ userId: this.selectedUserId });
         
         if (response.data && response.data.config) {
           this.travelBonusText = response.data.config.text || "";
           this.originalText = response.data.config.text || "";
+          
+          // Si hay información del usuario, actualizar selectedUser
+          if (response.data.user) {
+            this.selectedUser = response.data.user;
+          } else {
+            this.selectedUser = null;
+          }
         } else {
           // Texto por defecto si no hay configuración
           this.travelBonusText = "Tu progreso hacia el Bono Viaje se actualizará próximamente. ¡Sigue trabajando para alcanzar tus objetivos!";
           this.originalText = this.travelBonusText;
+          this.selectedUser = null;
         }
       } catch (error) {
         console.error("Error fetching config:", error);
@@ -163,9 +231,21 @@ export default {
         // Usar texto por defecto en caso de error
         this.travelBonusText = "Tu progreso hacia el Bono Viaje se actualizará próximamente. ¡Sigue trabajando para alcanzar tus objetivos!";
         this.originalText = this.travelBonusText;
+        this.selectedUser = null;
       } finally {
         this.loading = false;
       }
+    },
+
+    async onUserChange() {
+      // Actualizar la URL sin recargar la página
+      if (this.selectedUserId) {
+        this.$router.replace({ query: { userId: this.selectedUserId } });
+      } else {
+        this.$router.replace({ query: {} });
+      }
+      // Recargar la configuración para el usuario seleccionado
+      await this.fetchConfig();
     },
 
     async saveConfig() {
@@ -182,23 +262,35 @@ export default {
 
       try {
         this.saving = true;
-        await api.dashboardConfig.POST({ text: this.travelBonusText.trim() });
+        const response = await api.dashboardConfig.POST({ 
+          text: this.travelBonusText.trim(),
+          userId: this.selectedUserId 
+        });
 
         this.originalText = this.travelBonusText.trim();
+
+        const message = response.data && response.data.message 
+          ? response.data.message 
+          : (this.selectedUser 
+            ? `Configuración guardada correctamente para ${this.selectedUser.name} ${this.selectedUser.lastName}`
+            : 'Configuración global guardada correctamente');
 
         Swal.fire({
           icon: "success",
           title: "¡Éxito!",
-          text: "Configuración guardada correctamente",
+          text: message,
           timer: 2000,
           showConfirmButton: false,
         });
       } catch (error) {
         console.error("Error saving config:", error);
+        const errorMessage = (error.response && error.response.data && error.response.data.msg) 
+          ? error.response.data.msg 
+          : "Error al guardar la configuración";
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Error al guardar la configuración",
+          text: errorMessage,
           timer: 2000,
           showConfirmButton: false,
         });
@@ -429,6 +521,39 @@ export default {
   font-weight: 500;
 }
 
+.user-selection-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.user-info-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.user-info {
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.user-info strong {
+  color: #667eea;
+}
+
+.select {
+  width: 100%;
+}
+
+.select select {
+  width: 100%;
+}
+
 @media (max-width: 768px) {
   .title {
     font-size: 1.5rem;
@@ -442,6 +567,11 @@ export default {
   .card-body {
     padding: 1rem;
   }
+
+  .user-selection-card {
+    padding: 1rem;
+  }
 }
 </style>
+
 

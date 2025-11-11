@@ -374,12 +374,13 @@ class PaymentMethods {
 }
 
 class DashboardConfig {
-  GET() {
-    return axios.get(`/admin/dashboard-config`);
+  GET({ userId } = {}) {
+    const userIdParam = userId ? `?userId=${userId}` : '';
+    return axios.get(`/admin/dashboard-config${userIdParam}`);
   }
 
-  POST({ text }) {
-    return axios.post(`/admin/dashboard-config`, { text });
+  POST({ text, userId }) {
+    return axios.post(`/admin/dashboard-config`, { text, userId });
   }
 }
 
