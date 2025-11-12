@@ -132,8 +132,11 @@ class Activations {
 }
 
 class Products {
-  GET() {
-    return axios.get(`/admin/products`);
+  GET(params = {}) {
+    const queryString = Object.keys(params).length > 0 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    return axios.get(`/admin/products${queryString}`);
   }
   POST(data) {
     return axios.post(`/admin/products`, data);

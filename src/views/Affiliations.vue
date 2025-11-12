@@ -109,7 +109,7 @@
             <span v-else>N/A</span>
           </template>
           <template #cell-office="{ row }">
-            {{ getOfficeName(row.raw.officeId || row.raw.office) }}
+            {{ row.raw.officeName || getOfficeName(row.raw.officeId || row.raw.office) }}
           </template>
           <template #cell-voucher="{ row }">
             <span v-if="row.voucher.isImage">
@@ -224,7 +224,7 @@
                   ><i class="fas fa-building"></i> Oficina:</span
                 >
                 <span class="detail-value">{{
-                  selectedAffiliation.office
+                  selectedAffiliation.officeName || getOfficeName(selectedAffiliation.officeId || selectedAffiliation.office)
                 }}</span>
               </div>
               <div class="detail-item">
@@ -406,6 +406,7 @@ export default {
       imageModalUrl: "",
       showViewModal: false,
       selectedAffiliation: null,
+      officesList: [], // Lista de oficinas cargadas
 
       // Table configuration
       tableColumns: [
@@ -691,9 +692,22 @@ export default {
   async created() {
     const account = JSON.parse(localStorage.getItem("session"));
     this.$store.commit("SET_ACCOUNT", account);
+    await this.loadOffices();
     await this.GET(this.$route.params.filter);
   },
   methods: {
+    async loadOffices() {
+      try {
+        const { data } = await api.offices.GET();
+        this.officesList = data.offices || [];
+        // Actualizar el store con las oficinas
+        this.$store.commit("SET_ACCOUNTS", this.officesList);
+      } catch (error) {
+        console.error("Error loading offices:", error);
+        this.officesList = [];
+      }
+    },
+
     async GET(filter = "all") {
       this.loading = true;
 
@@ -733,25 +747,44 @@ export default {
         });
 
         // Enriquecer con información de oficinas
-        console.log("Accounts:", this.accounts);
         this.affiliations.forEach((affiliation) => {
           if (!affiliation.officeId) {
             affiliation.officeId = affiliation.office;
           }
-          const office = this.accounts.find(
-            (x) => x.id == affiliation.officeId
+          const originalOfficeId = affiliation.officeId || affiliation.office;
+          
+          if (!originalOfficeId || originalOfficeId === null) {
+            affiliation.office = "N/A";
+            affiliation.officeName = "N/A";
+            return;
+          }
+          
+          // Buscar en officesList primero, luego en accounts
+          let office = this.officesList.find(
+            (x) => String(x.id) === String(originalOfficeId)
           );
+          if (!office) {
+            office = this.accounts.find(
+              (x) => String(x.id) === String(originalOfficeId)
+            );
+          }
+          
+          // Guardar el nombre de la oficina
           if (office && office.name) {
             affiliation.office = office.name;
+            affiliation.officeName = office.name;
           } else if (
-            typeof affiliation.officeId === "string" &&
-            affiliation.officeId
+            typeof originalOfficeId === "string" &&
+            originalOfficeId &&
+            originalOfficeId !== "N/A"
           ) {
             affiliation.office =
-              affiliation.officeId.charAt(0).toUpperCase() +
-              affiliation.officeId.slice(1);
+              originalOfficeId.charAt(0).toUpperCase() +
+              originalOfficeId.slice(1);
+            affiliation.officeName = affiliation.office;
           } else {
             affiliation.office = "N/A";
+            affiliation.officeName = "N/A";
           }
         });
         console.log(
@@ -937,9 +970,278 @@ export default {
       }
     },
 
-    download() {
-      // Implement download functionality
-      console.log("Downloading report...");
+    async download() {
+      try {
+        // Mostrar loading
+        Swal.fire({
+          title: "Generando reporte...",
+          text: "Por favor espera",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        // Obtener todas las afiliaciones y productos
+        const [affiliationsResponse, productsResponse] = await Promise.all([
+          api.Affiliations.GET({
+            filter: this.$route.params.filter || "all",
+            account: "admin",
+            page: 1,
+            limit: 10000, // Obtener todas
+            search: this.search,
+          }),
+          api.products.GET({ all: true }),
+        ]);
+
+        let affiliations = affiliationsResponse.data.affiliations || [];
+        const allProducts = productsResponse.data.products || [];
+
+        // Crear mapa de productos por ID para búsqueda rápida
+        const productsMap = {};
+        allProducts.forEach((p) => {
+          productsMap[p.id] = p;
+        });
+
+        // Enriquecer con información de oficinas
+        affiliations.forEach((affiliation) => {
+          if (!affiliation.officeId) {
+            affiliation.officeId = affiliation.office;
+          }
+          const originalOfficeId = affiliation.officeId || affiliation.office;
+          
+          // Buscar en officesList primero, luego en accounts
+          let office = this.officesList.find(
+            (x) => String(x.id) === String(originalOfficeId)
+          );
+          if (!office) {
+            office = this.accounts.find(
+              (x) => String(x.id) === String(originalOfficeId)
+            );
+          }
+          
+          if (office && office.name) {
+            affiliation.office = office.name;
+          } else if (
+            typeof originalOfficeId === "string" &&
+            originalOfficeId &&
+            originalOfficeId !== "N/A"
+          ) {
+            affiliation.office =
+              originalOfficeId.charAt(0).toUpperCase() +
+              originalOfficeId.slice(1);
+          } else {
+            affiliation.office = affiliation.office || "N/A";
+          }
+        });
+
+        // Preparar datos para Excel - expandir productos en filas individuales
+        const excelData = [];
+        
+        affiliations.forEach((affiliation) => {
+          // Formatear fecha
+          let fecha = "-";
+          if (affiliation.date) {
+            const d = new Date(affiliation.date);
+            if (!isNaN(d)) {
+              fecha = d.toLocaleDateString("es-PE", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              });
+            }
+          }
+
+          // Formatear usuario
+          const userName =
+            (affiliation.name || "") + " " + (affiliation.lastName || "");
+          const usuario = userName.trim() || "N/A";
+          const dni = affiliation.dni || "-";
+          const telefono = affiliation.phone || "-";
+
+          // Formatear plan
+          const plan = affiliation.plan && affiliation.plan.name ? affiliation.plan.name : "-";
+
+          // Formatear total
+          let total = "-";
+          if (affiliation.type === "upgrade") {
+            total =
+              affiliation.difference && affiliation.difference.amount
+                ? `S/. ${Number(affiliation.difference.amount).toFixed(2)}`
+                : "-";
+          } else {
+            total =
+              affiliation.plan && affiliation.plan.amount
+                ? `S/. ${Number(affiliation.plan.amount).toFixed(2)}`
+                : "-";
+          }
+
+          // Formatear medio de pago
+          const medioPago = this.formatPayMethod(affiliation) || "-";
+
+          // Formatear voucher
+          let voucher = "-";
+          if (affiliation.voucher) {
+            if (typeof affiliation.voucher === "string") {
+              voucher = affiliation.voucher;
+            } else if (affiliation.voucher.url) {
+              voucher = affiliation.voucher.url;
+            }
+          }
+
+          // Formatear estado
+          let estado = affiliation.status || "-";
+          if (estado === "approved") estado = "Aprobada";
+          if (estado === "pending") estado = "Pendiente";
+          if (estado === "rejected") estado = "Rechazada";
+          if (estado === "cancelled") estado = "Anulada";
+
+          // Formatear tipo
+          const tipo = affiliation.type === "upgrade" ? "Upgrade" : "Afiliación";
+
+          // Formatear productos entregados
+          const productosEntregados = affiliation.delivered ? "Sí" : "No";
+
+          // Base de datos común para todas las filas de esta afiliación
+          const baseRow = {
+            "#": affiliation.id || "-",
+            Fecha: fecha,
+            Usuario: usuario,
+            DNI: dni,
+            Teléfono: telefono,
+            Oficina: affiliation.office || "N/A",
+            Plan: plan,
+            "Total Afiliación": total,
+            "Medio de Pago": medioPago,
+            Voucher: voucher,
+            Estado: estado,
+            Tipo: tipo,
+            "Productos Entregados": productosEntregados,
+          };
+
+          // Obtener productos de la afiliación
+          let productsList = [];
+          
+          if (affiliation.products && Array.isArray(affiliation.products)) {
+            // Si tiene productos directos
+            productsList = affiliation.products.filter((p) => p.total > 0);
+          } else if (affiliation.plan && affiliation.plan.products) {
+            // Si tiene productos del plan
+            affiliation.plan.products.forEach((group) => {
+              if (group.list) {
+                group.list.forEach((product) => {
+                  if (product.total > 0) {
+                    productsList.push(product);
+                  }
+                });
+              }
+            });
+          } else if (affiliation.difference && affiliation.difference.products) {
+            // Si es upgrade, usar productos de la diferencia
+            productsList = affiliation.difference.products.filter((p) => p.total > 0);
+          }
+
+          // Expandir productos: una fila por cada tipo de producto con su cantidad
+          if (productsList.length > 0) {
+            productsList.forEach((product) => {
+              // Buscar información completa del producto
+              const productInfo = productsMap[product.id] || {};
+              const categoria = productInfo.type || product.type || "-";
+              const nombreProducto = product.name || productInfo.name || "-";
+              const precioProducto = product.price || productInfo.price || 0;
+              const puntosProducto = product.points || productInfo.points || 0;
+              const cantidad = product.total || 0;
+              const precioTotalProducto = precioProducto * cantidad;
+              const puntosTotalProducto = puntosProducto * cantidad;
+
+              // Crear una fila por cada tipo de producto con su cantidad
+              excelData.push({
+                ...baseRow,
+                Producto: nombreProducto,
+                Cantidad: cantidad,
+                Categoría: categoria,
+                "Precio Unitario": precioProducto > 0 ? `S/. ${Number(precioProducto).toFixed(2)}` : "-",
+                "Puntos Unitarios": puntosProducto > 0 ? Number(puntosProducto).toFixed(2) : "-",
+                "Precio Total Producto": precioTotalProducto > 0 ? `S/. ${Number(precioTotalProducto).toFixed(2)}` : "-",
+                "Puntos Total Producto": puntosTotalProducto > 0 ? Number(puntosTotalProducto).toFixed(2) : "-",
+              });
+            });
+          } else {
+            // Si no hay productos, crear una fila sin producto
+            excelData.push({
+              ...baseRow,
+              Producto: "-",
+              Cantidad: "-",
+              Categoría: "-",
+              "Precio Unitario": "-",
+              "Puntos Unitarios": "-",
+              "Precio Total Producto": "-",
+              "Puntos Total Producto": "-",
+            });
+          }
+        });
+
+        // Crear hoja de Excel
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+        // Ajustar ancho de columnas
+        const columnWidths = [
+          { wch: 8 }, // #
+          { wch: 12 }, // Fecha
+          { wch: 25 }, // Usuario
+          { wch: 12 }, // DNI
+          { wch: 15 }, // Teléfono
+          { wch: 20 }, // Oficina
+          { wch: 20 }, // Plan
+          { wch: 30 }, // Producto
+          { wch: 10 }, // Cantidad
+          { wch: 20 }, // Categoría
+          { wch: 15 }, // Precio Unitario
+          { wch: 15 }, // Puntos Unitarios
+          { wch: 18 }, // Precio Total Producto
+          { wch: 18 }, // Puntos Total Producto
+          { wch: 15 }, // Total Afiliación
+          { wch: 20 }, // Medio de Pago
+          { wch: 30 }, // Voucher
+          { wch: 15 }, // Estado
+          { wch: 15 }, // Tipo
+          { wch: 20 }, // Productos Entregados
+        ];
+        worksheet["!cols"] = columnWidths;
+
+        // Crear libro de Excel
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Afiliaciones");
+
+        // Generar nombre de archivo con fecha
+        const fechaActual = new Date()
+          .toISOString()
+          .split("T")[0]
+          .replace(/-/g, "");
+        const nombreArchivo = `afiliaciones_${fechaActual}.xlsx`;
+
+        // Descargar archivo
+        XLSX.writeFile(workbook, nombreArchivo);
+
+        Swal.close();
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: `Se exportaron ${excelData.length} afiliaciones`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error exporting to Excel:", error);
+        Swal.close();
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo exportar el reporte. Inténtalo de nuevo.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
     },
 
     openImageModal(url) {
@@ -952,12 +1254,23 @@ export default {
     },
 
     getOfficeName(officeId) {
-      const officeObj = this.accounts.find(
+      if (!officeId) return "N/A";
+      
+      // Buscar en officesList primero
+      let officeObj = this.officesList.find(
         (x) => String(x.id) === String(officeId)
       );
+      
+      // Si no se encuentra, buscar en accounts
+      if (!officeObj) {
+        officeObj = this.accounts.find(
+          (x) => String(x.id) === String(officeId)
+        );
+      }
+      
       if (officeObj && officeObj.name) {
         return officeObj.name;
-      } else if (typeof officeId === "string" && officeId) {
+      } else if (typeof officeId === "string" && officeId && officeId !== "N/A") {
         return officeId.charAt(0).toUpperCase() + officeId.slice(1);
       }
       return "N/A";

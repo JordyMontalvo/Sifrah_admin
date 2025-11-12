@@ -98,7 +98,7 @@
             {{ formatUser(row.raw) }}
           </template>
           <template #cell-office="{ row }">
-            {{ getOfficeName(row.raw.office) }}
+            {{ row.raw.officeName || getOfficeName(row.raw.officeId || row.raw.office) }}
           </template>
           <template #cell-voucher="{ row }">
             <span v-if="row.voucher.isImage">
@@ -213,7 +213,7 @@
                   ><i class="fas fa-building"></i> Oficina:</span
                 >
                 <span class="detail-value">{{
-                  selectedActivation.office
+                  selectedActivation.officeName || getOfficeName(selectedActivation.officeId || selectedActivation.office)
                 }}</span>
               </div>
               <div class="detail-item">
@@ -434,6 +434,7 @@ export default {
       imageModalUrl: "",
       showViewModal: false,
       selectedActivation: null,
+      officesList: [], // Lista de oficinas cargadas
 
       // Table configuration
       tableColumns: [
@@ -655,8 +656,8 @@ export default {
           phone: activation.phone || "-",
         };
 
-        // Oficina
-        const office = activation.office || "N/A";
+        // Oficina - usar el nombre enriquecido o buscar
+        const office = activation.officeName || this.getOfficeName(activation.office || activation.officeId) || "N/A";
 
         // Productos
         let products = "-";
@@ -719,10 +720,23 @@ export default {
   async created() {
     const account = JSON.parse(localStorage.getItem("session"));
     this.$store.commit("SET_ACCOUNT", account);
+    await this.loadOffices();
     await this.GET(this.$route.params.filter);
     await this.fetchStatusTotals();
   },
   methods: {
+    async loadOffices() {
+      try {
+        const { data } = await api.offices.GET();
+        this.officesList = data.offices || [];
+        // Actualizar el store con las oficinas
+        this.$store.commit("SET_ACCOUNTS", this.officesList);
+      } catch (error) {
+        console.error("Error loading offices:", error);
+        this.officesList = [];
+      }
+    },
+
     async GET(filter = "all") {
       this.loading = true;
 
@@ -762,8 +776,24 @@ export default {
 
         // Enriquecer con información de oficinas
         this.activations.forEach((activation) => {
-          const office = this.accounts.find((x) => x.id == activation.office);
-          activation.office = (office && office.name) || "N/A";
+          // Guardar el ID original antes de enriquecer
+          const originalOfficeId = activation.office;
+          
+          if (!originalOfficeId || originalOfficeId === null) {
+            activation.officeName = "N/A";
+            activation.officeId = null;
+            return;
+          }
+          
+          // Buscar en officesList primero, luego en accounts
+          let office = this.officesList.find((x) => String(x.id) === String(originalOfficeId));
+          if (!office) {
+            office = this.accounts.find((x) => String(x.id) === String(originalOfficeId));
+          }
+          
+          // Guardar el nombre de la oficina, pero mantener el ID original para búsquedas
+          activation.officeName = (office && office.name) || "N/A";
+          activation.officeId = originalOfficeId; // Mantener el ID original
         });
 
         if (filter == "all") this.title = "Todas las Activaciones";
@@ -969,9 +999,247 @@ export default {
       }
     },
 
-    download() {
-      // Implement download functionality
-      console.log("Downloading report...");
+    async download() {
+      try {
+        // Mostrar loading
+        Swal.fire({
+          title: "Generando reporte...",
+          text: "Por favor espera",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        // Obtener todas las activaciones y productos
+        const [activationsResponse, productsResponse] = await Promise.all([
+          api.Activations.GET({
+            filter: this.$route.params.filter || "all",
+            account: this.account.id,
+            page: 1,
+            limit: 10000, // Obtener todas
+            search: this.search,
+          }),
+          api.products.GET({ all: true }),
+        ]);
+
+        const activations = activationsResponse.data.activations || [];
+        const allProducts = productsResponse.data.products || [];
+
+        // Crear mapa de productos por ID para búsqueda rápida
+        const productsMap = {};
+        allProducts.forEach((p) => {
+          productsMap[p.id] = p;
+        });
+
+        // Enriquecer con información de oficinas
+        activations.forEach((activation) => {
+          const originalOfficeId = activation.office;
+          let office = this.officesList.find((x) => String(x.id) === String(originalOfficeId));
+          if (!office) {
+            office = this.accounts.find((x) => String(x.id) === String(originalOfficeId));
+          }
+          activation.office = (office && office.name) || originalOfficeId || "N/A";
+        });
+
+        // Preparar datos para Excel - expandir productos en filas individuales
+        const excelData = [];
+        
+        activations.forEach((activation) => {
+          // Formatear fecha
+          let fecha = "-";
+          if (activation.date) {
+            const d = new Date(activation.date);
+            if (!isNaN(d)) {
+              fecha = d.toLocaleDateString("es-PE", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              });
+            }
+          }
+
+          // Formatear usuario
+          const userName =
+            (activation.name || "") + " " + (activation.lastName || "");
+          const usuario = userName.trim() || "N/A";
+          const dni = activation.dni || "-";
+          const telefono = activation.phone || "-";
+
+          // Formatear medio de pago
+          const medioPago = this.formatPayMethod(activation) || "-";
+
+          // Formatear voucher
+          let voucher = "-";
+          if (activation.voucher) {
+            if (typeof activation.voucher === "string") {
+              voucher = activation.voucher;
+            } else if (activation.voucher.url) {
+              voucher = activation.voucher.url;
+            }
+          }
+
+          // Formatear saldo
+          const balance = this.formatBalance(activation);
+          const saldo = balance
+            ? `Disponible: S/. ${Number(balance.available).toFixed(
+                2
+              )}, No disponible: S/. ${Number(balance.notAvailable).toFixed(
+                2
+              )}, Por cobrar: S/. ${Number(balance.toCollect).toFixed(2)}`
+            : "-";
+
+          // Formatear estado
+          let estado = activation.status || "-";
+          if (estado === "approved") estado = "Aprobada";
+          if (estado === "pending") estado = "Pendiente";
+          if (estado === "rejected") estado = "Rechazada";
+          if (estado === "cancelled") estado = "Anulada";
+
+          // Formatear productos entregados
+          const productosEntregados = activation.delivered ? "Sí" : "No";
+
+          // Formatear precio total y puntos (para mostrar en cada fila)
+          let precioTotal = "-";
+          if (
+            activation.price !== null &&
+            activation.price !== undefined &&
+            activation.price !== "" &&
+            !isNaN(Number(activation.price))
+          ) {
+            precioTotal = `S/. ${Number(activation.price).toFixed(2)}`;
+          }
+
+          let puntosTotal = "-";
+          if (
+            activation.points !== null &&
+            activation.points !== undefined &&
+            activation.points !== "" &&
+            !isNaN(Number(activation.points))
+          ) {
+            puntosTotal = Number(activation.points).toFixed(2);
+          }
+
+          // Base de datos común para todas las filas de esta activación
+          const baseRow = {
+            "#": activation.id || "-",
+            Fecha: fecha,
+            Usuario: usuario,
+            DNI: dni,
+            Teléfono: telefono,
+            Oficina: activation.office || "N/A",
+            "Precio Total Activación": precioTotal,
+            "Puntos Total Activación": puntosTotal,
+            "Medio de Pago": medioPago,
+            Voucher: voucher,
+            Saldo: saldo,
+            Estado: estado,
+            "Productos Entregados": productosEntregados,
+          };
+
+          // Expandir productos: una fila por cada tipo de producto con su cantidad
+          if (Array.isArray(activation.products) && activation.products.length > 0) {
+            activation.products
+              .filter((p) => p.total > 0)
+              .forEach((product) => {
+                // Buscar información completa del producto
+                const productInfo = productsMap[product.id] || {};
+                const categoria = productInfo.type || product.type || "-";
+                const nombreProducto = product.name || productInfo.name || "-";
+                const precioProducto = product.price || productInfo.price || 0;
+                const puntosProducto = product.points || productInfo.points || 0;
+                const cantidad = product.total || 0;
+                const precioTotalProducto = precioProducto * cantidad;
+                const puntosTotalProducto = puntosProducto * cantidad;
+
+                // Crear una fila por cada tipo de producto con su cantidad
+                excelData.push({
+                  ...baseRow,
+                  Producto: nombreProducto,
+                  Cantidad: cantidad,
+                  Categoría: categoria,
+                  "Precio Unitario": precioProducto > 0 ? `S/. ${Number(precioProducto).toFixed(2)}` : "-",
+                  "Puntos Unitarios": puntosProducto > 0 ? Number(puntosProducto).toFixed(2) : "-",
+                  "Precio Total Producto": precioTotalProducto > 0 ? `S/. ${Number(precioTotalProducto).toFixed(2)}` : "-",
+                  "Puntos Total Producto": puntosTotalProducto > 0 ? Number(puntosTotalProducto).toFixed(2) : "-",
+                });
+              });
+          } else {
+            // Si no hay productos, crear una fila sin producto
+            excelData.push({
+              ...baseRow,
+              Producto: "-",
+              Cantidad: "-",
+              Categoría: "-",
+              "Precio Unitario": "-",
+              "Puntos Unitarios": "-",
+              "Precio Total Producto": "-",
+              "Puntos Total Producto": "-",
+            });
+          }
+        });
+
+        // Crear hoja de Excel
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+        // Ajustar ancho de columnas
+        const columnWidths = [
+          { wch: 8 }, // #
+          { wch: 12 }, // Fecha
+          { wch: 25 }, // Usuario
+          { wch: 12 }, // DNI
+          { wch: 15 }, // Teléfono
+          { wch: 20 }, // Oficina
+          { wch: 30 }, // Producto
+          { wch: 10 }, // Cantidad
+          { wch: 20 }, // Categoría
+          { wch: 15 }, // Precio Unitario
+          { wch: 15 }, // Puntos Unitarios
+          { wch: 18 }, // Precio Total Producto
+          { wch: 18 }, // Puntos Total Producto
+          { wch: 15 }, // Precio Total Activación
+          { wch: 12 }, // Puntos Total Activación
+          { wch: 20 }, // Medio de Pago
+          { wch: 30 }, // Voucher
+          { wch: 50 }, // Saldo
+          { wch: 15 }, // Estado
+          { wch: 20 }, // Productos Entregados
+        ];
+        worksheet["!cols"] = columnWidths;
+
+        // Crear libro de Excel
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Activaciones");
+
+        // Generar nombre de archivo con fecha
+        const fechaActual = new Date()
+          .toISOString()
+          .split("T")[0]
+          .replace(/-/g, "");
+        const nombreArchivo = `activaciones_${fechaActual}.xlsx`;
+
+        // Descargar archivo
+        XLSX.writeFile(workbook, nombreArchivo);
+
+        Swal.close();
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: `Se exportaron ${excelData.length} activaciones`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error exporting to Excel:", error);
+        Swal.close();
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo exportar el reporte. Inténtalo de nuevo.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
     },
 
     openImageModal(url) {
@@ -1009,19 +1277,23 @@ export default {
     },
 
     getOfficeName(officeId) {
-      console.log(
-        "Buscando officeId:",
-        officeId,
-        "en accounts:",
-        this.accounts.map((x) => x.id)
-      );
-      const officeObj = this.accounts.find(
+      if (!officeId) return "N/A";
+      
+      // Buscar en officesList primero
+      let officeObj = this.officesList.find(
         (x) => String(x.id) === String(officeId)
       );
+      
+      // Si no se encuentra, buscar en accounts
+      if (!officeObj) {
+        officeObj = this.accounts.find(
+          (x) => String(x.id) === String(officeId)
+        );
+      }
+      
       if (officeObj && officeObj.name) {
-        console.log("Encontrado:", officeObj.name);
         return officeObj.name;
-      } else if (typeof officeId === "string" && officeId) {
+      } else if (typeof officeId === "string" && officeId && officeId !== "N/A") {
         return officeId.charAt(0).toUpperCase() + officeId.slice(1);
       }
       return "N/A";
