@@ -132,6 +132,18 @@
               {{ row.status | status }}
             </span>
           </template>
+          <template #cell-products_delivered="{ row }">
+            <span 
+              class="delivery-badge" 
+              :class="{
+                'delivery-delivered': row.products_delivered,
+                'delivery-pending': !row.products_delivered
+              }"
+            >
+              <i :class="row.products_delivered ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
+              {{ row.products_delivered ? 'Entregado' : 'Pendiente' }}
+            </span>
+          </template>
         </ModernTable>
       </div>
       <!-- End of Modern Table -->
@@ -287,6 +299,27 @@
                 <span class="detail-value">{{
                   selectedActivation.status
                 }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-box-check"></i> Productos Entregados:</span
+                >
+                <span class="detail-value">
+                  <label class="checkbox delivery-checkbox">
+                    <input
+                      type="checkbox"
+                      :checked="selectedActivation.delivered || false"
+                      @change="toggleDelivery(selectedActivation, $event)"
+                      :disabled="selectedActivation.savingDelivery"
+                    />
+                    <span v-if="selectedActivation.savingDelivery">
+                      <i class="fas fa-spinner fa-spin"></i> Guardando...
+                    </span>
+                    <span v-else>
+                      {{ selectedActivation.delivered ? 'Sí, productos entregados' : 'No, productos pendientes' }}
+                    </span>
+                  </label>
+                </span>
               </div>
 
               <!-- Datos de Delivery -->
@@ -463,6 +496,12 @@ export default {
           label: "Estado",
           sortable: true,
           type: "status",
+        },
+        {
+          key: "products_delivered",
+          label: "Productos Entregados",
+          sortable: true,
+          type: "boolean",
         },
       ],
       tableActions: [
@@ -654,6 +693,7 @@ export default {
             : { url: voucherUrl, isImage: false },
           balance: this.formatBalanceObj(this.formatBalance(activation)),
           status: activation.status || "-",
+          products_delivered: activation.delivered || false,
           raw: activation,
           date: activation.date,
         };
@@ -1046,6 +1086,39 @@ export default {
         });
       }
     },
+
+    async toggleDelivery(activation, event) {
+      const isChecked = event.target.checked;
+      activation.savingDelivery = true;
+
+      try {
+        await api.Activations.POST({
+          action: isChecked ? "check" : "uncheck",
+          id: activation.id,
+        });
+
+        activation.delivered = isChecked;
+        
+        // Actualizar también en la lista
+        const itemInList = this.activations.find(a => a.id === activation.id);
+        if (itemInList) {
+          itemInList.delivered = isChecked;
+        }
+
+        this.$toast.success(
+          isChecked
+            ? "Productos marcados como entregados"
+            : "Productos marcados como pendientes"
+        );
+      } catch (error) {
+        console.error("Error actualizando estado de entrega:", error);
+        this.$toast.error("Error al actualizar el estado de entrega");
+        // Revertir el checkbox
+        event.target.checked = !isChecked;
+      } finally {
+        activation.savingDelivery = false;
+      }
+    },
   },
 };
 </script>
@@ -1293,5 +1366,52 @@ export default {
   color: white;
   text-decoration: line-through;
   opacity: 0.8;
+}
+
+/* Delivery Badge */
+.delivery-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.delivery-delivered {
+  background: linear-gradient(135deg, #00c9a7 0%, #00b894 100%);
+  color: white;
+}
+
+.delivery-pending {
+  background: linear-gradient(135deg, #ffd32a 0%, #f39c12 100%);
+  color: #333;
+}
+
+/* Delivery Checkbox */
+.delivery-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.delivery-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.delivery-checkbox input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.delivery-checkbox span {
+  font-size: 0.95rem;
+  color: #222;
 }
 </style>

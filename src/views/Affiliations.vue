@@ -136,6 +136,18 @@
             >
             <span v-else class="tag is-info">Afiliación</span>
           </template>
+          <template #cell-products_delivered="{ row }">
+            <span 
+              class="delivery-badge" 
+              :class="{
+                'delivery-delivered': row.products_delivered,
+                'delivery-pending': !row.products_delivered
+              }"
+            >
+              <i :class="row.products_delivered ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
+              {{ row.products_delivered ? 'Entregado' : 'Pendiente' }}
+            </span>
+          </template>
         </ModernTable>
       </div>
 
@@ -267,6 +279,27 @@
                 <span class="detail-value">{{
                   selectedAffiliation.status
                 }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label"
+                  ><i class="fas fa-box-check"></i> Productos Entregados:</span
+                >
+                <span class="detail-value">
+                  <label class="checkbox delivery-checkbox">
+                    <input
+                      type="checkbox"
+                      :checked="selectedAffiliation.delivered || false"
+                      @change="toggleDelivery(selectedAffiliation, $event)"
+                      :disabled="selectedAffiliation.savingDelivery"
+                    />
+                    <span v-if="selectedAffiliation.savingDelivery">
+                      <i class="fas fa-spinner fa-spin"></i> Guardando...
+                    </span>
+                    <span v-else>
+                      {{ selectedAffiliation.delivered ? 'Sí, productos entregados' : 'No, productos pendientes' }}
+                    </span>
+                  </label>
+                </span>
               </div>
               <div class="detail-item">
                 <span class="detail-label"
@@ -437,6 +470,12 @@ export default {
           formatter: (value, row) =>
             value === "upgrade" ? "Upgrade" : "Afiliación",
         },
+        {
+          key: "products_delivered",
+          label: "Productos Entregados",
+          sortable: true,
+          type: "boolean",
+        },
       ],
       tableActions: [
         {
@@ -598,6 +637,7 @@ export default {
           pay_method: this.formatPayMethod(affiliation),
           voucher: this.formatVoucher(affiliation),
           status: affiliation.status,
+          products_delivered: affiliation.delivered || false,
           raw: affiliation,
           balance: this.formatBalanceObj(affiliation.balance),
           type: affiliation.type, // Add type to the data object
@@ -1019,6 +1059,39 @@ export default {
         d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       );
     },
+
+    async toggleDelivery(affiliation, event) {
+      const isChecked = event.target.checked;
+      affiliation.savingDelivery = true;
+
+      try {
+        await api.Affiliations.POST({
+          action: isChecked ? "check" : "uncheck",
+          id: affiliation.id,
+        });
+
+        affiliation.delivered = isChecked;
+        
+        // Actualizar también en la lista
+        const itemInList = this.affiliations.find(a => a.id === affiliation.id);
+        if (itemInList) {
+          itemInList.delivered = isChecked;
+        }
+
+        this.$toast.success(
+          isChecked
+            ? "Productos marcados como entregados"
+            : "Productos marcados como pendientes"
+        );
+      } catch (error) {
+        console.error("Error actualizando estado de entrega:", error);
+        this.$toast.error("Error al actualizar el estado de entrega");
+        // Revertir el checkbox
+        event.target.checked = !isChecked;
+      } finally {
+        affiliation.savingDelivery = false;
+      }
+    },
   },
 };
 
@@ -1242,5 +1315,52 @@ function parseDate(dateStr) {
 .modern-modal-foot {
   background: #f8f9fa;
   border-top: none;
+}
+
+/* Delivery Badge */
+.delivery-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.delivery-delivered {
+  background: linear-gradient(135deg, #00c9a7 0%, #00b894 100%);
+  color: white;
+}
+
+.delivery-pending {
+  background: linear-gradient(135deg, #ffd32a 0%, #f39c12 100%);
+  color: #333;
+}
+
+/* Delivery Checkbox */
+.delivery-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.delivery-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.delivery-checkbox input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.delivery-checkbox span {
+  font-size: 0.95rem;
+  color: #222;
 }
 </style>
