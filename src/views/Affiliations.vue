@@ -1089,6 +1089,9 @@ export default {
             }
           }
 
+          // Formatear número de operación
+          const numeroOperacion = affiliation.voucher_number || "-";
+
           // Formatear estado
           let estado = affiliation.status || "-";
           if (estado === "approved") estado = "Aprobada";
@@ -1114,6 +1117,7 @@ export default {
             "Total Afiliación": total,
             "Medio de Pago": medioPago,
             Voucher: voucher,
+            "Nº de Operación": numeroOperacion,
             Estado: estado,
             Tipo: tipo,
             "Productos Entregados": productosEntregados,
@@ -1203,6 +1207,7 @@ export default {
           { wch: 15 }, // Total Afiliación
           { wch: 20 }, // Medio de Pago
           { wch: 30 }, // Voucher
+          { wch: 18 }, // Nº de Operación
           { wch: 15 }, // Estado
           { wch: 15 }, // Tipo
           { wch: 20 }, // Productos Entregados

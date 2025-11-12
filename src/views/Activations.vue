@@ -1079,6 +1079,9 @@ export default {
             }
           }
 
+          // Formatear número de operación
+          const numeroOperacion = activation.voucher_number || "-";
+
           // Formatear saldo
           const balance = this.formatBalance(activation);
           const saldo = balance
@@ -1132,6 +1135,7 @@ export default {
             "Puntos Total Activación": puntosTotal,
             "Medio de Pago": medioPago,
             Voucher: voucher,
+            "Nº de Operación": numeroOperacion,
             Saldo: saldo,
             Estado: estado,
             "Productos Entregados": productosEntregados,
@@ -1201,6 +1205,7 @@ export default {
           { wch: 12 }, // Puntos Total Activación
           { wch: 20 }, // Medio de Pago
           { wch: 30 }, // Voucher
+          { wch: 18 }, // Nº de Operación
           { wch: 50 }, // Saldo
           { wch: 15 }, // Estado
           { wch: 20 }, // Productos Entregados
