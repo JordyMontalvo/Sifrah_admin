@@ -112,23 +112,42 @@
             {{ row.raw.officeName || getOfficeName(row.raw.officeId || row.raw.office) }}
           </template>
           <template #cell-voucher="{ row }">
-            <span v-if="row.voucher.isImage">
-              <img
-                :src="row.voucher.url"
-                alt="Voucher"
-                class="voucher-thumb"
-                @click="openImageModal(row.voucher.url)"
-                style="
-                  max-width: 60px;
-                  max-height: 60px;
-                  cursor: pointer;
-                  border-radius: 6px;
-                  border: 1px solid #eee;
-                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-                "
-              />
-            </span>
-            <span v-else>{{ row.voucher.url }}</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span v-if="row.voucher.isImage">
+                <img
+                  :src="row.voucher.url"
+                  alt="Voucher"
+                  class="voucher-thumb"
+                  @click="openImageModal(row.voucher.url)"
+                  style="
+                    max-width: 60px;
+                    max-height: 60px;
+                    cursor: pointer;
+                    border-radius: 6px;
+                    border: 1px solid #eee;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                  "
+                />
+              </span>
+              <span v-else-if="row.voucher.url">{{ row.voucher.url }}</span>
+              <span v-if="row.voucher2 && row.voucher2.isImage">
+                <img
+                  :src="row.voucher2.url"
+                  alt="Voucher 2"
+                  class="voucher-thumb"
+                  @click="openImageModal(row.voucher2.url)"
+                  style="
+                    max-width: 60px;
+                    max-height: 60px;
+                    cursor: pointer;
+                    border-radius: 6px;
+                    border: 1px solid #eee;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                  "
+                />
+              </span>
+              <span v-else-if="row.voucher2 && row.voucher2.url">{{ row.voucher2.url }}</span>
+            </div>
           </template>
           <template #cell-type="{ value }">
             <span v-if="value === 'upgrade'" class="tag is-warning"
@@ -263,14 +282,21 @@
                 <span class="detail-label"
                   ><i class="fas fa-file-invoice"></i> Voucher:</span
                 >
-                <span class="detail-value"
-                  ><a
+                <span class="detail-value">
+                  <a
                     v-if="selectedAffiliation.voucher"
-                    :href="selectedAffiliation.voucher.url"
+                    :href="selectedAffiliation.voucher"
                     target="_blank"
-                    >Ver</a
-                  ></span
-                >
+                    style="margin-right: 10px;"
+                    >Ver Voucher 1</a
+                  >
+                  <a
+                    v-if="selectedAffiliation.voucher2"
+                    :href="selectedAffiliation.voucher2"
+                    target="_blank"
+                    >Ver Voucher 2</a
+                  >
+                </span>
               </div>
               <div class="detail-item">
                 <span class="detail-label"
@@ -636,7 +662,8 @@ export default {
               : (affiliation.plan && affiliation.plan.amount) || 0,
           products: this.formatProducts(affiliation),
           pay_method: this.formatPayMethod(affiliation),
-          voucher: this.formatVoucher(affiliation),
+          voucher: this.formatVoucher(affiliation).voucher,
+          voucher2: this.formatVoucher(affiliation).voucher2,
           status: affiliation.status,
           products_delivered: affiliation.delivered || false,
           raw: affiliation,
@@ -841,9 +868,26 @@ export default {
           voucherUrl
         );
       }
-      return voucherIsImage
+      const voucher = voucherIsImage
         ? { url: voucherUrl, isImage: true }
         : { url: voucherUrl, isImage: false };
+      
+      // Formatear también voucher2 si existe
+      let voucher2 = null;
+      if (affiliation.voucher2) {
+        let voucher2IsImage = false;
+        let voucher2Url = affiliation.voucher2 || "";
+        if (voucher2Url && typeof voucher2Url === "string") {
+          voucher2IsImage = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(
+            voucher2Url
+          );
+        }
+        voucher2 = voucher2IsImage
+          ? { url: voucher2Url, isImage: true }
+          : { url: voucher2Url, isImage: false };
+      }
+      
+      return { voucher, voucher2 };
     },
 
     formatBalanceObj(balance) {
