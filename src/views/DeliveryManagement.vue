@@ -607,7 +607,6 @@ export default {
         let errorMessage = 'Error guardando zona'
         if (error.response) {
           // El servidor respondió con un código de error
-          console.log('📊 Respuesta del servidor:', error.response.status, error.response.data)
           if (error.response.data && error.response.data.message) {
             errorMessage = error.response.data.message
           } else {

@@ -525,7 +525,6 @@ export default {
     },
 
     onFilterChange() {
-      console.log("Filters changed");
     },
 
     clearFilters() {

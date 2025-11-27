@@ -108,7 +108,7 @@ export default {
       this.loading = true
 
       // GET data
-      const { data } = await api.OfficeCollects.GET({ filter, account: this.account.id }); console.log({ data })
+      const { data } = await api.OfficeCollects.GET({ filter, account: this.account.id });
 
       this.loading = false
 
@@ -137,7 +137,6 @@ export default {
       collect.sending = true
 
       const { data } = await api.OfficeCollects.POST({ action: 'approve', id: collect.id })
-      console.log({ data })
 
       collect.sending = false
 

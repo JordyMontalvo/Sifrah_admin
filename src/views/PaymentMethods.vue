@@ -401,7 +401,6 @@ export default {
     async loadPaymentMethods() {
       try {
         const { data } = await api.paymentMethods.GET();
-        console.log({ data });
         this.paymentMethods = data.paymentMethods || [];
         this.filteredMethods = [...this.paymentMethods];
       } catch (error) {

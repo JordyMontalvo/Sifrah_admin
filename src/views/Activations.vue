@@ -967,7 +967,6 @@ export default {
     }, 300),
 
     handleFilter(filters) {
-      console.log("Filters applied:", filters);
       this.currentPage = 1;
       this.GET(this.$route.params.filter);
     },

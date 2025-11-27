@@ -24,12 +24,10 @@ export default {
     console.log({ path });
 
     if (path != "/login" && path != "/sucursal" && path != "/logout") {
-      console.log("validate security token ...");
 
       const token = localStorage.getItem("token");
 
       if (token != "otdxDIds3wtui3enxb") {
-        console.log("invalid security token ...");
         this.$router.push("/logout");
       }
     }

@@ -514,7 +514,6 @@ export default {
 
       try {
         const { data } = await api.reports.GET({ filter: this.mode });
-        console.log({ data });
 
         if (this.mode === "all") {
           // Dashboard completo

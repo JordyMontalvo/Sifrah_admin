@@ -817,11 +817,9 @@ export default {
     },
 
     editUser(user) {
-      console.log("editUser called", user);
       this.showEditModal = false; // Forzar cierre previo
       this.$nextTick(() => {
         this.showEditModal = true; // Forzar apertura
-        console.log("showEditModal set to true");
       });
       this.editingUser = {
         id: user.id,
@@ -841,9 +839,6 @@ export default {
     async migrateBalance(user) {
       if (!confirm("¿Desea migrar el saldo no disponible?")) return;
 
-      console.log("🔄 Iniciando migración para usuario:", user.id);
-      console.log("Saldo virtual actual:", user.virtualbalance);
-      console.log("Saldo disponible actual:", user.balance);
 
       try {
         // Llamar al API
@@ -852,7 +847,6 @@ export default {
           id: user.id,
         });
 
-        console.log("✅ Respuesta del API:", response);
 
         // Actualizar el usuario en la lista local
         const oldBalance = user.balance;
@@ -861,9 +855,6 @@ export default {
         user.balance += user.virtualbalance;
         user.virtualbalance = 0;
 
-        console.log("📊 Saldos actualizados:");
-        console.log("  - Saldo disponible: ", oldBalance, "→", user.balance);
-        console.log("  - Saldo virtual: ", oldVirtualBalance, "→", user.virtualbalance);
 
         Swal.fire({
           icon: "success",

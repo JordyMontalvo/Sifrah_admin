@@ -177,7 +177,7 @@ export default {
       this.loading = true
 
       // GET data
-      const { data } = await api.promos.GET({ filter }); console.log({ data })
+      const { data } = await api.promos.GET({ filter });
 
       this.loading = false
 
@@ -203,7 +203,6 @@ export default {
       promo.sending = true
 
       let { data } = await api.promos.POST({ action: 'approve', id: promo.id })
-      console.log({ data })
 
       promo.sending = false
 
@@ -222,7 +221,6 @@ export default {
       promo.sending = true
 
       const { data } = await api.promos.POST({ action: 'reject', id: promo.id })
-      console.log({ data })
 
       promo.sending = false
 
@@ -303,7 +301,6 @@ export default {
       console.log({ active })
       
       const { data } = await api.promo.POST({ type: 'affiliation', action: 'active', data: active })
-      console.log({ data })
     },
   }
 };

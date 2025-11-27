@@ -560,8 +560,6 @@ export default {
     this.tableFilters.forEach((f) => this.$set(f, "value", ""));
   },
   mounted() {
-    console.log("PLANS:", this.plans);
-    console.log("TABLE DATA:", this.tableData);
   },
   methods: {
     async GET() {
@@ -597,12 +595,10 @@ export default {
 
     handleSearch: debounce(function (search) {
       // Implement search logic here
-      console.log("Searching:", search);
     }, 300),
 
     handleFilter(filters) {
       // Apply filters logic here
-      console.log("Filters applied:", filters);
     },
 
     async addPlan() {

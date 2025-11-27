@@ -679,8 +679,6 @@ export default {
     this.tableFilters.forEach((f) => this.$set(f, "value", ""));
   },
   mounted() {
-    console.log("PRODUCTS:", this.products);
-    console.log("TABLE DATA:", this.tableData);
   },
   methods: {
     async load() {
@@ -733,12 +731,10 @@ export default {
 
     handleSearch(query) {
       // Implement search logic
-      console.log("Search:", query);
     },
 
     handleFilter(filters) {
       // Implement filter logic
-      console.log("Filters:", filters);
     },
 
     editProduct(product) {

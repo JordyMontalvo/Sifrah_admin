@@ -375,7 +375,6 @@ export default {
 
     handleFilter(filters) {
       // Apply filters logic here
-      console.log("Filters applied:", filters);
     },
 
     async approve(collect) {

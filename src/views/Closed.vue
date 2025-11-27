@@ -157,7 +157,7 @@ export default {
       this.loading = true
 
       // GET data
-      const { data } = await api.closeds.GET(); console.log({ data })
+      const { data } = await api.closeds.GET();
 
       this.loading = false
 
@@ -166,7 +166,7 @@ export default {
     },
 
     async closed() {
-      const { data } = await api.closeds.POST({ action: 'new' }); console.log({ data })
+      const { data } = await api.closeds.POST({ action: 'new' });
 
       this.tree         = data.tree
       this.affiliations = data.affiliations

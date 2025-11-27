@@ -639,7 +639,6 @@ export default {
 
     // // GET data
     const { data } = await api.offices.GET();
-    console.log({ data });
 
     this.loading = false;
 
@@ -689,7 +688,6 @@ export default {
       });
 
       const { data } = await api.offices.POST({ id, products });
-      console.log({ data });
     },
 
     async update() {
@@ -698,7 +696,6 @@ export default {
       const office = this.selected_office;
 
       const { data } = await api.offices.POST({ id: office.id, office });
-      console.log({ data });
     },
 
     open(i) {
@@ -792,7 +789,6 @@ export default {
         };
         
         const { data } = await api.offices.POST({ office: officeData });
-        console.log({ data });
         
         // Agregar la nueva oficina al array local
         if (data.office) {
@@ -937,7 +933,6 @@ export default {
         this.loading = true;
         
         const { data } = await api.offices.DELETE({ id: officeId });
-        console.log({ data });
         
         if (data.error) {
           // Si hay error del servidor, mostrar el mensaje específico
@@ -984,7 +979,6 @@ export default {
         this.loading = true;
         
         const { data } = await api.offices.PATCH({ id: officeId, action: 'reactivate' });
-        console.log({ data });
         
         if (data.error) {
           this.showNotification('error', 'Error', data.message);

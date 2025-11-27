@@ -91,7 +91,7 @@ export default {
     this.loading = true
 
     // // GET data
-    const { data } = await api.stock.GET({ id: account.id }); console.log({ data })
+    const { data } = await api.stock.GET({ id: account.id });
 
     this.loading = false
 
@@ -117,7 +117,7 @@ export default {
 
       this.sending = true
 
-      const { data } = await api.stock.POST({ id: this.office.id, amount: this.amount }); console.log({ data })
+      const { data } = await api.stock.POST({ id: this.office.id, amount: this.amount });
 
       console.log('valid amount ...')
 

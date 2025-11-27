@@ -71,7 +71,7 @@ export default {
   },
   async created() {
     // // GET data
-    const { data } = await api.offices.GET(); console.log({ data })
+    const { data } = await api.offices.GET();
 
     this.accounts = data.offices
   },

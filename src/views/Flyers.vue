@@ -595,12 +595,10 @@ export default {
 
     handleSearch: debounce(function (search) {
       // Implement search logic here
-      console.log("Searching:", search);
     }, 300),
 
     handleFilter(filters) {
       // Apply filters logic here
-      console.log("Filters applied:", filters);
     },
 
     handleBaseImageSelect(event) {

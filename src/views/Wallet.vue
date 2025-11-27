@@ -74,7 +74,7 @@ export default {
       this.loading = true
 
       // GET data
-      const { data } = await api.wallet.GET(); console.log({ data })
+      const { data } = await api.wallet.GET();
 
       this.loading = false
 

@@ -473,7 +473,6 @@ export default {
           this.search // search
         );
 
-        console.log("Transactions API response:", data);
 
         this.transactions = data.transactions || [];
         this.totalItems = data.totalItems || 0;
@@ -604,7 +603,6 @@ export default {
 
     handleFilter(filters) {
       // Apply filters logic here
-      console.log("Filters applied:", filters);
     },
 
     openEditModal(transaction) {

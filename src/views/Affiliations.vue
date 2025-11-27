@@ -934,7 +934,6 @@ export default {
     }, 300),
 
     handleFilter(filters) {
-      console.log("Filters applied:", filters);
       this.currentPage = 1;
       this.GET(this.$route.params.filter);
     },
@@ -1379,7 +1378,6 @@ export default {
           action: "revert",
           id: affiliation.id,
         });
-        console.log("Respuesta de revert:", data);
         if (data && data.error === false) {
           // Eliminar de la lista local
           this.affiliations = this.affiliations.filter(
