@@ -31,6 +31,7 @@ import AIQualityPredictions from "./views/AIQualityPredictions.vue";
 import DeliveryManagement from "./views/DeliveryManagement.vue";
 import PaymentMethods from "./views/PaymentMethods.vue";
 import DashboardConfig from "./views/DashboardConfig.vue";
+import Flyers from "./views/Flyers.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -194,6 +195,11 @@ const routes = [
   {
     path: "/dashboard-config",
     component: DashboardConfig,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/flyers",
+    component: Flyers,
     meta: { requiresAuth: true },
   },
 ];

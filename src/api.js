@@ -35,6 +35,7 @@ class API {
     deliveryManagement,
     paymentMethods,
     dashboardConfig,
+    flyers,
   }) {
     this.users = users;
     this.Affiliations = Affiliations;
@@ -63,6 +64,7 @@ class API {
     this.deliveryManagement = deliveryManagement;
     this.paymentMethods = paymentMethods;
     this.dashboardConfig = dashboardConfig;
+    this.flyers = flyers;
   }
 }
 
@@ -387,6 +389,20 @@ class DashboardConfig {
   }
 }
 
+class Flyers {
+  GET() {
+    return axios.get(`/admin/flyers`);
+  }
+
+  POST({ action, id, data }) {
+    return axios.post(`/admin/flyers`, { action, id, data });
+  }
+
+  DELETE({ id }) {
+    return axios.delete(`/admin/flyers`, { data: { id } });
+  }
+}
+
 export default new API({
   users: new Users(),
   Affiliations: new Affiliations(),
@@ -415,4 +431,5 @@ export default new API({
   deliveryManagement: new DeliveryManagement(),
   paymentMethods: new PaymentMethods(),
   dashboardConfig: new DashboardConfig(),
+  flyers: new Flyers(),
 });
