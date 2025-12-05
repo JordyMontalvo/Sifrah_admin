@@ -231,9 +231,26 @@
                 <span class="detail-label"
                   ><i class="fas fa-building"></i> Oficina:</span
                 >
-                <span class="detail-value">{{
-                  selectedActivation.officeName || getOfficeName(selectedActivation.officeId || selectedActivation.office)
-                }}</span>
+                <div class="detail-value-with-edit">
+                  <select 
+                    v-model="selectedActivationOfficeId" 
+                    class="input office-select-edit"
+                    @change="saveOffice"
+                    :disabled="savingOffice || (selectedActivation.status !== 'pending' && selectedActivation.status !== 'approved')"
+                  >
+                    <option value="">Seleccione una oficina</option>
+                    <option 
+                      v-for="office in officesList" 
+                      :key="office.id" 
+                      :value="office.id"
+                    >
+                      {{ office.name }}
+                    </option>
+                  </select>
+                  <span v-if="savingOffice" class="saving-indicator">
+                    <i class="fas fa-spinner fa-spin"></i> Guardando...
+                  </span>
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label"
@@ -462,6 +479,8 @@ export default {
       showViewModal: false,
       selectedActivation: null,
       officesList: [], // Lista de oficinas cargadas
+      selectedActivationOfficeId: null, // ID de oficina seleccionada en el modal
+      savingOffice: false,
 
       // Table configuration
       tableColumns: [
@@ -595,13 +614,34 @@ export default {
           condition: (item) => item.status !== "cancelled",
         },
       ],
-      tableFilters: [
+      tableFilters: [],
+    };
+  },
+  watch: {
+    selectedActivation: {
+      handler(newVal) {
+        if (newVal) {
+          this.selectedActivationOfficeId = newVal.officeId || newVal.office;
+        }
+      },
+      immediate: true,
+    },
+  },
+  computed: {
+    accounts() {
+      return this.$store.state.accounts;
+    },
+    account() {
+      return this.$store.state.account;
+    },
+    tableFilters() {
+      const filters = [
         {
           key: "status",
           label: "Estado",
           type: "select",
+          placeholder: "Todos los estados",
           options: [
-            { value: "", label: "Todos" },
             { value: "pending", label: "Pendiente" },
             { value: "approved", label: "Aprobada" },
             { value: "rejected", label: "Rechazada" },
@@ -612,21 +652,30 @@ export default {
           key: "pay_method",
           label: "Medio de Pago",
           type: "select",
+          placeholder: "Todos los métodos",
           options: [
-            { value: "", label: "Todos" },
             { value: "cash", label: "Efectivo" },
             { value: "bank", label: "Banco" },
           ],
         },
-      ],
-    };
-  },
-  computed: {
-    accounts() {
-      return this.$store.state.accounts;
-    },
-    account() {
-      return this.$store.state.account;
+      ];
+
+      // Agregar filtro de oficina dinámicamente
+      if (this.officesList && this.officesList.length > 0) {
+        const officeOptions = [];
+        this.officesList.forEach(office => {
+          officeOptions.push({ value: office.id, label: office.name });
+        });
+        filters.push({
+          key: "office",
+          label: "Oficina",
+          type: "select",
+          placeholder: "Todas las oficinas",
+          options: officeOptions,
+        });
+      }
+
+      return filters;
     },
     totalActivations() {
       return this.allActivations.length;
@@ -799,6 +848,7 @@ export default {
           page: this.currentPage,
           limit: this.itemsPerPage,
           search: this.search,
+          office: this.selectedOfficeFilter,
         });
 
         // Obtener todas las activaciones para los totales
@@ -968,6 +1018,7 @@ export default {
 
     handleFilter(filters) {
       this.currentPage = 1;
+      this.selectedOfficeFilter = filters.office || "";
       this.GET(this.$route.params.filter);
     },
 
@@ -1345,6 +1396,77 @@ export default {
         return officeId.charAt(0).toUpperCase() + officeId.slice(1);
       }
       return "N/A";
+    },
+    async saveOffice() {
+      if (!this.selectedActivationOfficeId) {
+        return;
+      }
+
+      // Verificar si realmente cambió
+      const currentOfficeId = this.selectedActivation.officeId || this.selectedActivation.office;
+      if (String(this.selectedActivationOfficeId) === String(currentOfficeId)) {
+        return; // No hay cambios
+      }
+
+      this.savingOffice = true;
+      try {
+        const { data } = await api.Activations.PUT({
+          id: this.selectedActivation.id,
+          office: this.selectedActivationOfficeId,
+        });
+
+        if (data.error) {
+          // Revertir el cambio en el select
+          this.selectedActivationOfficeId = currentOfficeId;
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: data.msg || "Error al actualizar la oficina",
+          });
+          return;
+        }
+
+        // Actualizar la activación local
+        this.selectedActivation.officeId = this.selectedActivationOfficeId;
+        this.selectedActivation.office = this.selectedActivationOfficeId;
+        
+        // Actualizar el nombre de la oficina
+        const office = this.officesList.find(o => String(o.id) === String(this.selectedActivationOfficeId));
+        if (office) {
+          this.selectedActivation.officeName = office.name;
+        }
+
+        // Actualizar en la lista de activaciones
+        const activationIndex = this.activations.findIndex(
+          a => a.id === this.selectedActivation.id
+        );
+        if (activationIndex !== -1) {
+          this.activations[activationIndex].officeId = this.selectedActivationOfficeId;
+          this.activations[activationIndex].office = this.selectedActivationOfficeId;
+          if (office) {
+            this.activations[activationIndex].officeName = office.name;
+          }
+        }
+
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Oficina actualizada correctamente",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        // Revertir el cambio en el select
+        this.selectedActivationOfficeId = this.selectedActivation.officeId || this.selectedActivation.office;
+        console.error("Error al actualizar oficina:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al actualizar la oficina. Por favor, intenta de nuevo.",
+        });
+      } finally {
+        this.savingOffice = false;
+      }
     },
     formatUser(activation) {
       const name = [activation.name, activation.lastName]
@@ -1733,5 +1855,40 @@ export default {
 .delivery-checkbox span {
   font-size: 0.95rem;
   color: #222;
+}
+
+/* Estilos para edición de oficina */
+.detail-value-with-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.office-select-edit {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+}
+
+.edit-office-btn {
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.office-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.saving-indicator {
+  margin-left: 8px;
+  color: #667eea;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 </style>

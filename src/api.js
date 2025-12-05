@@ -88,14 +88,18 @@ class Users {
 } // Incluir el nuevo parámetro en la URL
 
 class Affiliations {
-  GET({ filter, account, page = 1, limit = 20, search }) {
+  GET({ filter, account, page = 1, limit = 20, search, office }) {
     const searchParam = search ? `&search=${search}` : "";
+    const officeParam = office ? `&office=${office}` : "";
     return axios.get(
-      `/admin/affiliations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
+      `/admin/affiliations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}${officeParam}`
     );
   }
   POST({ action, id, voucher }) {
     return axios.post(`/admin/affiliations`, { action, id, voucher });
+  }
+  PUT({ id, office }) {
+    return axios.put(`/admin/affiliations`, { id, office });
   }
 }
 
@@ -122,14 +126,18 @@ class OfficeCollects {
 }
 
 class Activations {
-  GET({ filter, account, page = 1, limit = 20, search }) {
+  GET({ filter, account, page = 1, limit = 20, search, office }) {
     const searchParam = search ? `&search=${search}` : "";
+    const officeParam = office ? `&office=${office}` : "";
     return axios.get(
-      `/admin/activations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
+      `/admin/activations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}${officeParam}`
     );
   }
   POST({ action, id, points, voucher }) {
     return axios.post(`/admin/activations`, { action, id, points, voucher });
+  }
+  PUT({ id, office }) {
+    return axios.put(`/admin/activations`, { id, office });
   }
 }
 
