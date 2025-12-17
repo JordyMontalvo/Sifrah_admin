@@ -267,6 +267,18 @@
                 </span>
                 <span>Cierres</span>
               </a>
+
+              <!-- Periods -->
+              <a
+                class="navbar-item"
+                href="/periods"
+                v-if="accountType === 'admin'"
+              >
+                <span class="icon">
+                  <i class="fas fa-calendar-alt"></i>
+                </span>
+                <span>Periodos</span>
+              </a>
             </div>
           </div>
 

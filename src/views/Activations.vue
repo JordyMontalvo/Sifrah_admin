@@ -94,6 +94,14 @@
           @page-change="handlePageChange"
           @page-size-change="handlePageSizeChange"
         >
+          <template #cell-date="{ row }">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span>{{ formatDateTime(row.date) }}</span>
+              <small v-if="row.period" style="color:#6b7280; font-weight:600;">
+                {{ row.period }}
+              </small>
+            </div>
+          </template>
           <template #cell-user="{ row }">
             {{ formatUser(row.raw) }}
           </template>
@@ -438,6 +446,72 @@ import Swal from "sweetalert2";
 
 const INVOICE_ROOT = process.env.VUE_APP_INVOICE_ROOT;
 
+// Función helper para parsear fechas correctamente
+// Las fechas desde MongoDB vienen como objetos Date o strings ISO
+// Cuando se muestran en la tabla, se formatean como DD/MM/YYYY
+// Esta función maneja ambos casos correctamente
+function parseDateDDMMYYYY(dateValue) {
+  if (!dateValue) return null;
+  
+  // Si ya es un objeto Date, retornarlo
+  if (dateValue instanceof Date) {
+    return isNaN(dateValue.getTime()) ? null : dateValue;
+  }
+  
+  // Si es un string ISO (formato estándar de MongoDB), parsearlo directamente
+  // Puede venir como "2025-12-01T14:43:00.000Z" o "2025-12-01T14:43:00.000"
+  if (typeof dateValue === 'string') {
+    // Primero intentar parsear como ISO string (formato MongoDB)
+    if (dateValue.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
+      const parsed = new Date(dateValue);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    
+    // Si no es ISO, intentar formato DD/MM/YYYY (formato mostrado en tabla)
+    const ddmmPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|a\.\s*m\.|p\.\s*m\.)?)?$/i;
+    const match = dateValue.match(ddmmPattern);
+    
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1; // Los meses en JS son 0-indexed
+      const year = parseInt(match[3], 10);
+      let hour = match[4] ? parseInt(match[4], 10) : 0;
+      const minute = match[5] ? parseInt(match[5], 10) : 0;
+      const second = match[6] ? parseInt(match[6], 10) : 0;
+      const ampm = match[7] ? match[7].toLowerCase() : null;
+      
+      // Convertir AM/PM a 24 horas
+      if (ampm) {
+        if (ampm.includes('p') && hour !== 12) {
+          hour += 12;
+        } else if (ampm.includes('a') && hour === 12) {
+          hour = 0;
+        }
+      }
+      
+      // Validar que el día y mes sean válidos
+      if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+        const parsed = new Date(year, month, day, hour, minute, second);
+        // Verificar que la fecha parseada corresponde al día y mes esperados
+        // (para detectar si se interpretó incorrectamente)
+        if (parsed.getDate() === day && parsed.getMonth() === month) {
+          return parsed;
+        }
+      }
+    }
+    
+    // Como último recurso, intentar parsear como formato estándar
+    const parsed = new Date(dateValue);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  
+  return null;
+}
+
 export default {
   components: {
     Layout,
@@ -462,6 +536,7 @@ export default {
       showViewModal: false,
       selectedActivation: null,
       officesList: [], // Lista de oficinas cargadas
+      periodsByKey: {}, // { [key]: periodDoc }
 
       // Table configuration
       tableColumns: [
@@ -649,8 +724,148 @@ export default {
     tableData() {
       const sortedActivations = this.activations
         .slice()
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-      return sortedActivations.map((activation, index) => {
+        .sort((a, b) => {
+          const dateA = parseDateDDMMYYYY(a.date);
+          const dateB = parseDateDDMMYYYY(b.date);
+          if (!dateA || !dateB) return 0;
+          return dateB - dateA;
+        });
+      const result = [];
+      let prevPeriodKey = null;
+      const shownSeparators = new Set(); // Para evitar mostrar separadores duplicados
+
+      sortedActivations.forEach((activation, index) => {
+        // IMPORTANTE: El periodo se basa en el periodo ABIERTO al momento de la compra,
+        // NO en la fecha de la activación. Esto permite que:
+        // - Un periodo puede iniciarse en cualquier fecha (ej: 2 de enero)
+        // - Ese periodo puede cerrarse en cualquier fecha y hora (ej: 3 de febrero a las 2:05 PM)
+        // - Todas las compras entre inicio y cierre pertenecen a ese periodo
+        // 
+        // SOLO usar period_key guardado en DB (activaciones nuevas).
+        // Las activaciones antiguas sin period_key NO mostrarán separador para evitar confusión.
+        const storedKey = activation.period_key || activation.periodKey || null;
+        const storedLabel = activation.period_label || activation.periodLabel || null;
+        const periodKey = storedKey; // Solo usar el guardado en DB, NO derivar de la fecha
+        const periodDoc = periodKey ? this.periodsByKey[periodKey] : null;
+        const periodLabel = storedLabel || (periodDoc && periodDoc.label) || null;
+
+        // Parsear fecha de activación correctamente en formato DD/MM/YYYY
+        const activationDate = parseDateDDMMYYYY(activation.date);
+        if (!activationDate) {
+          console.warn('[Separador] Fecha de activación inválida:', activation.date);
+        }
+        
+        // Lógica mejorada: Comparar fecha/hora de activación con horas de cierre de periodos
+        // Esto permite mostrar el separador basándose en la hora exacta de cierre
+        // El separador aparece ANTES de la primera activación que sea posterior a la hora de cierre
+        const allPeriods = Object.values(this.periodsByKey);
+        const closedPeriods = allPeriods
+          .filter(p => p.status === "closed" && p.closedAt)
+          .sort((a, b) => {
+            const dateA = parseDateDDMMYYYY(a.closedAt);
+            const dateB = parseDateDDMMYYYY(b.closedAt);
+            if (!dateA || !dateB) return 0;
+            return dateB - dateA; // Más recientes primero
+          });
+        
+        // Primero agregar la activación actual al resultado
+        // Luego verificar si debemos insertar un separador DESPUÉS de esta activación
+        
+        // Agregar la activación al resultado (esto se hace más abajo en el código)
+        // Por ahora solo preparamos la lógica del separador
+        
+        // Buscar periodos cerrados para verificar si debemos mostrar un separador DESPUÉS de esta activación
+        // El separador debe aparecer DESPUÉS de la última activación que sea anterior al cierre
+        if (activationDate) {
+          for (const closedPeriod of closedPeriods) {
+            const closedAt = parseDateDDMMYYYY(closedPeriod.closedAt);
+            if (!closedAt) {
+              console.warn('[Separador] Fecha de cierre inválida:', closedPeriod.closedAt);
+              continue;
+            }
+            const separatorKey = `sep-${closedPeriod.key}`;
+            
+            // Si ya mostramos este separador, saltar
+            if (shownSeparators.has(separatorKey)) {
+              continue;
+            }
+            
+            // Verificar si esta activación es posterior al cierre (considerando fecha y hora)
+            const isAfterClose = activationDate >= closedAt;
+            
+            // Si esta activación es posterior al cierre, verificar la activación inmediatamente anterior
+            // El separador solo debe aparecer si hay una transición de "antes" a "después" del cierre
+            if (isAfterClose) {
+              // Verificar la activación inmediatamente anterior (más antigua)
+              const prevActivationDate = index < sortedActivations.length - 1 ? 
+                parseDateDDMMYYYY(sortedActivations[index + 1].date) : null;
+              
+              // Solo mostrar separador si hay una activación anterior Y esa anterior es anterior al cierre
+              // Si no hay anterior o la anterior también es posterior, NO mostrar separador
+              const prevIsBeforeClose = prevActivationDate ? prevActivationDate < closedAt : false;
+              
+              // Debug para verificar
+              if (index < 3) {
+                console.log('[Separador Debug - Activaciones]', {
+                  activationId: activation.id,
+                  activationDateDDMM: activationDate ? `${activationDate.getDate()}/${activationDate.getMonth() + 1}/${activationDate.getFullYear()}` : 'null',
+                  prevActivationDateDDMM: prevActivationDate ? `${prevActivationDate.getDate()}/${prevActivationDate.getMonth() + 1}/${prevActivationDate.getFullYear()}` : 'null',
+                  closedAtDDMM: closedAt ? `${closedAt.getDate()}/${closedAt.getMonth() + 1}/${closedAt.getFullYear()}` : 'null',
+                  prevIsBeforeClose: prevIsBeforeClose,
+                  willShow: prevActivationDate && prevIsBeforeClose
+                });
+              }
+              
+              // Solo mostrar separador si hay una activación anterior Y esa anterior es anterior al cierre
+              if (prevActivationDate && prevIsBeforeClose) {
+                // Guardar que debemos mostrar el separador ANTES de agregar esta activación
+                activation._showSeparatorBefore = {
+                  key: separatorKey,
+                  period: closedPeriod,
+                  closedAt: closedAt
+                };
+                shownSeparators.add(separatorKey);
+                break; // Solo un separador por activación
+              }
+            }
+          }
+        }
+
+        // También verificar si cambió el period_key (para activaciones nuevas)
+        if (prevPeriodKey && periodKey && periodKey !== prevPeriodKey) {
+          const prevDoc = this.periodsByKey[prevPeriodKey];
+          if (prevDoc && prevDoc.status === "closed" && prevDoc.closedAt) {
+            const closedAt = parseDateDDMMYYYY(prevDoc.closedAt);
+            const separatorKey = `sep-${prevPeriodKey}`;
+            
+            // Solo mostrar si no se mostró ya por la lógica anterior
+            if (activationDate && closedAt && activationDate >= closedAt && !shownSeparators.has(separatorKey)) {
+              const closedDate = closedAt.toLocaleDateString("es-PE", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              });
+              const closedTime = closedAt.toLocaleTimeString("es-PE", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              });
+              result.push({
+                id: separatorKey + "-" + index,
+                _rowType: "separator",
+                message: `Cierre de periodo ${prevDoc.label} – Cerrado el ${closedDate} a las ${closedTime}`,
+              });
+              shownSeparators.add(separatorKey);
+            }
+          }
+        }
+        
+        // Solo actualizar prevPeriodKey si hay periodKey (activaciones nuevas)
+        // Esto evita que las activaciones antiguas interfieran con el separador
+        if (periodKey) {
+          prevPeriodKey = periodKey;
+        }
+
         // Validar price y points
         let price = "-";
         if (
@@ -721,8 +936,28 @@ export default {
             : { url: voucher2Url, isImage: false };
         }
         
+        // Si esta activación tiene marcado que debe mostrar un separador antes, insertarlo primero
+        if (activation._showSeparatorBefore) {
+          const { period: closedPeriod, closedAt } = activation._showSeparatorBefore;
+          const closedDate = closedAt.toLocaleDateString("es-PE", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
+          const closedTime = closedAt.toLocaleTimeString("es-PE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+          result.push({
+            id: activation._showSeparatorBefore.key + "-" + index,
+            _rowType: "separator",
+            message: `Cierre de periodo ${closedPeriod.label} – Cerrado el ${closedDate} a las ${closedTime}`,
+          });
+        }
+        
         const globalIndex = (this.currentPage - 1) * this.itemsPerPage + index;
-        return {
+        result.push({
           id:
             this.allActivations.length > 0
               ? this.allActivations.length - globalIndex
@@ -741,8 +976,10 @@ export default {
           products_delivered: activation.delivered || false,
           raw: activation,
           date: activation.date,
-        };
+          period: periodLabel,
+        });
       });
+      return result;
     },
   },
   filters: {
@@ -765,10 +1002,49 @@ export default {
     const account = JSON.parse(localStorage.getItem("session"));
     this.$store.commit("SET_ACCOUNT", account);
     await this.loadOffices();
+    await this.loadPeriods();
     await this.GET(this.$route.params.filter);
     await this.fetchStatusTotals();
   },
   methods: {
+    async loadPeriods() {
+      try {
+        const { data } = await api.Periods.GET();
+        const periods = (data && data.periods) || [];
+        const map = {};
+        periods.forEach((p) => {
+          if (p && p.key) map[p.key] = p;
+        });
+        this.periodsByKey = map;
+      } catch (e) {
+        console.warn("No se pudieron cargar periodos:", e);
+        this.periodsByKey = {};
+      }
+    },
+    derivePeriodFromDate(date) {
+      const d = new Date(date);
+      if (isNaN(d)) return { key: null, label: "Periodo no definido" };
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const mm = String(month).padStart(2, "0");
+      const key = `${year}-${mm}`;
+      const months = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+      ];
+      const label = `${months[month - 1] || `Mes ${month}`} ${year}`;
+      return { key, label };
+    },
     async loadOffices() {
       try {
         const { data } = await api.offices.GET();

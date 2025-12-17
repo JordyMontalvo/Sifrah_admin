@@ -101,95 +101,115 @@
         </thead>
 
         <tbody>
-          <tr
-            v-for="(item, index) in paginatedData"
-            :key="item.id || index"
-            class="table-row"
-            :class="{ 'is-selected': selectedItems.includes(item.id) }"
-          >
-            <td
-              v-for="column in visibleColumns"
-              :key="column.key"
-              class="table-cell"
-              :class="getCellClass(column, item)"
+          <template v-for="(item, index) in paginatedData">
+            <!-- Separator row (Period close) -->
+            <tr
+              v-if="item && item._rowType === 'separator'"
+              :key="item.id || `sep-${index}`"
+              class="table-row period-separator-row"
             >
-              <div class="cell-content">
-                <slot
-                  :row="item"
-                  :column="column"
-                  :value="item[column.key]"
-                  :name="`cell-${column.key}`"
-                >
-                  <!-- Status Badge -->
-                  <span
-                    v-if="column.type === 'status'"
-                    class="status-badge"
-                    :class="getStatusClass(item[column.key])"
+              <td
+                class="table-cell period-separator-cell"
+                :colspan="visibleColumns.length + (showActions ? 1 : 0)"
+              >
+                <div class="period-separator-content">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>{{ item.message }}</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Normal data row -->
+            <tr
+              v-else
+              :key="item.id || index"
+              class="table-row"
+              :class="{ 'is-selected': selectedItems.includes(item.id) }"
+            >
+              <td
+                v-for="column in visibleColumns"
+                :key="column.key"
+                class="table-cell"
+                :class="getCellClass(column, item)"
+              >
+                <div class="cell-content">
+                  <slot
+                    :row="item"
+                    :column="column"
+                    :value="item[column.key]"
+                    :name="`cell-${column.key}`"
                   >
-                    {{ getStatusText(item[column.key]) }}
-                  </span>
+                    <!-- Status Badge -->
+                    <span
+                      v-if="column.type === 'status'"
+                      class="status-badge"
+                      :class="getStatusClass(item[column.key])"
+                    >
+                      {{ getStatusText(item[column.key]) }}
+                    </span>
 
-                  <!-- Currency -->
-                  <span
-                    v-else-if="column.type === 'currency'"
-                    class="currency-value"
+                    <!-- Currency -->
+                    <span
+                      v-else-if="column.type === 'currency'"
+                      class="currency-value"
+                    >
+                      {{ item[column.key] }}
+                    </span>
+
+                    <!-- Date -->
+                    <span v-else-if="column.type === 'date'" class="date-value">
+                      {{ formatDate(item[column.key]) }}
+                    </span>
+
+                    <!-- Number -->
+                    <span
+                      v-else-if="column.type === 'number'"
+                      class="number-value"
+                    >
+                      {{ formatNumber(item[column.key]) }}
+                    </span>
+
+                    <!-- Boolean -->
+                    <span
+                      v-else-if="column.type === 'boolean'"
+                      class="boolean-value"
+                    >
+                      <i
+                        :class="
+                          item[column.key]
+                            ? 'fas fa-check text-success'
+                            : 'fas fa-times text-danger'
+                        "
+                      ></i>
+                    </span>
+
+                    <!-- Default -->
+                    <span v-else class="text-value">
+                      {{ item[column.key] }}
+                    </span>
+                  </slot>
+                </div>
+              </td>
+
+              <!-- Actions Column -->
+              <td v-if="showActions" class="table-cell actions-cell">
+                <div class="actions-menu">
+                  <button
+                    v-for="action in getItemActions(item)"
+                    :key="action.key"
+                    class="action-btn"
+                    :class="action.class"
+                    @click="handleItemAction(action, item)"
+                    :title="action.label"
                   >
-                    {{ item[column.key] }}
-                  </span>
-
-                  <!-- Date -->
-                  <span v-else-if="column.type === 'date'" class="date-value">
-                    {{ formatDate(item[column.key]) }}
-                  </span>
-
-                  <!-- Number -->
-                  <span
-                    v-else-if="column.type === 'number'"
-                    class="number-value"
-                  >
-                    {{ formatNumber(item[column.key]) }}
-                  </span>
-
-                  <!-- Boolean -->
-                  <span
-                    v-else-if="column.type === 'boolean'"
-                    class="boolean-value"
-                  >
-                    <i
-                      :class="
-                        item[column.key]
-                          ? 'fas fa-check text-success'
-                          : 'fas fa-times text-danger'
-                      "
-                    ></i>
-                  </span>
-
-                  <!-- Default -->
-                  <span v-else class="text-value">
-                    {{ item[column.key] }}
-                  </span>
-                </slot>
-              </div>
-            </td>
-
-            <!-- Actions Column -->
-            <td v-if="showActions" class="table-cell actions-cell">
-              <div class="actions-menu">
-                <button
-                  v-for="action in getItemActions(item)"
-                  :key="action.key"
-                  class="action-btn"
-                  :class="action.class"
-                  @click="handleItemAction(action, item)"
-                  :title="action.label"
-                >
-                  <span class="icon">
-                    <i :class="action.icon"></i>
-                  </span>
-                </button>
-              </div>
-            </td>
-          </tr>
+                    <span class="icon">
+                      <i :class="action.icon"></i>
+                    </span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
 
@@ -714,6 +734,27 @@ export default {
   font-size: 0.875rem;
   color: #374151;
   vertical-align: middle;
+}
+
+/* Period separator row */
+.period-separator-row:hover {
+  background: transparent;
+}
+.period-separator-cell {
+  padding: 10px 12px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 600;
+  border-top: 1px solid #e0e7ff;
+  border-bottom: 1px solid #e0e7ff;
+}
+.period-separator-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.9rem;
 }
 
 .cell-content {

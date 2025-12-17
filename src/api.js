@@ -34,6 +34,7 @@ class API {
     mlmApi,
     deliveryManagement,
     paymentMethods,
+    Periods,
   }) {
     this.users = users;
     this.Affiliations = Affiliations;
@@ -61,6 +62,7 @@ class API {
     this.mlmApi = mlmApi;
     this.deliveryManagement = deliveryManagement;
     this.paymentMethods = paymentMethods;
+    this.Periods = Periods;
   }
 }
 
@@ -371,6 +373,15 @@ class PaymentMethods {
   }
 }
 
+class Periods {
+  GET() {
+    return axios.get(`/admin/periods`);
+  }
+  POST({ action, key, year, month, createdAt, closedAt }) {
+    return axios.post(`/admin/periods`, { action, key, year, month, createdAt, closedAt });
+  }
+}
+
 export default new API({
   users: new Users(),
   Affiliations: new Affiliations(),
@@ -398,4 +409,5 @@ export default new API({
   mlmApi: new MLMApi(),
   deliveryManagement: new DeliveryManagement(),
   paymentMethods: new PaymentMethods(),
+  Periods: new Periods(),
 });

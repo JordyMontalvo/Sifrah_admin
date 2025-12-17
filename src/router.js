@@ -32,6 +32,7 @@ import DeliveryManagement from "./views/DeliveryManagement.vue";
 import PaymentMethods from "./views/PaymentMethods.vue";
 import DashboardConfig from "./views/DashboardConfig.vue";
 import Flyers from "./views/Flyers.vue";
+import Periods from "./views/Periods.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -190,6 +191,11 @@ const routes = [
   {
     path: "/payment-methods",
     component: PaymentMethods,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/periods",
+    component: Periods,
     meta: { requiresAuth: true },
   },
   {
