@@ -927,8 +927,7 @@ export default {
               console.log('📐 Estilos del contenido del modal:', {
                 display: window.getComputedStyle(modalContent).display,
                 visibility: window.getComputedStyle(modalContent).visibility,
-                opacity: window.getComputedStyle(modalContent).opacity,
-                transform: window.getComputedStyle(modalContent).transform
+                opacity: window.getComputedStyle(modalContent).opacity
               })
             }
             

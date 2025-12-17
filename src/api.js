@@ -34,8 +34,6 @@ class API {
     mlmApi,
     deliveryManagement,
     paymentMethods,
-    dashboardConfig,
-    flyers,
   }) {
     this.users = users;
     this.Affiliations = Affiliations;
@@ -63,8 +61,6 @@ class API {
     this.mlmApi = mlmApi;
     this.deliveryManagement = deliveryManagement;
     this.paymentMethods = paymentMethods;
-    this.dashboardConfig = dashboardConfig;
-    this.flyers = flyers;
   }
 }
 
@@ -88,18 +84,14 @@ class Users {
 } // Incluir el nuevo parámetro en la URL
 
 class Affiliations {
-  GET({ filter, account, page = 1, limit = 20, search, office }) {
+  GET({ filter, account, page = 1, limit = 20, search }) {
     const searchParam = search ? `&search=${search}` : "";
-    const officeParam = office ? `&office=${office}` : "";
     return axios.get(
-      `/admin/affiliations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}${officeParam}`
+      `/admin/affiliations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
     );
   }
-  POST({ action, id, voucher }) {
-    return axios.post(`/admin/affiliations`, { action, id, voucher });
-  }
-  PUT({ id, office }) {
-    return axios.put(`/admin/affiliations`, { id, office });
+  POST({ action, id }) {
+    return axios.post(`/admin/affiliations`, { action, id });
   }
 }
 
@@ -126,27 +118,20 @@ class OfficeCollects {
 }
 
 class Activations {
-  GET({ filter, account, page = 1, limit = 20, search, office }) {
+  GET({ filter, account, page = 1, limit = 20, search }) {
     const searchParam = search ? `&search=${search}` : "";
-    const officeParam = office ? `&office=${office}` : "";
     return axios.get(
-      `/admin/activations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}${officeParam}`
+      `/admin/activations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
     );
   }
-  POST({ action, id, points, voucher }) {
-    return axios.post(`/admin/activations`, { action, id, points, voucher });
-  }
-  PUT({ id, office }) {
-    return axios.put(`/admin/activations`, { id, office });
+  POST({ action, id, points }) {
+    return axios.post(`/admin/activations`, { action, id, points });
   }
 }
 
 class Products {
-  GET(params = {}) {
-    const queryString = Object.keys(params).length > 0 
-      ? '?' + new URLSearchParams(params).toString() 
-      : '';
-    return axios.get(`/admin/products${queryString}`);
+  GET() {
+    return axios.get(`/admin/products`);
   }
   POST(data) {
     return axios.post(`/admin/products`, data);
@@ -386,31 +371,6 @@ class PaymentMethods {
   }
 }
 
-class DashboardConfig {
-  GET({ userId } = {}) {
-    const userIdParam = userId ? `?userId=${userId}` : '';
-    return axios.get(`/admin/dashboard-config${userIdParam}`);
-  }
-
-  POST({ text, userId }) {
-    return axios.post(`/admin/dashboard-config`, { text, userId });
-  }
-}
-
-class Flyers {
-  GET() {
-    return axios.get(`/admin/flyers`);
-  }
-
-  POST({ action, id, data }) {
-    return axios.post(`/admin/flyers`, { action, id, data });
-  }
-
-  DELETE({ id }) {
-    return axios.delete(`/admin/flyers`, { data: { id } });
-  }
-}
-
 export default new API({
   users: new Users(),
   Affiliations: new Affiliations(),
@@ -438,6 +398,4 @@ export default new API({
   mlmApi: new MLMApi(),
   deliveryManagement: new DeliveryManagement(),
   paymentMethods: new PaymentMethods(),
-  dashboardConfig: new DashboardConfig(),
-  flyers: new Flyers(),
 });

@@ -242,26 +242,9 @@
                 <span class="detail-label"
                   ><i class="fas fa-building"></i> Oficina:</span
                 >
-                <div class="detail-value-with-edit">
-                  <select 
-                    v-model="selectedAffiliationOfficeId" 
-                    class="input office-select-edit"
-                    @change="saveOffice"
-                    :disabled="savingOffice || (selectedAffiliation.status !== 'pending' && selectedAffiliation.status !== 'approved')"
-                  >
-                    <option value="">Seleccione una oficina</option>
-                    <option 
-                      v-for="office in officesList" 
-                      :key="office.id" 
-                      :value="office.id"
-                    >
-                      {{ office.name }}
-                    </option>
-                  </select>
-                  <span v-if="savingOffice" class="saving-indicator">
-                    <i class="fas fa-spinner fa-spin"></i> Guardando...
-                  </span>
-                </div>
+                <span class="detail-value">{{
+                  selectedAffiliation.officeName || getOfficeName(selectedAffiliation.officeId || selectedAffiliation.office)
+                }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label"
@@ -450,9 +433,6 @@ export default {
       showViewModal: false,
       selectedAffiliation: null,
       officesList: [], // Lista de oficinas cargadas
-      selectedOfficeFilter: "", // Filtro de oficina seleccionado
-      selectedAffiliationOfficeId: null, // ID de oficina seleccionada en el modal
-      savingOffice: false,
 
       // Table configuration
       tableColumns: [
@@ -610,39 +590,6 @@ export default {
     accounts() {
       return this.$store.state.accounts;
     },
-    tableFilters() {
-      const filters = [
-        {
-          key: "status",
-          label: "Estado",
-          type: "select",
-          placeholder: "Todos los estados",
-          options: [
-            { value: "pending", label: "Pendiente" },
-            { value: "approved", label: "Aprobada" },
-            { value: "rejected", label: "Rechazada" },
-            { value: "cancelled", label: "Anulada" },
-          ],
-        },
-      ];
-
-      // Agregar filtro de oficina dinámicamente
-      if (this.officesList && this.officesList.length > 0) {
-        const officeOptions = [];
-        this.officesList.forEach(office => {
-          officeOptions.push({ value: office.id, label: office.name });
-        });
-        filters.push({
-          key: "office",
-          label: "Oficina",
-          type: "select",
-          placeholder: "Todas las oficinas",
-          options: officeOptions,
-        });
-      }
-
-      return filters;
-    },
     account() {
       return this.$store.state.account;
     },
@@ -729,14 +676,6 @@ export default {
     },
   },
   watch: {
-    selectedAffiliation: {
-      handler(newVal) {
-        if (newVal) {
-          this.selectedAffiliationOfficeId = newVal.officeId || newVal.office;
-        }
-      },
-      immediate: true,
-    },
     accounts: {
       handler() {
         // Remap office names in affiliations when accounts change
@@ -814,7 +753,6 @@ export default {
           page: this.currentPage,
           limit: this.itemsPerPage,
           search: this.search,
-          office: this.selectedOfficeFilter,
         });
 
         // Obtener todas las afiliaciones para los totales
@@ -996,8 +934,8 @@ export default {
     }, 300),
 
     handleFilter(filters) {
+      console.log("Filters applied:", filters);
       this.currentPage = 1;
-      this.selectedOfficeFilter = filters.office || "";
       this.GET(this.$route.params.filter);
     },
 
@@ -1386,77 +1324,6 @@ export default {
       }
       return "N/A";
     },
-    async saveOffice() {
-      if (!this.selectedAffiliationOfficeId) {
-        return;
-      }
-
-      // Verificar si realmente cambió
-      const currentOfficeId = this.selectedAffiliation.officeId || this.selectedAffiliation.office;
-      if (String(this.selectedAffiliationOfficeId) === String(currentOfficeId)) {
-        return; // No hay cambios
-      }
-
-      this.savingOffice = true;
-      try {
-        const { data } = await api.Affiliations.PUT({
-          id: this.selectedAffiliation.id,
-          office: this.selectedAffiliationOfficeId,
-        });
-
-        if (data.error) {
-          // Revertir el cambio en el select
-          this.selectedAffiliationOfficeId = currentOfficeId;
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: data.msg || "Error al actualizar la oficina",
-          });
-          return;
-        }
-
-        // Actualizar la afiliación local
-        this.selectedAffiliation.officeId = this.selectedAffiliationOfficeId;
-        this.selectedAffiliation.office = this.selectedAffiliationOfficeId;
-        
-        // Actualizar el nombre de la oficina
-        const office = this.officesList.find(o => String(o.id) === String(this.selectedAffiliationOfficeId));
-        if (office) {
-          this.selectedAffiliation.officeName = office.name;
-        }
-
-        // Actualizar en la lista de afiliaciones
-        const affiliationIndex = this.affiliations.findIndex(
-          a => a.id === this.selectedAffiliation.id
-        );
-        if (affiliationIndex !== -1) {
-          this.affiliations[affiliationIndex].officeId = this.selectedAffiliationOfficeId;
-          this.affiliations[affiliationIndex].office = this.selectedAffiliationOfficeId;
-          if (office) {
-            this.affiliations[affiliationIndex].officeName = office.name;
-          }
-        }
-
-        Swal.fire({
-          icon: "success",
-          title: "¡Éxito!",
-          text: "Oficina actualizada correctamente",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      } catch (error) {
-        // Revertir el cambio en el select
-        this.selectedAffiliationOfficeId = this.selectedAffiliation.officeId || this.selectedAffiliation.office;
-        console.error("Error al actualizar oficina:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Error al actualizar la oficina. Por favor, intenta de nuevo.",
-        });
-      } finally {
-        this.savingOffice = false;
-      }
-    },
 
     async cancelAffiliation(affiliation) {
       const confirmed = await Swal.fire({
@@ -1512,6 +1379,7 @@ export default {
           action: "revert",
           id: affiliation.id,
         });
+        console.log("Respuesta de revert:", data);
         if (data && data.error === false) {
           // Eliminar de la lista local
           this.affiliations = this.affiliations.filter(
@@ -1761,41 +1629,6 @@ function parseDate(dateStr) {
     transform: scale(1);
     opacity: 1;
   }
-}
-
-/* Estilos para edición de oficina */
-.detail-value-with-edit {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.office-select-edit {
-  flex: 1;
-  min-width: 200px;
-  margin: 0;
-}
-
-.edit-office-btn {
-  margin-left: 8px;
-  flex-shrink: 0;
-}
-
-.office-edit-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  width: 100%;
-}
-
-.saving-indicator {
-  margin-left: 8px;
-  color: #667eea;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 .modern-modal-head {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
