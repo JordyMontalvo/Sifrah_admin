@@ -64,6 +64,7 @@
 <script>
 import Layout from '@/views/Layout'
 import api    from '@/api'
+import lib    from '@/lib'
 
 export default {
   components: { Layout },
@@ -88,8 +89,13 @@ export default {
       if(value == 'pending')  return 'Pendiente'
     },
     date(val) {
-      return new Date(val).toLocaleDateString()
-      // return new Date(val).toLocaleString()
+      if (!val) return "";
+      const parsedDate = lib.parseDate(val);
+      if (isNaN(parsedDate.getTime())) {
+        return "Fecha inválida";
+      }
+      return parsedDate.toLocaleDateString();
+      // return parsedDate.toLocaleString()
     },
   },
   beforeRouteUpdate(to, from, next) {

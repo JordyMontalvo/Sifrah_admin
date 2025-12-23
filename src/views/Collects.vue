@@ -113,6 +113,7 @@ import DashboardCard from "@/components/DashboardCard";
 import ModernTable from "@/components/ModernTable";
 import api from "@/api";
 import { debounce } from "lodash";
+import lib from "@/lib";
 
 export default {
   components: {
@@ -234,16 +235,19 @@ export default {
       return this.$store.state.account;
     },
     tableData() {
-      return this.collects.map((collect, index) => ({
-        id: index + 1,
-        date: new Date(collect.date).toLocaleDateString(),
-        user: `${collect.name} ${collect.lastName} (${collect.phone})`,
-        account: this.formatAccount(collect),
-        amount: parseFloat(collect.amount).toFixed(2),
-        office: collect.office,
-        status: collect.status,
-        raw: collect,
-      }));
+      return this.collects.map((collect, index) => {
+        const parsedDate = lib.parseDate(collect.date);
+        return {
+          id: index + 1,
+          date: isNaN(parsedDate.getTime()) ? "Fecha inválida" : parsedDate.toLocaleDateString(),
+          user: `${collect.name} ${collect.lastName} (${collect.phone})`,
+          account: this.formatAccount(collect),
+          amount: parseFloat(collect.amount).toFixed(2),
+          office: collect.office,
+          status: collect.status,
+          raw: collect,
+        };
+      });
     },
     approvedCollects() {
       return this.collects.filter((c) => c.status === "approved");
@@ -265,7 +269,12 @@ export default {
       return value;
     },
     date(val) {
-      return new Date(val).toLocaleDateString();
+      if (!val) return "";
+      const parsedDate = lib.parseDate(val);
+      if (isNaN(parsedDate.getTime())) {
+        return "Fecha inválida";
+      }
+      return parsedDate.toLocaleDateString();
     },
   },
   beforeRouteUpdate(to, from, next) {
