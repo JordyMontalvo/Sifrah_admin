@@ -278,6 +278,8 @@
 </template>
 
 <script>
+import lib from "@/lib";
+
 export default {
   name: "ModernTable",
   props: {
@@ -547,7 +549,12 @@ export default {
     },
     formatDate(value) {
       if (!value) return "";
-      return new Date(value).toLocaleDateString("es-PE");
+      // Si el valor ya es un string formateado (como "22/12/2025"), intentar parsearlo
+      const parsedDate = lib.parseDate(value);
+      if (isNaN(parsedDate.getTime())) {
+        return "Fecha inválida";
+      }
+      return parsedDate.toLocaleDateString("es-PE");
     },
     formatNumber(value) {
       if (!value) return "0";

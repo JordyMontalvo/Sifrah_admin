@@ -236,10 +236,10 @@ export default {
     },
     tableData() {
       return this.collects.map((collect, index) => {
-        const parsedDate = lib.parseDate(collect.date);
+        // Pasar la fecha sin formatear para que ModernTable la formatee correctamente
         return {
           id: index + 1,
-          date: isNaN(parsedDate.getTime()) ? "Fecha inválida" : parsedDate.toLocaleDateString(),
+          date: collect.date, // Pasar el valor original, ModernTable lo formateará
           user: `${collect.name} ${collect.lastName} (${collect.phone})`,
           account: this.formatAccount(collect),
           amount: parseFloat(collect.amount).toFixed(2),
