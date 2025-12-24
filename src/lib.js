@@ -14,8 +14,18 @@ class Lib {
   upload(file, fileName, dir) {
     return new Promise((resolve, reject) => {
       imagekit.upload({ file, fileName, folder: `${folder}/${dir}` }, (err, result) => {
-        if(err) reject(err)
-        resolve(result.url)
+        if(err) {
+          console.error('Error uploading to ImageKit:', err);
+          reject(err);
+          return;
+        }
+        if(!result || !result.url) {
+          const error = new Error('Error: No se recibió URL de ImageKit después de la subida');
+          console.error('Error: result es null o no tiene url:', result);
+          reject(error);
+          return;
+        }
+        resolve(result.url);
       })
     })
   }

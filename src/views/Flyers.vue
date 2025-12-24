@@ -764,12 +764,23 @@ export default {
         });
       } catch (error) {
         console.error("Error adding flyer:", error);
+        
+        // Mensaje de error más específico para problemas de ImageKit
+        let errorMessage = "Error al crear el flyer";
+        if (error.message && error.message.includes("cannot be authenticated")) {
+          errorMessage = "Error de autenticación con ImageKit. Verifica las credenciales en las variables de entorno.";
+        } else if (error.message) {
+          errorMessage = "Error al crear el flyer: " + error.message;
+        } else if (error.help) {
+          errorMessage = error.help;
+        }
+        
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Error al crear el flyer: " + (error.message || "Error desconocido"),
-          timer: 3000,
-          showConfirmButton: false,
+          text: errorMessage,
+          timer: 4000,
+          showConfirmButton: true,
         });
       } finally {
         this.uploading = false;
@@ -847,12 +858,23 @@ export default {
         await this.GET();
       } catch (error) {
         console.error("Error updating flyer:", error);
+        
+        // Mensaje de error más específico para problemas de ImageKit
+        let errorMessage = "Error al actualizar el flyer";
+        if (error.message && error.message.includes("cannot be authenticated")) {
+          errorMessage = "Error de autenticación con ImageKit. Verifica las credenciales en las variables de entorno.";
+        } else if (error.message) {
+          errorMessage = "Error al actualizar el flyer: " + error.message;
+        } else if (error.help) {
+          errorMessage = error.help;
+        }
+        
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Error al actualizar el flyer: " + (error.message || "Error desconocido"),
-          timer: 3000,
-          showConfirmButton: false,
+          text: errorMessage,
+          timer: 4000,
+          showConfirmButton: true,
         });
       } finally {
         this.uploading = false;
