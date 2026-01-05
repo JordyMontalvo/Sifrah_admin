@@ -97,8 +97,8 @@
           <template #cell-date="{ row }">
             <div style="display:flex; flex-direction:column; gap:4px;">
               <span>{{ formatDateTime(row.date) }}</span>
-              <small v-if="row.period" style="color:#6b7280; font-weight:600;">
-                {{ row.period }}
+              <small v-if="row.period" style="color:#6b7280; font-weight:600; font-size:0.85em;">
+                Período: {{ row.period }}
               </small>
             </div>
           </template>
@@ -747,7 +747,12 @@ export default {
         const storedLabel = activation.period_label || activation.periodLabel || null;
         const periodKey = storedKey; // Solo usar el guardado en DB, NO derivar de la fecha
         const periodDoc = periodKey ? this.periodsByKey[periodKey] : null;
-        const periodLabel = storedLabel || (periodDoc && periodDoc.label) || null;
+        // Si no hay período guardado, derivarlo de la fecha para mostrarlo en la UI
+        let periodLabel = storedLabel || (periodDoc && periodDoc.label) || null;
+        if (!periodLabel && activation.date) {
+          const derivedPeriod = this.derivePeriodFromDate(activation.date);
+          periodLabel = derivedPeriod.label;
+        }
 
         // Parsear fecha de activación correctamente en formato DD/MM/YYYY
         const activationDate = parseDateDDMMYYYY(activation.date);
