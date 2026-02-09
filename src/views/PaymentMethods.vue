@@ -90,6 +90,7 @@
                 <th>Titular</th>
                 <th>Banco</th>
                 <th>Tipo</th>
+                <th>CCI</th>
                 <th>Estado</th>
                 <th>Fecha Creación</th>
                 <th>Acciones</th>
@@ -121,6 +122,9 @@
                   <span class="type-badge" :class="getTypeClass(method.tipo)">
                     {{ method.tipo }}
                   </span>
+                </td>
+                <td>
+                  <span class="cci-number">{{ method.cci || '-' }}</span>
                 </td>
                 <td>
                   <span class="status-badge" :class="method.active ? 'is-success' : 'is-danger'">
@@ -264,6 +268,19 @@
               </div>
 
               <div class="field">
+                <label class="label">CCI</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="currentMethod.cci"
+                    placeholder="Código de Cuenta Interbancario"
+                  />
+                </div>
+                <p class="help">Código de Cuenta Interbancario (opcional)</p>
+              </div>
+
+              <div class="field">
                 <label class="label">Estado</label>
                 <div class="control">
                   <label class="checkbox">
@@ -363,6 +380,7 @@ export default {
         titular: "",
         banco: "",
         tipo: "",
+        cci: "",
         active: true,
       },
       notifications: [],
@@ -452,6 +470,7 @@ export default {
         titular: "",
         banco: "",
         tipo: "",
+        cci: "",
         active: true,
       };
     },
