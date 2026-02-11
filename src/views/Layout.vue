@@ -2,7 +2,7 @@
   <div class="app">
     <!-- Modern Navigation Bar -->
     <nav class="navbar is-spaced modern-navbar">
-      <div class="container">
+      <div class="container is-fluid">
         <div class="navbar-brand">
           <a class="navbar-item logo-container">
             <img src="@/assets/logo.svg" class="logo" />
@@ -165,17 +165,20 @@
                 <span>Banner</span>
               </a>
 
-              <!-- Flyers -->
-              <a
-                class="navbar-item"
-                href="/flyers"
+              <!-- Herramientas Menu -->
+              <div
+                class="navbar-item menu-trigger"
+                @click="toggleMenu('tools')"
                 v-if="accountType === 'admin'"
               >
                 <span class="icon">
-                  <i class="fas fa-file-image"></i>
+                  <i class="fas fa-tools"></i>
                 </span>
-                <span>Flyers</span>
-              </a>
+                <span>Herramientas</span>
+                <span class="icon is-small">
+                  <i class="fas fa-chevron-down"></i>
+                </span>
+              </div>
 
               <!-- Network -->
               <a
@@ -447,6 +450,21 @@
             <span>Reconsumo de Productos</span>
           </a>
         </div>
+
+        <div v-if="activeMenu === 'tools'" class="menu-items">
+          <a class="menu-item" href="/flyers" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-file-image"></i>
+            </span>
+            <span>Flyers</span>
+          </a>
+          <a class="menu-item" href="/materials" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-layer-group"></i>
+            </span>
+            <span>Materiales</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -510,6 +528,8 @@ export default {
           return "Oficinas";
         case "operations":
           return "Compras";
+        case "tools":
+          return "Herramientas";
         default:
           return "Menú";
       }
@@ -550,8 +570,8 @@ export default {
   transition: all 0.3s ease;
   border-radius: 8px;
   margin: 0;
-  padding: 0.5rem 0.8rem;
-  font-size: 1rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.95rem;
   white-space: nowrap;
   min-width: auto;
 }
@@ -609,13 +629,13 @@ export default {
   display: flex;
   flex-direction: column;
   width: 100%;
-  gap: 5px;
+  gap: 3px;
 }
 
 .nav-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 3px;
   justify-content: flex-start;
   align-items: center;
 }
