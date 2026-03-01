@@ -34,6 +34,7 @@ import DashboardConfig from "./views/DashboardConfig.vue";
 import Flyers from "./views/Flyers.vue";
 import Periods from "./views/Periods.vue";
 import Materials from "./views/Materials.vue";
+import Audios from "./views/Audios.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -212,6 +213,11 @@ const routes = [
   {
     path: "/materials",
     component: Materials,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/audios",
+    component: Audios,
     meta: { requiresAuth: true },
   },
 ];

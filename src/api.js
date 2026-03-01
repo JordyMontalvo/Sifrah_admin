@@ -37,6 +37,7 @@ class API {
         Periods,
         flyers,
         materials,
+        audios,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -67,6 +68,7 @@ class API {
         this.Periods = Periods;
         this.flyers = flyers;
         this.materials = materials;
+        this.audios = audios;
     }
 }
 
@@ -407,6 +409,18 @@ class Materials {
     }
 }
 
+class Audios {
+    GET() {
+        return axios.get(`/admin/audios`);
+    }
+    POST({ action, id, data }) {
+        return axios.post(`/admin/audios`, { action, id, data });
+    }
+    DELETE({ id }) {
+        return axios.delete(`/admin/audios`, { data: { id } });
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -437,4 +451,5 @@ export default new API({
     Periods: new Periods(),
     flyers: new Flyers(),
     materials: new Materials(),
+    audios: new Audios(),
 });

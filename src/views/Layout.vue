@@ -165,6 +165,18 @@
                 <span>Banner</span>
               </a>
 
+              <!-- Audios -->
+              <a
+                class="navbar-item"
+                href="/audios"
+                v-if="accountType === 'admin'"
+              >
+                <span class="icon">
+                  <i class="fas fa-microphone"></i>
+                </span>
+                <span>Audio</span>
+              </a>
+
               <!-- Herramientas Menu -->
               <div
                 class="navbar-item menu-trigger"
