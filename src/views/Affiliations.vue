@@ -314,6 +314,15 @@
                   selectedAffiliation.status
                 }}</span>
               </div>
+              <!-- Periodo y fecha de aprobación -->
+              <div class="detail-item" v-if="selectedAffiliation.period_label">
+                <span class="detail-label"><i class="fas fa-calendar-check"></i> Periodo:</span>
+                <span class="detail-value" style="font-weight:700; color:#7c3aed;">{{ selectedAffiliation.period_label }}</span>
+              </div>
+              <div class="detail-item" v-if="selectedAffiliation.approved_at">
+                <span class="detail-label"><i class="fas fa-check-circle"></i> Aprobado el:</span>
+                <span class="detail-value">{{ formatDateTime(selectedAffiliation.approved_at) }}</span>
+              </div>
               <div class="detail-item">
                 <span class="detail-label"
                   ><i class="fas fa-box-check"></i> Productos Entregados:</span
@@ -501,6 +510,7 @@ export default {
       itemsPerPage: 20,
       totalItems: 0,
       totalPages: 0,
+      allPeriods: [], // Array de todos los períodos para búsqueda por fecha
       approvedAmount: 0,
       showImageModal: false,
       imageModalUrl: "",
@@ -719,11 +729,17 @@ export default {
         const storedLabel = affiliation.period_label || affiliation.periodLabel || null;
         const periodKey = storedKey; // Solo usar el guardado en DB, NO derivar de la fecha
         const periodDoc = periodKey ? this.periodsByKey[periodKey] : null;
-        // Si no hay período guardado, derivarlo de la fecha para mostrarlo en la UI
+        // Si no hay período guardado, buscar el período que estaba abierto en esa fecha
         let periodLabel = storedLabel || (periodDoc && periodDoc.label) || null;
         if (!periodLabel && affiliation.date) {
-          const derivedPeriod = this.derivePeriodFromDate(affiliation.date);
-          periodLabel = derivedPeriod.label;
+          const periodByDate = this.findPeriodByDate(affiliation.date);
+          if (periodByDate && periodByDate.label) {
+            periodLabel = periodByDate.label;
+          } else {
+            // Fallback: derivar del mes/año si no se encuentra período
+            const derivedPeriod = this.derivePeriodFromDate(affiliation.date);
+            periodLabel = derivedPeriod.label;
+          }
         }
 
         // Parsear fecha de afiliación correctamente en formato DD/MM/YYYY
@@ -997,10 +1013,59 @@ export default {
           if (p && p.key) map[p.key] = p;
         });
         this.periodsByKey = map;
+        this.allPeriods = periods; // Guardar todos los períodos para búsqueda
       } catch (e) {
         console.warn("No se pudieron cargar periodos:", e);
         this.periodsByKey = {};
+        this.allPeriods = [];
       }
+    },
+    /**
+     * Busca el período que estaba abierto en una fecha específica
+     * Un período está abierto si: fecha >= createdAt Y (closedAt es null O fecha < closedAt)
+     */
+    findPeriodByDate(date) {
+      if (!date || !this.allPeriods || this.allPeriods.length === 0) {
+        return null;
+      }
+      
+      const transactionDate = new Date(date);
+      if (isNaN(transactionDate.getTime())) {
+        return null;
+      }
+      
+      // Buscar períodos que contengan esta fecha
+      const matchingPeriods = this.allPeriods.filter((period) => {
+        if (!period.createdAt) return false;
+        
+        const createdAt = new Date(period.createdAt);
+        if (isNaN(createdAt.getTime())) return false;
+        
+        // La fecha debe ser >= createdAt
+        if (transactionDate < createdAt) return false;
+        
+        // Si el período está cerrado, la fecha debe ser < closedAt
+        if (period.status === "closed" && period.closedAt) {
+          const closedAt = new Date(period.closedAt);
+          if (!isNaN(closedAt.getTime()) && transactionDate >= closedAt) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      
+      // Si hay múltiples períodos que coinciden, usar el más reciente (por createdAt)
+      if (matchingPeriods.length > 0) {
+        matchingPeriods.sort((a, b) => {
+          const dateA = new Date(a.createdAt);
+          const dateB = new Date(b.createdAt);
+          return dateB - dateA; // Más reciente primero
+        });
+        return matchingPeriods[0];
+      }
+      
+      return null;
     },
     derivePeriodFromDate(date) {
       const d = new Date(date);
