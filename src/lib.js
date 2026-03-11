@@ -4,33 +4,54 @@ const SERVER = process.env.VUE_APP_SERVER || ''
 
 class Lib {
   async upload(file, fileName, dir) {
-    try {
+    return new Promise((resolve, reject) => {
       const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      console.log(`[Lib] Uploading Binary: ${safeFileName} (${file.size} bytes)`);
-
-      // Enviamos el binario puro directamente, sin sobres ni texto.
       const url = `${SERVER}/api/auxi/bunny-upload?fileName=${encodeURIComponent(safeFileName)}&dir=${encodeURIComponent(dir)}`;
       
-      const response = await fetch(url, {
-        method: 'POST',
-        body: file, // El archivo se envía bit a bit de forma eficiente
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream'
+      console.log(`[Lib] Starting XHR Upload: ${safeFileName}`);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+      
+      // Monitorizar el progreso real de la subida
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          console.log(`[Lib] Upload Progress: ${percent}% (${e.loaded} / ${e.total} bytes)`);
         }
-      });
+      };
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upload failed (${response.status}): ${errorText}`);
-      }
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            console.log(`[Lib] Upload Success: ${data.url}`);
+            resolve(data.url);
+          } catch (err) {
+            reject(new Error('Respuesta del servidor no es JSON: ' + xhr.responseText));
+          }
+        } else {
+          console.error(`[Lib] Upload Failed (${xhr.status}): ${xhr.responseText}`);
+          reject(new Error(`Error ${xhr.status}: ${xhr.responseText}`));
+        }
+      };
 
-      const data = await response.json();
-      console.log(`[Lib] Upload Success: ${data.url}`);
-      return data.url;
-    } catch (error) {
-      console.error('[Lib] Binary Upload Critical Error:', error);
-      throw error;
-    }
+      xhr.onerror = () => {
+        console.error('[Lib] XHR Network Error');
+        reject(new Error('Error de red al subir archivo.'));
+      };
+
+      // Importante: No establecer Content-Type si queremos que el navegador lo haga,
+      // pero como estamos enviando el binario puro, le ayudamos:
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+      // Leer el archivo como ArrayBuffer para asegurar que viaje como binario puro
+      const reader = new FileReader();
+      reader.onload = () => {
+        xhr.send(reader.result); // Enviar el ArrayBuffer
+      };
+      reader.readAsArrayBuffer(file);
+    });
   }
 
   /**
