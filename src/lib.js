@@ -4,45 +4,33 @@ const SERVER = process.env.VUE_APP_SERVER || ''
 
 class Lib {
   async upload(file, fileName, dir) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+    try {
       const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      console.log(`[Lib] Uploading Binary: ${safeFileName} (${file.size} bytes)`);
+
+      // Enviamos el binario puro directamente, sin sobres ni texto.
+      const url = `${SERVER}/api/auxi/bunny-upload?fileName=${encodeURIComponent(safeFileName)}&dir=${encodeURIComponent(dir)}`;
       
-      reader.onload = async () => {
-        try {
-          const base64Data = reader.result.split(',')[1]; // Extraer solo el base64
-          console.log(`[Lib] Safe-Mode Upload: ${safeFileName} (${file.size} bytes)`);
-
-          const response = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              fileName: safeFileName,
-              dir: dir,
-              fileData: base64Data,
-              mimeType: file.type
-            }),
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Upload error ${response.status}: ${errorText}`);
-          }
-
-          const data = await response.json();
-          console.log(`[Lib] Upload Success: ${data.url}`);
-          resolve(data.url);
-        } catch (e) {
-          console.error('[Lib] Safe-Mode Critical Error:', e);
-          reject(e);
+      const response = await fetch(url, {
+        method: 'POST',
+        body: file, // El archivo se envía bit a bit de forma eficiente
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream'
         }
-      };
+      });
 
-      reader.onerror = (err) => reject(new Error('Error leyendo archivo: ' + err));
-      reader.readAsDataURL(file);
-    });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed (${response.status}): ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`[Lib] Upload Success: ${data.url}`);
+      return data.url;
+    } catch (error) {
+      console.error('[Lib] Binary Upload Critical Error:', error);
+      throw error;
+    }
   }
 
   /**
