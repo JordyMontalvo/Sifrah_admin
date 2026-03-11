@@ -1,33 +1,30 @@
-import ImageKit from 'imagekit-javascript'
+import axios from 'axios'
 
-const SERVER    = process.env.VUE_APP_SERVER
-const publicKey = process.env.VUE_APP_IMAGEKIT_KEY
-const folder    = process.env.VUE_APP_IMAGEKIT_FOLDER
-
-const urlEndpoint            = 'https://ik.imagekit.io/asu'
-const authenticationEndpoint =  SERVER + '/api/auxi/imagekit'
-
-const imagekit = new ImageKit({ publicKey, urlEndpoint, authenticationEndpoint })
-
+const SERVER = process.env.VUE_APP_SERVER || ''
 
 class Lib {
-  upload(file, fileName, dir) {
-    return new Promise((resolve, reject) => {
-      imagekit.upload({ file, fileName, folder: `${folder}/${dir}` }, (err, result) => {
-        if(err) {
-          console.error('Error uploading to ImageKit:', err);
-          reject(err);
-          return;
+  async upload(file, fileName, dir) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', fileName);
+      formData.append('dir', dir);
+
+      const response = await axios.post(`${SERVER}/api/auxi/bunny-upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
-        if(!result || !result.url) {
-          const error = new Error('Error: No se recibió URL de ImageKit después de la subida');
-          console.error('Error: result es null o no tiene url:', result);
-          reject(error);
-          return;
-        }
-        resolve(result.url);
-      })
-    })
+      });
+
+      if (response.data && response.data.url) {
+        return response.data.url;
+      } else {
+        throw new Error('No se recibió URL de Bunny.net');
+      }
+    } catch (error) {
+      console.error('Error al subir a Bunny.net:', error);
+      throw error;
+    }
   }
 
   /**
