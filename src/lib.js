@@ -6,40 +6,34 @@ class Lib {
   async upload(file, fileName, dir) {
     return new Promise((resolve, reject) => {
       const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      console.log(`[Lib] Safe-JSON Upload Init: ${safeFileName}`);
+      // Metadatos redundantes en la URL para que Heroku no los pierda
+      const url = `${SERVER}/api/auxi/bunny-upload?fileName=${encodeURIComponent(safeFileName)}&dir=${encodeURIComponent(dir)}`;
+      
+      console.log(`[Lib] Binary XHR Start: ${safeFileName} (${file.size} bytes)`);
 
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64Data = reader.result.split(',')[1];
-          
-          const response = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileName: safeFileName,
-              dir: dir,
-              fileData: base64Data,
-              mimeType: file.type
-            })
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Upload failed (${response.status}): ${errorText}`);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+      
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            console.log(`[Lib] SUCCESS: ${data.url}`);
+            resolve(data.url);
+          } catch (e) {
+            reject(new Error('Respuesta inválida del servidor'));
           }
-
-          const data = await response.json();
-          console.log(`[Lib] Success: ${data.url}`);
-          resolve(data.url);
-        } catch (err) {
-          console.error('[Lib] Safe-JSON Error:', err);
-          reject(err);
+        } else {
+          console.error(`[Lib] Server Error ${xhr.status}: ${xhr.responseText}`);
+          reject(new Error(`Error ${xhr.status} en subida`));
         }
       };
 
-      reader.onerror = () => reject(new Error('Error de lectura local'));
-      reader.readAsDataURL(file);
+      xhr.onerror = () => reject(new Error('Error de red en la subida'));
+      
+      // Enviamos el archivo como binario puro (Máxima velocidad)
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.send(file);
     });
   }
 
