@@ -5,34 +5,36 @@ const SERVER = process.env.VUE_APP_SERVER || ''
 class Lib {
   async upload(file, fileName, dir) {
     try {
-      console.log(`[Lib] Starting upload: ${fileName}, size: ${file.size} bytes`);
+      console.log(`[Lib] Upload Attempt: ${fileName} (${file.size} bytes)`);
+      
       const formData = new FormData();
-      formData.append('fileName', fileName);
+      // Aseguramos que el archivo se llame correctamente
+      const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      formData.append('fileName', safeFileName);
       formData.append('dir', dir);
-      formData.append('file', file);
+      formData.append('file', file, safeFileName);
 
-      // Usar fetch nativo para evitar interceptores de axios y problemas de timeout
       const response = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
         method: 'POST',
         body: formData,
-        // No establecer Content-Type, el navegador lo hará con el boundary correcto
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+          // NO poner Content-Type, el navegador debe ponerlo con el boundary
+        },
+        keepalive: true // Ayuda a que conexiones largas no se corten
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[Lib] Upload failed with status ${response.status}: ${errorText}`);
-        throw new Error(`Error en servidor (${response.status}): ${errorText}`);
+        throw new Error(`Upload failed (${response.status}): ${errorText}`);
       }
 
       const data = await response.json();
-      if (data && data.url) {
-        console.log(`[Lib] Upload successful: ${data.url}`);
-        return data.url;
-      } else {
-        throw new Error('No se recibió URL de Bunny.net');
-      }
+      console.log(`[Lib] Upload Success: ${data.url}`);
+      return data.url;
     } catch (error) {
-      console.error('[Lib] Error crítico al subir:', error);
+      console.error('[Lib] Critical Upload Error:', error);
       throw error;
     }
   }
