@@ -6,51 +6,40 @@ class Lib {
   async upload(file, fileName, dir) {
     return new Promise((resolve, reject) => {
       const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const url = `${SERVER}/api/auxi/bunny-upload?fileName=${encodeURIComponent(safeFileName)}&dir=${encodeURIComponent(dir)}`;
-      
-      console.log(`[Lib] Starting XHR Upload: ${safeFileName}`);
+      console.log(`[Lib] Safe-JSON Upload Init: ${safeFileName}`);
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', url, true);
-      
-      // Monitorizar el progreso real de la subida
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          console.log(`[Lib] Upload Progress: ${percent}% (${e.loaded} / ${e.total} bytes)`);
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            console.log(`[Lib] Upload Success: ${data.url}`);
-            resolve(data.url);
-          } catch (err) {
-            reject(new Error('Respuesta del servidor no es JSON: ' + xhr.responseText));
-          }
-        } else {
-          console.error(`[Lib] Upload Failed (${xhr.status}): ${xhr.responseText}`);
-          reject(new Error(`Error ${xhr.status}: ${xhr.responseText}`));
-        }
-      };
-
-      xhr.onerror = () => {
-        console.error('[Lib] XHR Network Error');
-        reject(new Error('Error de red al subir archivo.'));
-      };
-
-      // Importante: No establecer Content-Type si queremos que el navegador lo haga,
-      // pero como estamos enviando el binario puro, le ayudamos:
-      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-
-      // Leer el archivo como ArrayBuffer para asegurar que viaje como binario puro
       const reader = new FileReader();
-      reader.onload = () => {
-        xhr.send(reader.result); // Enviar el ArrayBuffer
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result.split(',')[1];
+          
+          const response = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: safeFileName,
+              dir: dir,
+              fileData: base64Data,
+              mimeType: file.type
+            })
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Upload failed (${response.status}): ${errorText}`);
+          }
+
+          const data = await response.json();
+          console.log(`[Lib] Success: ${data.url}`);
+          resolve(data.url);
+        } catch (err) {
+          console.error('[Lib] Safe-JSON Error:', err);
+          reject(err);
+        }
       };
-      reader.readAsArrayBuffer(file);
+
+      reader.onerror = () => reject(new Error('Error de lectura local'));
+      reader.readAsDataURL(file);
     });
   }
 
