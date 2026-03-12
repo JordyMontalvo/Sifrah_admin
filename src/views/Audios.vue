@@ -296,7 +296,7 @@ export default {
         this.form.url = url;
       } catch (err) {
         console.error("Error al subir audio:", err);
-        alert("Error al subir el archivo MP3");
+        alert("Error al subir MP3: " + (err.message || 'Error desconocido'));
       } finally {
         this.uploadingAudio = false;
       }
