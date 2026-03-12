@@ -4,43 +4,41 @@ const SERVER = process.env.VUE_APP_SERVER || ''
 
 class Lib {
   async upload(file, fileName, dir) {
-    return new Promise((resolve, reject) => {
-      const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      console.log(`[Lib] Safe-JSON Start: ${safeFileName}`);
+    const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    console.log(`[Lib] Direct CDN Upload: ${safeFileName} (${file.size} bytes)`);
 
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          // Extraer solo la parte base64 (quitando el prefijo de data:...)
-          const base64Data = reader.result.split(',')[1];
-
-          const response = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileName: safeFileName,
-              dir: dir,
-              fileData: base64Data
-            })
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Upload failed (${response.status}): ${errorText}`);
-          }
-
-          const data = await response.json();
-          console.log(`[Lib] SUCCESS: ${data.url}`);
-          resolve(data.url);
-        } catch (err) {
-          console.error('[Lib] Safe-JSON Error:', err);
-          reject(err);
-        }
-      };
-
-      reader.onerror = () => reject(new Error('Error al leer archivo local'));
-      reader.readAsDataURL(file);
+    // Paso 1: Pedirle al servidor la URL de destino
+    const metaRes = await fetch(`${SERVER}/api/auxi/bunny-upload-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: safeFileName, dir })
     });
+
+    if (!metaRes.ok) {
+      const err = await metaRes.text();
+      throw new Error(`No se pudo obtener URL de subida: ${err}`);
+    }
+
+    const { uploadUrl, publicUrl } = await metaRes.json();
+    console.log(`[Lib] Uploading to CDN: ${uploadUrl}`);
+
+    // Paso 2: El navegador sube el archivo DIRECTAMENTE a Bunny (sin pasar por Heroku)
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'AccessKey': process.env.VUE_APP_BUNNY_KEY,
+        'Content-Type': file.type || 'application/octet-stream'
+      },
+      body: file
+    });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.text();
+      throw new Error(`Error subiendo a Bunny CDN (${uploadRes.status}): ${err}`);
+    }
+
+    console.log(`[Lib] CDN Upload SUCCESS: ${publicUrl}`);
+    return publicUrl;
   }
 
   /**
