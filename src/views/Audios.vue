@@ -287,22 +287,25 @@ export default {
       }
     },
     async handleAudioUpload(e) {
-      const originalFile = e.target.files[0];
-      if (!originalFile) return;
+      const file = e.target.files[0];
+      if (!file) return;
 
-      // CRÍTICO: Clonar el archivo ANTES de cambiar estado reactivo.
-      // Cuando Vue re-renderiza (por uploadingAudio = true), destruye y recrea el <input>,
-      // lo que invalida e.target.files[0]. El clon es independiente y siempre válido.
-      const file = new File([originalFile], originalFile.name, {
-        type: originalFile.type,
-        lastModified: originalFile.lastModified
-      });
+      // CRÍTICO: Leer los datos del archivo AHORA, antes de cualquier cambio reactivo.
+      // this.uploadingAudio = true provoca un re-render de Vue que destruye el <input>
+      // e invalida la referencia al archivo. Hay que leer PRIMERO, cambiar estado DESPUÉS.
+      let arrayBuffer;
+      try {
+        arrayBuffer = await file.arrayBuffer();
+        console.log(`[Audios] File read OK: ${file.name} (${arrayBuffer.byteLength} bytes)`);
+      } catch (readErr) {
+        alert("No se pudo leer el archivo: " + readErr.message);
+        return;
+      }
 
-      console.log(`[Audios] File cloned: ${file.name} (${file.size} bytes, ${file.type})`);
-
+      // Ahora ya es seguro cambiar el estado reactivo
       try {
         this.uploadingAudio = true;
-        const url = await lib.upload(file, file.name, "audios");
+        const url = await lib.uploadBuffer(arrayBuffer, file.name, file.type, "audios");
         this.form.url = url;
       } catch (err) {
         console.error("Error al subir audio:", err);

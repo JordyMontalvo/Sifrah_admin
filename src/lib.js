@@ -9,12 +9,23 @@ class Lib {
     console.log(`[Lib] SERVER: ${SERVER}`);
 
     try {
-      // Paso 1: Leer el archivo como ArrayBuffer (API moderna, sin FileReader)
       console.log(`[Lib] Reading file as ArrayBuffer...`);
       const arrayBuffer = await file.arrayBuffer();
-      console.log(`[Lib] ArrayBuffer ready: ${arrayBuffer.byteLength} bytes`);
+      return await this.uploadBuffer(arrayBuffer, fileName, file.type, dir);
+    } catch (err) {
+      console.error('[Lib] Upload FAILED:', err.message, err);
+      throw err;
+    }
+  }
 
-      // Paso 2: Convertir a Base64 en bloques (evita desbordamiento de pila en archivos grandes)
+  // Sube un ArrayBuffer ya leído (evita el problema de referencia inválida en Vue)
+  async uploadBuffer(arrayBuffer, fileName, mimeType, dir) {
+    const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    console.log(`[Lib] uploadBuffer: ${safeFileName} (${arrayBuffer.byteLength} bytes)`);
+    console.log(`[Lib] Target: ${SERVER}/api/auxi/bunny-upload`);
+
+    try {
+      // Convertir ArrayBuffer a Base64 en bloques
       const uint8 = new Uint8Array(arrayBuffer);
       let binary = '';
       const CHUNK = 8192;
@@ -22,9 +33,8 @@ class Lib {
         binary += String.fromCharCode(...uint8.subarray(i, i + CHUNK));
       }
       const base64Data = btoa(binary);
-      console.log(`[Lib] Base64 length: ${base64Data.length} chars → sending to ${SERVER}/api/auxi/bunny-upload`);
+      console.log(`[Lib] Base64 length: ${base64Data.length} chars`);
 
-      // Paso 3: Enviar al servidor
       const res = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,7 +53,7 @@ class Lib {
       return data.url;
 
     } catch (err) {
-      console.error('[Lib] Upload FAILED:', err.message, err);
+      console.error('[Lib] uploadBuffer FAILED:', err.message, err);
       throw err;
     }
   }

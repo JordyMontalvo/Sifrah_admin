@@ -190,12 +190,18 @@ export default {
       this.showModal = true;
     },
     async handleFileUpload(e) {
-      const originalFile = e.target.files[0];
-      if (!originalFile) return;
-      // Clonar antes de que Vue re-renderice e invalide la referencia
-      const file = new File([originalFile], originalFile.name, { type: originalFile.type });
+      const file = e.target.files[0];
+      if (!file) return;
+      // Leer los datos ANTES de cualquier cambio reactivo
+      let arrayBuffer;
       try {
-        const img = await lib.upload(file, file.name, "materials");
+        arrayBuffer = await file.arrayBuffer();
+      } catch (readErr) {
+        this.$refs.toast.error("No se pudo leer el archivo");
+        return;
+      }
+      try {
+        const img = await lib.uploadBuffer(arrayBuffer, file.name, file.type, "materials");
         this.form.image = img;
       } catch (error) {
         console.error("Error uploading image:", error);
