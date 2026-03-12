@@ -4,53 +4,23 @@ const SERVER = process.env.VUE_APP_SERVER || ''
 
 class Lib {
   async upload(file, fileName, dir) {
-    return new Promise((resolve, reject) => {
-      const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      // Metadatos redundantes en la URL para que Heroku no los pierda
-      const url = `${SERVER}/api/auxi/bunny-upload?fileName=${encodeURIComponent(safeFileName)}&dir=${encodeURIComponent(dir)}`;
-      
-      console.log(`[Lib] Binary XHR Start: ${safeFileName} (${file.size} bytes)`);
+    try {
+      const formData = new FormData();
+      formData.append('fileName', fileName);
+      formData.append('dir', dir);
+      formData.append('file', file);
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', url, true);
-      
-      const reader = new FileReader();
-      reader.onload = () => {
-        const body = reader.result;
-        console.log(`[Lib] XHR Sending Buffer: ${body.byteLength} bytes`);
-        
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const data = JSON.parse(xhr.responseText);
-              console.log(`[Lib] SUCCESS: ${data.url}`);
-              resolve(data.url);
-            } catch (e) {
-              reject(new Error('Respuesta del servidor inválida'));
-            }
-          } else {
-            console.error(`[Lib] Error ${xhr.status}: ${xhr.responseText}`);
-            reject(new Error(`Servidor respondió con error ${xhr.status}`));
-          }
-        };
+      const response = await axios.post(`${SERVER}/api/auxi/bunny-upload`, formData);
 
-        xhr.onerror = () => {
-          console.error('[Lib] XHR Network Error (Interrupted)');
-          reject(new Error('La conexión fue interrumpida. Intenta de nuevo.'));
-        };
-
-        xhr.onabort = () => {
-          console.warn('[Lib] XHR Upload Aborted');
-          reject(new Error('Subida cancelada por el navegador o red.'));
-        };
-
-        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-        xhr.send(body);
-      };
-      
-      reader.onerror = () => reject(new Error('Error leyendo archivo local'));
-      reader.readAsArrayBuffer(file);
-    });
+      if (response.data && response.data.url) {
+        return response.data.url;
+      } else {
+        throw new Error('No se recibió URL de Bunny.net');
+      }
+    } catch (error) {
+      console.error('Error al subir a Bunny.net:', error);
+      throw error;
+    }
   }
 
   /**
