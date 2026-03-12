@@ -287,8 +287,18 @@ export default {
       }
     },
     async handleAudioUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
+      const originalFile = e.target.files[0];
+      if (!originalFile) return;
+
+      // CRÍTICO: Clonar el archivo ANTES de cambiar estado reactivo.
+      // Cuando Vue re-renderiza (por uploadingAudio = true), destruye y recrea el <input>,
+      // lo que invalida e.target.files[0]. El clon es independiente y siempre válido.
+      const file = new File([originalFile], originalFile.name, {
+        type: originalFile.type,
+        lastModified: originalFile.lastModified
+      });
+
+      console.log(`[Audios] File cloned: ${file.name} (${file.size} bytes, ${file.type})`);
 
       try {
         this.uploadingAudio = true;

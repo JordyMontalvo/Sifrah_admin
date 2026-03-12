@@ -190,15 +190,16 @@ export default {
       this.showModal = true;
     },
     async handleFileUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
+      const originalFile = e.target.files[0];
+      if (!originalFile) return;
+      // Clonar antes de que Vue re-renderice e invalide la referencia
+      const file = new File([originalFile], originalFile.name, { type: originalFile.type });
       try {
         const img = await lib.upload(file, file.name, "materials");
         this.form.image = img;
       } catch (error) {
         console.error("Error uploading image:", error);
-        this.$refs.toast.error("Error al subir la imagen");
+        this.$refs.toast.error("Error al subir la imagen: " + (error.message || ''));
       }
     },
     async saveMaterial() {
