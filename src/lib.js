@@ -5,40 +5,47 @@ const SERVER = process.env.VUE_APP_SERVER || ''
 class Lib {
   async upload(file, fileName, dir) {
     const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-    console.log(`[Lib] Uploading: ${safeFileName} (${file.size} bytes)`);
+    console.log(`[Lib] Upload start: ${safeFileName} | size: ${file.size} | type: ${file.type}`);
+    console.log(`[Lib] SERVER: ${SERVER}`);
 
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+    try {
+      // Paso 1: Leer el archivo como ArrayBuffer (API moderna, sin FileReader)
+      console.log(`[Lib] Reading file as ArrayBuffer...`);
+      const arrayBuffer = await file.arrayBuffer();
+      console.log(`[Lib] ArrayBuffer ready: ${arrayBuffer.byteLength} bytes`);
 
-      reader.onload = async () => {
-        try {
-          // Convertir a base64 puro (sin el prefijo data:...)
-          const base64Data = reader.result.split(',')[1];
+      // Paso 2: Convertir a Base64 en bloques (evita desbordamiento de pila en archivos grandes)
+      const uint8 = new Uint8Array(arrayBuffer);
+      let binary = '';
+      const CHUNK = 8192;
+      for (let i = 0; i < uint8.length; i += CHUNK) {
+        binary += String.fromCharCode(...uint8.subarray(i, i + CHUNK));
+      }
+      const base64Data = btoa(binary);
+      console.log(`[Lib] Base64 length: ${base64Data.length} chars → sending to ${SERVER}/api/auxi/bunny-upload`);
 
-          // El servidor recibe el JSON y lo sube a Bunny internamente
-          const res = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileName: safeFileName, dir, fileData: base64Data })
-          });
+      // Paso 3: Enviar al servidor
+      const res = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: safeFileName, dir, fileData: base64Data })
+      });
 
-          if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Server error (${res.status}): ${errText}`);
-          }
+      console.log(`[Lib] Server response status: ${res.status}`);
 
-          const data = await res.json();
-          console.log(`[Lib] SUCCESS: ${data.url}`);
-          resolve(data.url);
-        } catch (err) {
-          console.error('[Lib] Upload Error:', err.message);
-          reject(err);
-        }
-      };
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Server error (${res.status}): ${errText}`);
+      }
 
-      reader.onerror = () => reject(new Error('Error al leer el archivo'));
-      reader.readAsDataURL(file);
-    });
+      const data = await res.json();
+      console.log(`[Lib] SUCCESS: ${data.url}`);
+      return data.url;
+
+    } catch (err) {
+      console.error('[Lib] Upload FAILED:', err.message, err);
+      throw err;
+    }
   }
 
   /**
