@@ -192,20 +192,21 @@ export default {
     async handleFileUpload(e) {
       const file = e.target.files[0];
       if (!file) return;
-      // Leer los datos ANTES de cualquier cambio reactivo
-      let arrayBuffer;
+
+      const fileName = file.name;
+      const mimeType = file.type;
+      const blobUrl = URL.createObjectURL(file);
+
       try {
-        arrayBuffer = await file.arrayBuffer();
-      } catch (readErr) {
-        this.$refs.toast.error("No se pudo leer el archivo");
-        return;
-      }
-      try {
-        const img = await lib.uploadBuffer(arrayBuffer, file.name, file.type, "materials");
+        const response = await fetch(blobUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        const img = await lib.uploadBuffer(arrayBuffer, fileName, mimeType, "materials");
         this.form.image = img;
       } catch (error) {
         console.error("Error uploading image:", error);
         this.$refs.toast.error("Error al subir la imagen: " + (error.message || ''));
+      } finally {
+        URL.revokeObjectURL(blobUrl);
       }
     },
     async saveMaterial() {

@@ -290,28 +290,30 @@ export default {
       const file = e.target.files[0];
       if (!file) return;
 
-      // CRÍTICO: Leer los datos del archivo AHORA, antes de cualquier cambio reactivo.
-      // this.uploadingAudio = true provoca un re-render de Vue que destruye el <input>
-      // e invalida la referencia al archivo. Hay que leer PRIMERO, cambiar estado DESPUÉS.
-      let arrayBuffer;
-      try {
-        arrayBuffer = await file.arrayBuffer();
-        console.log(`[Audios] File read OK: ${file.name} (${arrayBuffer.byteLength} bytes)`);
-      } catch (readErr) {
-        alert("No se pudo leer el archivo: " + readErr.message);
-        return;
-      }
+      const fileName = file.name;
+      const mimeType = file.type;
 
-      // Ahora ya es seguro cambiar el estado reactivo
+      // URL.createObjectURL crea una referencia permanente al archivo en memoria.
+      // Es inmune a re-renders de Vue, disabled del input, y yields del event loop.
+      const blobUrl = URL.createObjectURL(file);
+      console.log(`[Audios] Created blob URL for: ${fileName} (${file.size} bytes)`);
+
       try {
         this.uploadingAudio = true;
-        const url = await lib.uploadBuffer(arrayBuffer, file.name, file.type, "audios");
+
+        // Leer desde la blob URL — no depende del input ni del evento original
+        const response = await fetch(blobUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        console.log(`[Audios] Blob read OK: ${arrayBuffer.byteLength} bytes`);
+
+        const url = await lib.uploadBuffer(arrayBuffer, fileName, mimeType, "audios");
         this.form.url = url;
       } catch (err) {
         console.error("Error al subir audio:", err);
         alert("Error al subir MP3: " + (err.message || 'Error desconocido'));
       } finally {
         this.uploadingAudio = false;
+        URL.revokeObjectURL(blobUrl); // Limpiar memoria
       }
     },
     getAudioDuration(url) {
