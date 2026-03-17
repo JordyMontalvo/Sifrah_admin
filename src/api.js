@@ -38,6 +38,7 @@ class API {
         flyers,
         materials,
         audios,
+        audioCategories,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -69,6 +70,7 @@ class API {
         this.flyers = flyers;
         this.materials = materials;
         this.audios = audios;
+        this.audioCategories = audioCategories;
     }
 }
 
@@ -421,6 +423,18 @@ class Audios {
     }
 }
 
+class AudioCategories {
+    GET() {
+        return axios.get(`/admin/audio-categories`);
+    }
+    POST({ action, id, data }) {
+        return axios.post(`/admin/audio-categories`, { action, id, data });
+    }
+    DELETE({ id }) {
+        return axios.delete(`/admin/audio-categories`, { data: { id } });
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -452,4 +466,5 @@ export default new API({
     flyers: new Flyers(),
     materials: new Materials(),
     audios: new Audios(),
+    audioCategories: new AudioCategories(),
 });

@@ -132,12 +132,17 @@
               <div class="column is-6">
                 <div class="field">
                   <label class="label">Categoría</label>
-                  <div class="control">
+                  <div class="control is-flex">
                     <div class="select is-fullwidth">
                       <select v-model="form.category">
-                        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                        <option v-for="cat in allCategories" :key="cat" :value="cat">{{ cat }}</option>
                       </select>
                     </div>
+                    <button class="button is-info is-light ml-2" @click.prevent="openCategoryModal">
+                      <span class="icon is-small">
+                        <i class="fas fa-cog"></i>
+                      </span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -214,6 +219,48 @@
           </footer>
         </div>
       </div>
+
+      <!-- Categories Management Modal -->
+      <div :class="['modal', { 'is-active': categoryModal.active }]" style="z-index: 50;">
+        <div class="modal-background" @click="closeCategoryModal"></div>
+        <div class="modal-card" style="max-width: 400px;">
+          <header class="modal-card-head has-background-white border-bottom-light py-3">
+            <p class="modal-card-title is-size-5">Gestionar Categorías</p>
+            <button class="delete" aria-label="close" @click="closeCategoryModal"></button>
+          </header>
+          <section class="modal-card-body pb-0">
+            <div class="field has-addons mb-4">
+              <div class="control is-expanded">
+                <input v-model="newCategoryName" class="input" type="text" placeholder="Nueva categoría" @keyup.enter="saveCategory" />
+              </div>
+              <div class="control">
+                <button class="button is-primary" @click="saveCategory" :class="{'is-loading': savingCategory}">Añadir</button>
+              </div>
+            </div>
+            
+            <p class="heading has-text-grey mb-2">Lista de Categorías</p>
+             <div class="content" style="max-height: 300px; overflow-y: auto;">
+                <table class="table is-fullwidth is-narrow is-hoverable mb-0">
+                  <tbody>
+                    <tr v-for="cat in customCategories" :key="cat.id">
+                      <td class="is-vcentered">{{ cat.name }}</td>
+                      <td class="has-text-right">
+                        <button class="button is-small is-danger is-light" @click="deleteCategory(cat)">
+                          <span class="icon is-small">
+                            <i class="fas fa-trash"></i>
+                          </span>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr v-if="customCategories.length === 0">
+                      <td colspan="2" class="has-text-centered has-text-grey py-3 is-size-7">No hay categorías registradas</td>
+                    </tr>
+                  </tbody>
+                </table>
+             </div>
+          </section>
+        </div>
+      </div>
     </div>
   </Layout>
 </template>
@@ -231,12 +278,17 @@ export default {
       search: "",
       loading: false,
       defaultImage: "https://api.sifrah.com/uploads/audios/default.png",
-      categories: ["Bienvenida", "Prospección", "Presentación", "Seguimiento", "Liderazgo", "Producto", "Mentalidad"],
+      customCategories: [],
       modal: {
         active: false,
         mode: "add",
         currentAudio: null,
       },
+      categoryModal: {
+        active: false,
+      },
+      newCategoryName: "",
+      savingCategory: false,
       form: {
         title: "",
         author: "Equipo SIFRAH",
@@ -270,12 +322,26 @@ export default {
     },
     activeAudiosCount() {
       return this.audios.filter(a => a.active).length;
+    },
+    allCategories() {
+      return this.customCategories.map(c => c.name);
     }
   },
   async mounted() {
     this.fetchAudios();
+    this.fetchCategories();
   },
   methods: {
+    async fetchCategories() {
+      try {
+        const res = await api.audioCategories.GET();
+        if (res.data && res.data.categories) {
+           this.customCategories = res.data.categories;
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    },
     async fetchAudios() {
       try {
         const res = await api.audios.GET();
@@ -348,6 +414,44 @@ export default {
       this.modal.active = false;
       this.modal.currentAudio = null;
       this.resetForm();
+    },
+    openCategoryModal() {
+      this.modal.active = false;
+      this.categoryModal.active = true;
+      this.fetchCategories();
+    },
+    closeCategoryModal() {
+      this.categoryModal.active = false;
+      this.newCategoryName = "";
+      this.modal.active = true;
+    },
+    async saveCategory() {
+      if (!this.newCategoryName.trim()) return;
+      this.savingCategory = true;
+      try {
+        await api.audioCategories.POST({
+           action: "add",
+           data: { name: this.newCategoryName.trim() }
+        });
+        this.newCategoryName = "";
+        await this.fetchCategories();
+      } catch (err) {
+        console.error("Error saving category:", err);
+        alert("Error al guardar la categoría");
+      } finally {
+        this.savingCategory = false;
+      }
+    },
+    async deleteCategory(cat) {
+      if (confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
+        try {
+          await api.audioCategories.DELETE({ id: cat.id });
+          await this.fetchCategories();
+        } catch (err) {
+          console.error("Error deleting category:", err);
+          alert("Error al eliminar la categoría");
+        }
+      }
     },
     resetForm() {
       this.form = {
