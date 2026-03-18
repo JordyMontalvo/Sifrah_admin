@@ -547,7 +547,7 @@ export default {
 
         const res = await api.books.POST(payload);
         
-        if (res.data && res.data.success) {
+        if (res.data && !res.data.error) {
           this.closeModal();
           await this.fetchBooks();
         } else {
@@ -570,7 +570,7 @@ export default {
         const id = book.id || book._id;
         const res = await api.books.DELETE({ id });
         
-        if (res.data && res.data.success) {
+        if (res.data && !res.data.error) {
           await this.fetchBooks();
         } else {
           alert('Error al eliminar');
@@ -605,7 +605,7 @@ export default {
         
         const res = await api.bookCategories.POST(payload);
         
-        if (res.data && res.data.success) {
+        if (res.data && !res.data.error) {
           this.newCategoryName = "";
           await this.fetchCategories();
         }
@@ -624,7 +624,7 @@ export default {
         const id = cat.id || cat._id;
         const res = await api.bookCategories.DELETE({ id });
         
-        if (res.data && res.data.success) {
+        if (res.data && !res.data.error) {
           await this.fetchCategories();
         }
       } catch (err) {
@@ -642,7 +642,7 @@ export default {
       try {
         this.savingSettings = true;
         const res = await api.books.POST_CONFIG({ subtitle: this.settings.subtitle });
-        if (res.data && res.data.success) {
+        if (res.data && !res.data.error) {
           this.closeSettingsModal();
         } else {
           alert('Error al guardar ajustes');
