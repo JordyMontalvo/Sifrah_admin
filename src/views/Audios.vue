@@ -223,41 +223,59 @@
       <!-- Categories Management Modal -->
       <div :class="['modal', { 'is-active': categoryModal.active }]" style="z-index: 50;">
         <div class="modal-background" @click="closeCategoryModal"></div>
-        <div class="modal-card" style="max-width: 400px;">
-          <header class="modal-card-head has-background-white border-bottom-light py-3">
-            <p class="modal-card-title is-size-5">Gestionar Categorías</p>
+        <div class="modal-card category-modal">
+          <header class="modal-card-head has-background-white border-bottom-light py-4">
+            <p class="modal-card-title is-size-5 has-text-weight-bold mb-0">Configuración de Categorías</p>
             <button class="delete" aria-label="close" @click="closeCategoryModal"></button>
           </header>
-          <section class="modal-card-body pb-0">
-            <div class="field has-addons mb-4">
-              <div class="control is-expanded">
-                <input v-model="newCategoryName" class="input" type="text" placeholder="Nueva categoría" @keyup.enter="saveCategory" />
-              </div>
-              <div class="control">
-                <button class="button is-primary" @click="saveCategory" :class="{'is-loading': savingCategory}">Añadir</button>
+          <section class="modal-card-body p-5">
+            <div class="field mb-5">
+              <label class="label is-small has-text-grey">AÑADIR NUEVA</label>
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input v-model="newCategoryName" class="input category-input" type="text" placeholder="Ej: Entrenamiento VIP" @keyup.enter="saveCategory" :disabled="savingCategory" />
+                </div>
+                <div class="control">
+                  <button class="button is-primary px-5" @click="saveCategory" :class="{'is-loading': savingCategory}" :disabled="!newCategoryName.trim()">
+                    <span class="icon is-small mr-1">
+                      <i class="fas fa-plus"></i>
+                    </span>
+                    <span>Añadir</span>
+                  </button>
+                </div>
               </div>
             </div>
             
-            <p class="heading has-text-grey mb-2">Lista de Categorías</p>
-             <div class="content" style="max-height: 300px; overflow-y: auto;">
-                <table class="table is-fullwidth is-narrow is-hoverable mb-0">
-                  <tbody>
-                    <tr v-for="cat in customCategories" :key="cat.id">
-                      <td class="is-vcentered">{{ cat.name }}</td>
-                      <td class="has-text-right">
-                        <button class="button is-small is-danger is-light" @click="deleteCategory(cat)">
-                          <span class="icon is-small">
-                            <i class="fas fa-trash"></i>
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                    <tr v-if="customCategories.length === 0">
-                      <td colspan="2" class="has-text-centered has-text-grey py-3 is-size-7">No hay categorías registradas</td>
-                    </tr>
-                  </tbody>
-                </table>
-             </div>
+            <div class="categories-list-wrapper">
+              <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+                <p class="label is-small has-text-grey mb-0">CATEGORÍAS ACTUALES</p>
+                <span class="tag is-light is-rounded">{{ customCategories.length }}</span>
+              </div>
+              
+              <div class="categories-list">
+                <div v-if="customCategories.length === 0" class="has-text-centered py-5 has-background-light is-rounded-8">
+                  <span class="icon is-large has-text-grey-light mb-2">
+                    <i class="fas fa-folder-open fa-2x"></i>
+                  </span>
+                  <p class="has-text-grey is-size-6">Aún no hay categorías</p>
+                  <p class="has-text-grey-light is-size-7">Añade la primera categoría arriba.</p>
+                </div>
+                
+                <div v-else class="category-item is-flex is-justify-content-space-between is-align-items-center" v-for="cat in customCategories" :key="cat.id">
+                  <div class="is-flex is-align-items-center">
+                    <span class="icon has-text-primary mr-2">
+                      <i class="fas fa-tag"></i>
+                    </span>
+                    <span class="has-text-weight-medium">{{ cat.name }}</span>
+                  </div>
+                  <button class="button is-small is-ghost has-text-danger category-delete-btn" @click="deleteCategory(cat)" title="Eliminar categoría">
+                    <span class="icon is-small">
+                      <i class="far fa-trash-alt"></i>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       </div>
@@ -607,5 +625,96 @@ div.select select {
     justify-content: center !important;
     padding-right: 0 !important;
   }
+}
+
+/* Category Modal Styles */
+.category-modal {
+  max-width: 450px !important;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+.category-input {
+  box-shadow: none !important;
+  border-color: #dbdbdb;
+  transition: all 0.3s ease;
+}
+
+.category-input:focus {
+  border-color: #E91E63;
+}
+
+.categories-list-wrapper {
+  background-color: #fcfcfc;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  padding: 1rem;
+}
+
+.categories-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* Custom Scrollbar for list */
+.categories-list::-webkit-scrollbar {
+  width: 6px;
+}
+.categories-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.categories-list::-webkit-scrollbar-thumb {
+  background: #dcdcdc;
+  border-radius: 4px;
+}
+.categories-list::-webkit-scrollbar-thumb:hover {
+  background: #c1c1c1;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #eaeaea;
+  transition: all 0.2s ease;
+}
+
+.category-item:hover {
+  border-color: #d0d0d0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  transform: translateY(-1px);
+}
+
+.category-item:last-child {
+  margin-bottom: 0;
+}
+
+.category-delete-btn {
+  opacity: 0.5;
+  transition: all 0.2s;
+  height: 28px;
+  width: 28px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+}
+
+.category-item:hover .category-delete-btn {
+  opacity: 1;
+}
+
+.category-delete-btn:hover {
+  background-color: #fee2e2 !important;
+  color: #ef4444 !important;
 }
 </style>

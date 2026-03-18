@@ -35,6 +35,7 @@ import Flyers from "./views/Flyers.vue";
 import Periods from "./views/Periods.vue";
 import Materials from "./views/Materials.vue";
 import Audios from "./views/Audios.vue";
+import Books from "./views/Books.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -218,6 +219,11 @@ const routes = [
   {
     path: "/audios",
     component: Audios,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/books",
+    component: Books,
     meta: { requiresAuth: true },
   },
 ];

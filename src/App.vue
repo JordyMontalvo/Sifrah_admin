@@ -176,7 +176,7 @@ body.dark-mode {
 /* Input Styles */
 .input,
 .textarea,
-.select {
+.select select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #d1d5db;
@@ -187,9 +187,28 @@ body.dark-mode {
   color: #374151;
 }
 
+.select {
+  border: none;
+  padding: 0;
+  height: auto;
+  min-height: auto;
+}
+
+.select select {
+  height: 42px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 42px;
+}
+
+.select::after {
+  right: 1.125em !important;
+  z-index: 4;
+}
+
 .input:focus,
 .textarea:focus,
-.select:focus {
+.select select:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -372,7 +391,7 @@ body.dark-mode {
 /* Dark Mode Styles */
 .dark-mode .input,
 .dark-mode .textarea,
-.dark-mode .select {
+.dark-mode .select select {
   background: #2d3748;
   border-color: #4a5568;
   color: #e2e8f0;

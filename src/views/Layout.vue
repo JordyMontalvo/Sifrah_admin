@@ -177,6 +177,18 @@
                 <span>Audio</span>
               </a>
 
+              <!-- Libros -->
+              <a
+                class="navbar-item"
+                href="/books"
+                v-if="accountType === 'admin'"
+              >
+                <span class="icon">
+                  <i class="fas fa-book"></i>
+                </span>
+                <span>Libros</span>
+              </a>
+
               <!-- Herramientas Menu -->
               <div
                 class="navbar-item menu-trigger"

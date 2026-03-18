@@ -39,6 +39,8 @@ class API {
         materials,
         audios,
         audioCategories,
+        books,
+        bookCategories,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -71,6 +73,8 @@ class API {
         this.materials = materials;
         this.audios = audios;
         this.audioCategories = audioCategories;
+        this.books = books;
+        this.bookCategories = bookCategories;
     }
 }
 
@@ -435,6 +439,36 @@ class AudioCategories {
     }
 }
 
+class Books {
+    GET() {
+        return axios.get(`/admin/books`);
+    }
+    POST({ action, id, data }) {
+        return axios.post(`/admin/books`, { action, id, data });
+    }
+    DELETE({ id }) {
+        return axios.delete(`/admin/books`, { data: { id } });
+    }
+    GET_CONFIG() {
+        return axios.get(`/admin/config`);
+    }
+    POST_CONFIG(data) {
+        return axios.post(`/admin/config`, data);
+    }
+}
+
+class BookCategories {
+    GET() {
+        return axios.get(`/admin/book-categories`);
+    }
+    POST({ action, id, data }) {
+        return axios.post(`/admin/book-categories`, { action, id, data });
+    }
+    DELETE({ id }) {
+        return axios.delete(`/admin/book-categories`, { data: { id } });
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -467,4 +501,6 @@ export default new API({
     materials: new Materials(),
     audios: new Audios(),
     audioCategories: new AudioCategories(),
+    books: new Books(),
+    bookCategories: new BookCategories(),
 });
