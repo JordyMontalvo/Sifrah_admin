@@ -78,7 +78,17 @@
                   <div class="group-points-wrapper">
                     <div class="group-total">Total: {{ (node._total || 0).toFixed(0) }}</div>
                     <div v-if="node.grouped_points_legs && node.grouped_points_legs.length" class="group-legs-array">
-                      [{{ formatLegsArray(node.grouped_points_legs) }}]
+                      <div class="legs-code">
+                        <div class="legs-code-line">[</div>
+                        <div
+                          v-for="(leg, idx) in node.grouped_points_legs"
+                          :key="`${node.id}-leg-${idx}`"
+                          class="legs-code-line legs-code-line--item"
+                        >
+                          { nombre: "{{ leg.name || 'Sin nombre' }}", dni: "{{ leg.dni || '-' }}", puntos: {{ Number(leg.total_points || 0).toFixed(0) }} }<span v-if="idx < node.grouped_points_legs.length - 1">,</span>
+                        </div>
+                        <div class="legs-code-line">]</div>
+                      </div>
                     </div>
                     <span v-else class="td-zero">[]</span>
                   </div>
@@ -219,16 +229,6 @@ export default {
     },
   },
   methods: {
-    formatLegsArray(legs) {
-      return (legs || [])
-        .map((leg) => {
-          const name = leg.name || 'Sin nombre'
-          const dni = leg.dni || '-'
-          const points = Number(leg.total_points || 0).toFixed(0)
-          return `{nombre:"${name}", dni:"${dni}", puntos:${points}}`
-        })
-        .join(', ')
-    },
     rankClass(rank) {
       if (!rank) return ''
       return 'rank-' + rank.toLowerCase().replace(/ /g, '-')
@@ -395,12 +395,26 @@ export default {
 .group-points-wrapper { display: flex; flex-direction: column; gap: 4px; }
 .group-total { font-weight: 600; color: #2d3748; }
 .group-legs-array {
+  margin-top: 2px;
+}
+.legs-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.76rem;
-  color: #4a5568;
-  white-space: normal;
+  font-size: 0.75rem;
+  color: #2d3748;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  max-height: 160px;
+  overflow: auto;
+}
+.legs-code-line {
+  line-height: 1.45;
+  white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.35;
+}
+.legs-code-line--item {
+  padding-left: 10px;
 }
 
 /* ─── Rank Badges ─── */
