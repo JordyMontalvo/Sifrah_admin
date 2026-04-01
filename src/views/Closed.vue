@@ -157,7 +157,26 @@
                 <tr v-for="(user, i) in filteredHistory(cl)" :key="i">
                   <td class="td-num">{{ i + 1 }}</td>
                   <td class="td-name">{{ user.name }}</td>
-                  <td>{{ (user.total_points || user.total || 0).toFixed(0) }}</td>
+                  <td>
+                    <div class="group-points-wrapper">
+                      <div class="group-total">Total: {{ (user.total_points || user.total || 0).toFixed(0) }}</div>
+                      <div
+                        v-if="user.grouped_points_legs && user.grouped_points_legs.length"
+                        class="group-legs-array"
+                      >
+                        <div class="legs-list">
+                          <div
+                            v-for="(leg, idx) in user.grouped_points_legs"
+                            :key="`hist-${ci}-${i}-leg-${idx}`"
+                            class="legs-list-item"
+                          >
+                            <span class="legs-user">{{ leg.name || 'Sin nombre' }} · DNI {{ leg.dni || '-' }}</span>
+                            <span class="legs-points">{{ Number(leg.total_points || 0).toFixed(0) }} pts</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
                   <td><span class="rank-badge" :class="rankClass(user.rank)">{{ user.rank }}</span></td>
                   <td class="td-bonus">
                     <span v-if="user.residual_bonus > 0">S/ {{ user.residual_bonus.toFixed(2) }}</span>

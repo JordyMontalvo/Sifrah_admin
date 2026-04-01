@@ -41,6 +41,7 @@ class API {
         audioCategories,
         books,
         bookCategories,
+        rankHistory,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -75,6 +76,7 @@ class API {
         this.audioCategories = audioCategories;
         this.books = books;
         this.bookCategories = bookCategories;
+        this.rankHistory = rankHistory;
     }
 }
 
@@ -469,6 +471,13 @@ class BookCategories {
     }
 }
 
+class RankHistory {
+    GET({ page = 1, limit = 20, search = "" } = {}) {
+        const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
+        return axios.get(`/admin/rank-history?page=${page}&limit=${limit}${searchParam}`);
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -503,4 +512,5 @@ export default new API({
     audioCategories: new AudioCategories(),
     books: new Books(),
     bookCategories: new BookCategories(),
+    rankHistory: new RankHistory(),
 });

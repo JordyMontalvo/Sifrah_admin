@@ -36,6 +36,7 @@ import Periods from "./views/Periods.vue";
 import Materials from "./views/Materials.vue";
 import Audios from "./views/Audios.vue";
 import Books from "./views/Books.vue";
+import RankHistorySummary from "./views/RankHistorySummary.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -224,6 +225,11 @@ const routes = [
   {
     path: "/books",
     component: Books,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/rank-history-summary",
+    component: RankHistorySummary,
     meta: { requiresAuth: true },
   },
 ];

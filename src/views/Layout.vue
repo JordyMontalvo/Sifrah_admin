@@ -295,6 +295,17 @@
                 <span>Cierres</span>
               </a>
 
+              <a
+                class="navbar-item"
+                href="/rank-history-summary"
+                v-if="accountType === 'admin'"
+              >
+                <span class="icon">
+                  <i class="fas fa-history"></i>
+                </span>
+                <span>Hist. Rangos</span>
+              </a>
+
               <!-- Periods -->
               <a
                 class="navbar-item"
@@ -382,6 +393,12 @@
               <i class="fas fa-user-check"></i>
             </span>
             <span>Usuarios Activados</span>
+          </a>
+          <a class="menu-item" href="/rank-history-summary" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-history"></i>
+            </span>
+            <span>Historial de Rangos</span>
           </a>
         </div>
 
