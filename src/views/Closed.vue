@@ -78,8 +78,15 @@
                   <div class="group-points-wrapper">
                     <div class="group-total">Total: {{ (node._total || 0).toFixed(0) }}</div>
                     <div v-if="node.grouped_points_legs && node.grouped_points_legs.length" class="group-legs-array">
-                      <div class="legs-code">
-                        <pre class="legs-code-pre">{{ formatLegsCode(node.grouped_points_legs) }}</pre>
+                      <div class="legs-list">
+                        <div
+                          v-for="(leg, idx) in node.grouped_points_legs"
+                          :key="`${node.id}-leg-readable-${idx}`"
+                          class="legs-list-item"
+                        >
+                          <span class="legs-user">{{ leg.name || 'Sin nombre' }} · DNI {{ leg.dni || '-' }}</span>
+                          <span class="legs-points">{{ Number(leg.total_points || 0).toFixed(0) }} pts</span>
+                        </div>
                       </div>
                     </div>
                     <span v-else class="td-zero">[]</span>
@@ -221,14 +228,6 @@ export default {
     },
   },
   methods: {
-    formatLegsCode(legs) {
-      const payload = (legs || []).map((leg) => ({
-        nombre: leg.name || 'Sin nombre',
-        dni: leg.dni || '-',
-        puntos: Number(leg.total_points || 0),
-      }))
-      return JSON.stringify(payload, null, 2)
-    },
     rankClass(rank) {
       if (!rank) return ''
       return 'rank-' + rank.toLowerCase().replace(/ /g, '-')
@@ -397,21 +396,36 @@ export default {
 .group-legs-array {
   margin-top: 2px;
 }
-.legs-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.75rem;
-  color: #2d3748;
+.legs-list {
   background: #f7fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 4px 6px;
   max-height: 160px;
   overflow: auto;
 }
-.legs-code-pre {
-  margin: 0;
-  line-height: 1.45;
-  white-space: pre;
+.legs-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 6px;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 0.78rem;
+}
+.legs-list-item:last-child {
+  border-bottom: none;
+}
+.legs-user {
+  color: #2d3748;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.legs-points {
+  color: #1f6f43;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* ─── Rank Badges ─── */
