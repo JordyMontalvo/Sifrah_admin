@@ -79,15 +79,7 @@
                     <div class="group-total">Total: {{ (node._total || 0).toFixed(0) }}</div>
                     <div v-if="node.grouped_points_legs && node.grouped_points_legs.length" class="group-legs-array">
                       <div class="legs-code">
-                        <div class="legs-code-line">[</div>
-                        <div
-                          v-for="(leg, idx) in node.grouped_points_legs"
-                          :key="`${node.id}-leg-${idx}`"
-                          class="legs-code-line legs-code-line--item"
-                        >
-                          { nombre: "{{ leg.name || 'Sin nombre' }}", dni: "{{ leg.dni || '-' }}", puntos: {{ Number(leg.total_points || 0).toFixed(0) }} }<span v-if="idx < node.grouped_points_legs.length - 1">,</span>
-                        </div>
-                        <div class="legs-code-line">]</div>
+                        <pre class="legs-code-pre">{{ formatLegsCode(node.grouped_points_legs) }}</pre>
                       </div>
                     </div>
                     <span v-else class="td-zero">[]</span>
@@ -229,6 +221,14 @@ export default {
     },
   },
   methods: {
+    formatLegsCode(legs) {
+      const payload = (legs || []).map((leg) => ({
+        nombre: leg.name || 'Sin nombre',
+        dni: leg.dni || '-',
+        puntos: Number(leg.total_points || 0),
+      }))
+      return JSON.stringify(payload, null, 2)
+    },
     rankClass(rank) {
       if (!rank) return ''
       return 'rank-' + rank.toLowerCase().replace(/ /g, '-')
@@ -408,13 +408,10 @@ export default {
   max-height: 160px;
   overflow: auto;
 }
-.legs-code-line {
+.legs-code-pre {
+  margin: 0;
   line-height: 1.45;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.legs-code-line--item {
-  padding-left: 10px;
+  white-space: pre;
 }
 
 /* ─── Rank Badges ─── */
