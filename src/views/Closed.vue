@@ -74,7 +74,15 @@
                 <td class="td-num">{{ i + 1 }}</td>
                 <td class="td-name">{{ node.name }}</td>
                 <td>{{ node.points || 0 }}</td>
-                <td>{{ (node._total || 0).toFixed(0) }}</td>
+                <td>
+                  <div class="group-points-wrapper">
+                    <div class="group-total">Total: {{ (node._total || 0).toFixed(0) }}</div>
+                    <div v-if="node.grouped_points_legs && node.grouped_points_legs.length" class="group-legs-array">
+                      [{{ formatLegsArray(node.grouped_points_legs) }}]
+                    </div>
+                    <span v-else class="td-zero">[]</span>
+                  </div>
+                </td>
                 <td><span class="rank-badge" :class="rankClass(node.rank)">{{ node.rank }}</span></td>
                 <td class="td-bonus">
                   <span v-if="node.residual_bonus > 0">S/ {{ node.residual_bonus.toFixed(2) }}</span>
@@ -211,6 +219,14 @@ export default {
     },
   },
   methods: {
+    formatLegsArray(legs) {
+      return (legs || [])
+        .map((leg) => {
+          const user = `${leg.name || 'Sin nombre'}${leg.dni ? ` (${leg.dni})` : ''}`
+          return `{pierna:${leg.idx}, usuario:"${user}", total:${Number(leg.total_points || 0).toFixed(0)}}`
+        })
+        .join(', ')
+    },
     rankClass(rank) {
       if (!rank) return ''
       return 'rank-' + rank.toLowerCase().replace(/ /g, '-')
@@ -374,6 +390,16 @@ export default {
 .td-name  { font-weight: 500; }
 .td-bonus { font-weight: 700; color: #38a169; }
 .td-zero  { color: #cbd5e0; }
+.group-points-wrapper { display: flex; flex-direction: column; gap: 4px; }
+.group-total { font-weight: 600; color: #2d3748; }
+.group-legs-array {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.76rem;
+  color: #4a5568;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
 
 /* ─── Rank Badges ─── */
 .rank-badge {
