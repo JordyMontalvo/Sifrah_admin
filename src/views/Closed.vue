@@ -222,8 +222,10 @@ export default {
     formatLegsArray(legs) {
       return (legs || [])
         .map((leg) => {
-          const user = `${leg.name || 'Sin nombre'}${leg.dni ? ` (${leg.dni})` : ''}`
-          return `{pierna:${leg.idx}, usuario:"${user}", total:${Number(leg.total_points || 0).toFixed(0)}}`
+          const name = leg.name || 'Sin nombre'
+          const dni = leg.dni || '-'
+          const points = Number(leg.total_points || 0).toFixed(0)
+          return `{nombre:"${name}", dni:"${dni}", puntos:${points}}`
         })
         .join(', ')
     },
