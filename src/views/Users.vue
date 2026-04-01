@@ -275,6 +275,24 @@
             ></button>
           </header>
           <section class="modal-card-body">
+            <div class="user-modal-tabs">
+              <button
+                class="user-modal-tab"
+                :class="{ 'is-active': viewTab === 'profile' }"
+                @click="viewTab = 'profile'"
+              >
+                Perfil
+              </button>
+              <button
+                class="user-modal-tab"
+                :class="{ 'is-active': viewTab === 'rank_history' }"
+                @click="viewTab = 'rank_history'"
+              >
+                Historial de Rangos
+              </button>
+            </div>
+
+            <div v-if="viewTab === 'profile'">
             <div
               style="
                 display: flex;
@@ -370,6 +388,73 @@
                 <div class="field">
                   <b>Plan:</b> {{ getPlanLabel(viewingUser.plan) }}
                 </div>
+              </div>
+            </div>
+            </div>
+
+            <div v-else class="rank-history-panel">
+              <div class="rank-history-form">
+                <div class="field">
+                  <label class="label">Rango</label>
+                  <div class="control">
+                    <div class="select is-fullwidth">
+                      <select v-model="rankHistoryForm.rank">
+                        <option>ACTIVO</option>
+                        <option>BRONCE</option>
+                        <option>PLATA</option>
+                        <option>ORO</option>
+                        <option>RUBÍ</option>
+                        <option>ESMERALDA</option>
+                        <option>DIAMANTE</option>
+                        <option>DOBLE DIAMANTE</option>
+                        <option>TRIPLE DIAMANTE</option>
+                        <option>DIAMANTE IMPERIAL</option>
+                        <option>EMBAJADOR SIFRAH</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">Fecha</label>
+                  <div class="control">
+                    <input class="input" type="datetime-local" v-model="rankHistoryForm.date" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">Periodo (YYYY-MM)</label>
+                  <div class="control">
+                    <input class="input" type="text" v-model="rankHistoryForm.period" placeholder="2026-04" />
+                  </div>
+                </div>
+                <div class="field">
+                  <button class="button is-primary is-fullwidth" @click="addRankHistoryEntry">
+                    Agregar al historial
+                  </button>
+                </div>
+              </div>
+
+              <div class="rank-history-table-wrap">
+                <table class="table is-fullwidth is-striped is-hoverable">
+                  <thead>
+                    <tr>
+                      <th>Periodo</th>
+                      <th>Fecha</th>
+                      <th>Rango</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(entry, idx) in sortedRankHistory" :key="`rh-${idx}`">
+                      <td>{{ entry.period || periodFromDate(entry.date) || '-' }}</td>
+                      <td>{{ formatDateTime(entry.date) }}</td>
+                      <td>{{ entry.rank }}</td>
+                    </tr>
+                    <tr v-if="!sortedRankHistory.length">
+                      <td colspan="3" style="text-align: center; color: #7a7a7a;">
+                        Sin historial registrado
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </section>
@@ -568,6 +653,7 @@ export default {
       ],
       showEditModal: false,
       showViewModal: false,
+      viewTab: "profile",
       editingUser: {
         name: "",
         lastName: "",
@@ -581,6 +667,11 @@ export default {
         affiliation_points: 0,
       },
       viewingUser: {},
+      rankHistoryForm: {
+        rank: "ACTIVO",
+        date: "",
+        period: "",
+      },
     };
   },
   computed: {
@@ -624,6 +715,12 @@ export default {
         affiliation_pointsplan: user.affiliation_pointsplan || 0,
         raw: user,
       }));
+    },
+    sortedRankHistory() {
+      const arr = Array.isArray(this.viewingUser.rank_history)
+        ? [...this.viewingUser.rank_history]
+        : [];
+      return arr.sort((a, b) => new Date(b.date) - new Date(a.date));
     },
   },
   filters: {
@@ -884,7 +981,29 @@ export default {
 
     viewUser(user) {
       this.viewingUser = user;
+      this.viewTab = "profile";
+      const now = new Date();
+      this.rankHistoryForm = {
+        rank: user.rank && user.rank !== "none" ? this.getRankLabel(user.rank) : "ACTIVO",
+        date: now.toISOString().slice(0, 16),
+        period: this.periodFromDate(now),
+      };
       this.showViewModal = true;
+    },
+
+    formatDateTime(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return "-";
+      return d.toLocaleString("es-PE");
+    },
+
+    periodFromDate(value) {
+      const d = new Date(value || new Date());
+      if (isNaN(d.getTime())) return "";
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      return `${y}-${m}`;
     },
 
     async input() {
@@ -948,6 +1067,53 @@ export default {
 
     closeViewModal() {
       this.showViewModal = false;
+      this.viewTab = "profile";
+    },
+
+    async addRankHistoryEntry() {
+      if (!this.viewingUser.id) return;
+      try {
+        await api.users.POST({
+          action: "add_rank_history",
+          id: this.viewingUser.id,
+          data: {
+            rank: this.rankHistoryForm.rank,
+            date: this.rankHistoryForm.date,
+            period: this.rankHistoryForm.period || this.periodFromDate(this.rankHistoryForm.date),
+          },
+        });
+
+        const entry = {
+          rank: this.rankHistoryForm.rank,
+          date: this.rankHistoryForm.date ? new Date(this.rankHistoryForm.date) : new Date(),
+          period: this.rankHistoryForm.period || this.periodFromDate(this.rankHistoryForm.date),
+          points: 0,
+          residual_bonus: 0,
+        };
+
+        const current = Array.isArray(this.viewingUser.rank_history)
+          ? [...this.viewingUser.rank_history]
+          : [];
+        current.push(entry);
+        this.viewingUser = { ...this.viewingUser, rank_history: current };
+
+        Swal.fire({
+          icon: "success",
+          title: "Historial actualizado",
+          text: "Se agregó el registro de rango correctamente",
+          timer: 1600,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error adding rank history:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo agregar el historial de rango",
+          timer: 2200,
+          showConfirmButton: false,
+        });
+      }
     },
 
     async saveUser() {
@@ -1102,6 +1268,10 @@ export default {
     showEditModal(val) {
       console.log("showEditModal changed:", val);
     },
+    "rankHistoryForm.date"(val) {
+      if (!val) return;
+      this.rankHistoryForm.period = this.periodFromDate(val);
+    },
   },
 };
 </script>
@@ -1245,5 +1415,37 @@ export default {
 
 .dark-mode .loading-content p {
   color: #e2e8f0;
+}
+
+.user-modal-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.user-modal-tab {
+  border: 1px solid #dfe3ea;
+  background: #f8fafc;
+  color: #334155;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.user-modal-tab.is-active {
+  background: #667eea;
+  border-color: #667eea;
+  color: #fff;
+}
+
+.rank-history-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) 1fr;
+  gap: 16px;
+}
+
+.rank-history-table-wrap {
+  overflow: auto;
 }
 </style>
