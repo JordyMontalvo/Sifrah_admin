@@ -17,7 +17,7 @@
       </div>
 
       <!-- ─── Summary Cards ─── -->
-      <div class="summary-cards" v-if="tree && tree.length">
+      <div class="summary-cards" v-if="hasPreviewData">
         <div class="summary-card">
           <span class="summary-card__icon">💰</span>
           <div>
@@ -59,6 +59,45 @@
             <span class="summary-card__label">Total preview (residual + rango)</span>
             <strong class="summary-card__value">S/ {{ totalPreviewCierre.toFixed(2) }}</strong>
           </div>
+        </div>
+        <div class="summary-card summary-card--warn" v-if="virtualResets.length">
+          <span class="summary-card__icon">🧹</span>
+          <div>
+            <span class="summary-card__label">Saldo no disponible a quitar</span>
+            <strong class="summary-card__value">S/ {{ totalVirtualReset.toFixed(2) }}</strong>
+            <span class="summary-card__sub">{{ virtualResets.length }} usuario(s)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Saldo virtual (no disponible) que se elimina al confirmar ─── -->
+      <div class="table-card table-card--warn" v-if="virtualResets.length">
+        <div class="table-card__header">
+          <h2 class="table-card__title">🧹 Saldo no disponible (virtual) · se quita al confirmar cierre</h2>
+          <span class="badge badge--warn">{{ virtualResets.length }} usuarios · transacción «closed reset»</span>
+        </div>
+        <p class="virtual-reset-hint">
+          Es el saldo acumulado en transacciones <strong>virtuales</strong> (ingresos menos egresos). Al cerrar, el motor registra un egreso <code>closed reset</code> por ese monto para cada usuario con saldo &gt; 0.
+        </p>
+        <div class="table-responsive">
+          <table class="cierre-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>DNI</th>
+                <th>Monto a quitar (S/)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, ri) in virtualResets" :key="row.id || ri">
+                <td class="td-num">{{ ri + 1 }}</td>
+                <td class="td-name">{{ row.name || '—' }}</td>
+                <td>{{ row.dni || '—' }}</td>
+                <td class="td-bonus td-bonus--out">S/ {{ Number(row.amount || 0).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -128,7 +167,10 @@
             </tbody>
           </table>
         </div>
-        <div class="table-card__footer">
+      </div>
+
+      <div class="table-card save-bar" v-if="hasPreviewData">
+        <div class="table-card__footer table-card__footer--solo">
           <button v-if="!saving" class="btn-guardar" @click="save">
             💾 Confirmar y Guardar Cierre
           </button>
@@ -158,6 +200,9 @@
               </span>
               <span class="chip chip--blue" v-if="cl.data && cl.data.duration_ms">
                 ⚡ {{ cl.data.duration_ms }}ms
+              </span>
+              <span class="chip chip--orange" v-if="cl.data && cl.data.reset_transactions">
+                🧹 {{ cl.data.reset_transactions }} reset virtual
               </span>
             </div>
           </div>
@@ -213,6 +258,34 @@
               </tbody>
             </table>
           </div>
+
+          <div
+            v-if="cl.data && cl.data.virtual_balance_resets && cl.data.virtual_balance_resets.length"
+            class="virtual-reset-hist"
+          >
+            <h3 class="virtual-reset-hist__title">🧹 Saldo no disponible retirado en este cierre</h3>
+            <div class="table-responsive">
+              <table class="cierre-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>DNI</th>
+                    <th>Monto quitado (S/)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(vr, vi) in cl.data.virtual_balance_resets" :key="vi">
+                    <td class="td-num">{{ vi + 1 }}</td>
+                    <td class="td-name">{{ vr.name || '—' }}</td>
+                    <td>{{ vr.dni || '—' }}</td>
+                    <td class="td-bonus td-bonus--out">S/ {{ Number(vr.amount || 0).toFixed(2) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="historical-meta" v-if="cl.data">
             <span>👥 Procesados: {{ cl.data.users_processed || 0 }}</span>
             <span>💳 Transacciones: {{ cl.data.bonus_transactions || 0 }}</span>
@@ -239,6 +312,7 @@ export default {
       affiliations: [],
       activations:  [],
       closeds:      [],
+      virtualResets: [],
       saving:       false,
       search:       '',
     }
@@ -262,6 +336,18 @@ export default {
     },
     totalPreviewCierre() {
       return this.totalResidual + this.totalRankBonus
+    },
+    hasPreviewData() {
+      return (
+        (this.tree && this.tree.length > 0) ||
+        (this.virtualResets && this.virtualResets.length > 0)
+      )
+    },
+    totalVirtualReset() {
+      return (this.virtualResets || []).reduce(
+        (s, r) => s + (Number(r.amount) || 0),
+        0
+      )
     },
     usersWithRank() {
       return (this.tree || []).filter(e => e.rank && e.rank !== 'none').length
@@ -304,6 +390,7 @@ export default {
       try {
         const { data } = await api.closeds.POST({ action: 'new' })
         this.tree         = data.tree         || []
+        this.virtualResets = data.virtual_resets || []
         this.affiliations = data.affiliations  || []
         this.activations  = data.activations   || []
       } catch (e) {
@@ -396,6 +483,18 @@ export default {
 .summary-card__value { font-size: 1.5rem; font-weight: 700; color: #1a202c; }
 .summary-card--accent { border-left-color: #d69e2e; }
 .summary-card--accent2 { border-left-color: #38a169; }
+.summary-card--warn { border-left-color: #dd6b20; }
+.summary-card__sub { display: block; font-size: 0.72rem; color: #718096; margin-top: 4px; }
+
+.table-card--warn { border-top: 3px solid #ed8936; }
+.badge--warn { background: #fffaf0; color: #c05621; border: 1px solid #fbd38d; }
+.virtual-reset-hint { margin: 0 24px 16px; font-size: 0.85rem; color: #4a5568; line-height: 1.45; }
+.td-bonus--out { color: #c53030; font-weight: 600; }
+.chip--orange { background: #fffaf0; color: #c05621; }
+.virtual-reset-hist { padding: 16px 24px 8px; border-top: 1px solid #e2e8f0; }
+.virtual-reset-hist__title { font-size: 0.95rem; margin: 0 0 12px; color: #2d3748; }
+.save-bar { margin-bottom: 20px; }
+.table-card__footer--solo { padding: 18px 24px; border-top: none; }
 
 .td-rank-bonus { vertical-align: top; font-size: 0.82rem; max-width: 240px; }
 .rank-bonus-lines { margin: 6px 0 0; padding-left: 1.1rem; color: #4a5568; font-size: 0.76rem; line-height: 1.35; }
