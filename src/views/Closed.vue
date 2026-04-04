@@ -8,7 +8,7 @@
       <div class="cierre-header">
         <div>
           <h1 class="cierre-title">⚡ Cierre de Mes</h1>
-          <p class="cierre-subtitle">Motor de Cálculo Go · Alta Velocidad</p>
+          <p class="cierre-subtitle">Motor Go (residual) + bonos logro/mantenimiento por rango</p>
         </div>
         <button class="btn-iniciar" :class="{ 'btn-iniciar--loading': calculating }" @click="closed" :disabled="calculating">
           <span v-if="!calculating">🚀 Iniciar Cierre</span>
@@ -46,12 +46,26 @@
             <strong class="summary-card__value">{{ activosSimple }}</strong>
           </div>
         </div>
+        <div class="summary-card summary-card--accent">
+          <span class="summary-card__icon">🏆</span>
+          <div>
+            <span class="summary-card__label">Bono logro / mant. rango</span>
+            <strong class="summary-card__value">S/ {{ totalRankBonus.toFixed(2) }}</strong>
+          </div>
+        </div>
+        <div class="summary-card summary-card--accent2">
+          <span class="summary-card__icon">📌</span>
+          <div>
+            <span class="summary-card__label">Total preview (residual + rango)</span>
+            <strong class="summary-card__value">S/ {{ totalPreviewCierre.toFixed(2) }}</strong>
+          </div>
+        </div>
       </div>
 
       <!-- ─── Preview Table ─── -->
       <div class="table-card" v-if="tree && tree.length">
         <div class="table-card__header">
-          <h2 class="table-card__title">📊 Previsualización · Rangos y Bonos Residuales</h2>
+          <h2 class="table-card__title">📊 Previsualización · Residual (Go) y bonos por rango</h2>
           <span class="badge">{{ usersWithRank }} calificados</span>
         </div>
         <div class="table-search">
@@ -67,6 +81,7 @@
                 <th>Pts. Grupales</th>
                 <th>Rango Alcanzado</th>
                 <th>Bono Residual</th>
+                <th>Bono rango (logro / mant.)</th>
               </tr>
             </thead>
             <tbody>
@@ -95,6 +110,18 @@
                 <td><span class="rank-badge" :class="rankClass(node.rank)">{{ node.rank }}</span></td>
                 <td class="td-bonus">
                   <span v-if="node.residual_bonus > 0">S/ {{ node.residual_bonus.toFixed(2) }}</span>
+                  <span v-else class="td-zero">—</span>
+                </td>
+                <td class="td-rank-bonus">
+                  <template v-if="(node.rank_bonus_total || 0) > 0">
+                    <strong>S/ {{ Number(node.rank_bonus_total).toFixed(2) }}</strong>
+                    <ul v-if="node.rank_bonus_lines && node.rank_bonus_lines.length" class="rank-bonus-lines">
+                      <li v-for="(ln, li) in node.rank_bonus_lines" :key="li">
+                        <span class="rank-bonus-tipo">{{ ln.tipo }}</span>
+                        {{ ln.rank }} · S/ {{ Number(ln.amount).toFixed(2) }}
+                      </li>
+                    </ul>
+                  </template>
                   <span v-else class="td-zero">—</span>
                 </td>
               </tr>
@@ -230,6 +257,12 @@ export default {
     totalResidual() {
       return (this.tree || []).reduce((sum, n) => sum + (n.residual_bonus || 0), 0)
     },
+    totalRankBonus() {
+      return (this.tree || []).reduce((sum, n) => sum + (Number(n.rank_bonus_total) || 0), 0)
+    },
+    totalPreviewCierre() {
+      return this.totalResidual + this.totalRankBonus
+    },
     usersWithRank() {
       return (this.tree || []).filter(e => e.rank && e.rank !== 'none').length
     },
@@ -284,12 +317,19 @@ export default {
       if (!confirm('⚠️ Está a punto de guardar el cierre. Este proceso actualizará la base de datos y NO se puede revertir. ¿Confirmar?')) return
       this.saving = true
       try {
-        await api.closeds.POST({ action: 'save', data: {
+        const { data } = await api.closeds.POST({ action: 'save', data: {
           tree:         this.tree,
           affiliations: this.affiliations,
           activations:  this.activations,
         }})
-        alert('✅ Cierre guardado exitosamente.')
+        const rb = data && data.rank_bonuses
+        let extra = ''
+        if (rb && !rb.error && typeof rb.totalAmount === 'number') {
+          extra = `\nBonos rango aplicados: S/ ${rb.totalAmount.toFixed(2)} (${(rb.applied || []).length} líneas).`
+        } else if (rb && rb.error) {
+          extra = `\n⚠️ Bonos rango: error — ${rb.error}`
+        }
+        alert(`✅ Cierre guardado exitosamente.${extra}`)
         location.reload()
       } catch (e) {
         console.error('Error saving:', e)
@@ -354,6 +394,12 @@ export default {
 .summary-card__icon { font-size: 2rem; }
 .summary-card__label { display: block; font-size: 0.76rem; color: #718096; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
 .summary-card__value { font-size: 1.5rem; font-weight: 700; color: #1a202c; }
+.summary-card--accent { border-left-color: #d69e2e; }
+.summary-card--accent2 { border-left-color: #38a169; }
+
+.td-rank-bonus { vertical-align: top; font-size: 0.82rem; max-width: 240px; }
+.rank-bonus-lines { margin: 6px 0 0; padding-left: 1.1rem; color: #4a5568; font-size: 0.76rem; line-height: 1.35; }
+.rank-bonus-tipo { text-transform: capitalize; color: #6b46c1; font-weight: 600; margin-right: 4px; }
 
 /* ─── Table Card ─── */
 .table-card {
