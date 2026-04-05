@@ -147,8 +147,23 @@
                   </div>
                 </td>
                 <td><span class="rank-badge" :class="rankClass(node.rank)">{{ node.rank }}</span></td>
-                <td class="td-bonus">
-                  <span v-if="node.residual_bonus > 0">S/ {{ node.residual_bonus.toFixed(2) }}</span>
+                <td class="td-bonus td-bonus--detail">
+                  <template v-if="node.residual_bonus > 0">
+                    <strong>S/ {{ node.residual_bonus.toFixed(2) }}</strong>
+                    <ul
+                      v-if="node.residual_lines && node.residual_lines.length"
+                      class="residual-lines"
+                    >
+                      <li v-for="(ln, ri) in node.residual_lines" :key="`${node.id}-res-${ri}`">
+                        <span class="residual-lines__lvl">Nivel {{ ln.level }}</span>
+                        {{ ln.name || '—' }}
+                        <span class="residual-lines__meta">· DNI {{ ln.dni || '—' }}</span>
+                        <span class="residual-lines__meta">· PR {{ Number(ln.pr || 0).toFixed(0) }}</span>
+                        <span class="residual-lines__meta">· {{ formatResidualPct(ln.percentage) }}</span>
+                        <span class="residual-lines__amt">→ S/ {{ Number(ln.amount || 0).toFixed(2) }}</span>
+                      </li>
+                    </ul>
+                  </template>
                   <span v-else class="td-zero">—</span>
                 </td>
                 <td class="td-rank-bonus">
@@ -250,8 +265,22 @@
                     </div>
                   </td>
                   <td><span class="rank-badge" :class="rankClass(user.rank)">{{ user.rank }}</span></td>
-                  <td class="td-bonus">
-                    <span v-if="user.residual_bonus > 0">S/ {{ user.residual_bonus.toFixed(2) }}</span>
+                  <td class="td-bonus td-bonus--detail">
+                    <template v-if="user.residual_bonus > 0">
+                      <strong>S/ {{ user.residual_bonus.toFixed(2) }}</strong>
+                      <ul
+                        v-if="user.residual_lines && user.residual_lines.length"
+                        class="residual-lines residual-lines--compact"
+                      >
+                        <li v-for="(ln, ri) in user.residual_lines" :key="`hist-${ci}-${i}-res-${ri}`">
+                          <span class="residual-lines__lvl">Nv.{{ ln.level }}</span>
+                          {{ ln.name || '—' }}
+                          <span class="residual-lines__meta">· PR {{ Number(ln.pr || 0).toFixed(0) }}</span>
+                          <span class="residual-lines__meta">· {{ formatResidualPct(ln.percentage) }}</span>
+                          <span class="residual-lines__amt">→ S/ {{ Number(ln.amount || 0).toFixed(2) }}</span>
+                        </li>
+                      </ul>
+                    </template>
                     <span v-else class="td-zero">—</span>
                   </td>
                 </tr>
@@ -370,6 +399,12 @@ export default {
       if (!rank) return ''
       return 'rank-' + rank.toLowerCase().replace(/ /g, '-')
     },
+    /** Porcentaje residual del motor Go (ej. 0.05 → 5.00%). */
+    formatResidualPct(p) {
+      const n = Number(p)
+      if (!Number.isFinite(n)) return '—'
+      return (n * 100).toFixed(2) + '%'
+    },
     filteredHistory(cl) {
       const q = (cl._search || '').toLowerCase()
       return (cl.users || []).filter(u => !q || (u.name || '').toLowerCase().includes(q))
@@ -395,7 +430,16 @@ export default {
         this.activations  = data.activations   || []
       } catch (e) {
         console.error('Error calculating:', e)
-        alert('❌ Error al calcular el cierre. Revisa la consola del servidor.')
+        const d = e.response && e.response.data
+        let msg = '❌ Error al calcular el cierre.'
+        if (d && (d.details || d.stderr || d.stdoutHint)) {
+          msg += '\n\n' + (d.details || d.error || '')
+          if (d.stderr) msg += '\n\n' + d.stderr
+          else if (d.stdoutHint) msg += '\n\n(salida)\n' + d.stdoutHint
+        } else {
+          msg += ' Revisa la terminal donde corre Next (server) y la consola del navegador.'
+        }
+        alert(msg)
       } finally {
         this.calculating = false
       }
@@ -554,6 +598,25 @@ export default {
 .td-num   { color: #a0aec0; font-weight: 600; width: 40px; }
 .td-name  { font-weight: 500; }
 .td-bonus { font-weight: 700; color: #38a169; }
+.td-bonus--detail { vertical-align: top; font-size: 0.82rem; max-width: 320px; font-weight: 400; }
+.td-bonus--detail strong { font-weight: 700; color: #276749; display: block; margin-bottom: 4px; }
+.residual-lines {
+  margin: 6px 0 0;
+  padding-left: 1.1rem;
+  color: #4a5568;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  font-weight: 400;
+}
+.residual-lines--compact { font-size: 0.72rem; max-width: 280px; }
+.residual-lines li { margin-bottom: 4px; }
+.residual-lines__lvl {
+  font-weight: 600;
+  color: #2f855a;
+  margin-right: 4px;
+}
+.residual-lines__meta { color: #718096; }
+.residual-lines__amt { font-weight: 600; color: #276749; }
 .td-zero  { color: #cbd5e0; }
 .group-points-wrapper { display: flex; flex-direction: column; gap: 4px; }
 .group-total { font-weight: 600; color: #2d3748; }
