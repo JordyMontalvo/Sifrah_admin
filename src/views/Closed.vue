@@ -49,8 +49,12 @@
         <div class="summary-card summary-card--accent">
           <span class="summary-card__icon">🏆</span>
           <div>
-            <span class="summary-card__label">Bono logro / mant. rango</span>
+            <span class="summary-card__label">Bono logro / mant. rango (preview)</span>
             <strong class="summary-card__value">S/ {{ totalRankBonus.toFixed(2) }}</strong>
+            <span
+              v-if="totalRankBonus > 0"
+              class="summary-card__sub"
+            >{{ previewRankBonusLogroCount }} logro · {{ previewRankBonusMantCount }} mant.</span>
           </div>
         </div>
         <div class="summary-card summary-card--accent2">
@@ -126,7 +130,10 @@
             <tbody>
               <tr v-for="(node, i) in filteredTree" :key="node.id">
                 <td class="td-num">{{ i + 1 }}</td>
-                <td class="td-name">{{ node.name }}</td>
+                <td class="td-name">
+                  {{ node.name }}
+                  <div v-if="node.dni" class="user-dni-sub">DNI {{ node.dni }}</div>
+                </td>
                 <td>{{ node.points || 0 }}</td>
                 <td>
                   <div class="group-points-wrapper">
@@ -219,6 +226,12 @@
               <span class="chip chip--orange" v-if="cl.data && cl.data.reset_transactions">
                 🧹 {{ cl.data.reset_transactions }} reset virtual
               </span>
+              <span
+                class="chip chip--accent"
+                v-if="cl.data && cl.data.rank_bonus_total != null && Number(cl.data.rank_bonus_total) > 0"
+              >
+                🏆 rango S/ {{ Number(cl.data.rank_bonus_total).toFixed(2) }}
+              </span>
             </div>
           </div>
           <span class="toggle-icon">{{ cl._open ? '▲' : '▼' }}</span>
@@ -238,12 +251,16 @@
                   <th>Pts. Grupales</th>
                   <th>Rango Cerrado</th>
                   <th>Bono Residual</th>
+                  <th>Bono rango (logro / mant.)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(user, i) in filteredHistory(cl)" :key="i">
                   <td class="td-num">{{ i + 1 }}</td>
-                  <td class="td-name">{{ user.name }}</td>
+                  <td class="td-name">
+                    {{ user.name }}
+                    <div v-if="user.dni" class="user-dni-sub">DNI {{ user.dni }}</div>
+                  </td>
                   <td>
                     <div class="group-points-wrapper">
                       <div class="group-total">Total: {{ (user.total_points || user.total || 0).toFixed(0) }}</div>
@@ -278,6 +295,18 @@
                           <span class="residual-lines__meta">· PR {{ Number(ln.pr || 0).toFixed(0) }}</span>
                           <span class="residual-lines__meta">· {{ formatResidualPct(ln.percentage) }}</span>
                           <span class="residual-lines__amt">→ S/ {{ Number(ln.amount || 0).toFixed(2) }}</span>
+                        </li>
+                      </ul>
+                    </template>
+                    <span v-else class="td-zero">—</span>
+                  </td>
+                  <td class="td-rank-bonus">
+                    <template v-if="rankBonusForUser(cl, user.user_id || user.userId).total > 0">
+                      <strong>S/ {{ rankBonusForUser(cl, user.user_id || user.userId).total.toFixed(2) }}</strong>
+                      <ul class="rank-bonus-lines">
+                        <li v-for="(ln, li) in rankBonusForUser(cl, user.user_id || user.userId).lines" :key="`hist-rb-${ci}-${i}-${li}`">
+                          <span class="rank-bonus-tipo">{{ ln.tipo }}</span>
+                          {{ ln.rank }} · S/ {{ Number(ln.amount).toFixed(2) }}
                         </li>
                       </ul>
                     </template>
@@ -319,6 +348,7 @@
             <span>👥 Procesados: {{ cl.data.users_processed || 0 }}</span>
             <span>💳 Transacciones: {{ cl.data.bonus_transactions || 0 }}</span>
             <span>🔄 Resets: {{ cl.data.reset_transactions || 0 }}</span>
+            <span v-if="cl.data.rank_bonus_applied_count != null">🏆 Bonos rango: {{ cl.data.rank_bonus_applied_count }}</span>
           </div>
         </div>
       </div>
@@ -363,6 +393,18 @@ export default {
     totalRankBonus() {
       return (this.tree || []).reduce((sum, n) => sum + (Number(n.rank_bonus_total) || 0), 0)
     },
+    previewRankBonusLogroCount() {
+      return (this.tree || []).reduce((acc, node) => {
+        const lines = node.rank_bonus_lines || []
+        return acc + lines.filter((l) => l.tipo === 'logro').length
+      }, 0)
+    },
+    previewRankBonusMantCount() {
+      return (this.tree || []).reduce((acc, node) => {
+        const lines = node.rank_bonus_lines || []
+        return acc + lines.filter((l) => l.tipo === 'mantenimiento').length
+      }, 0)
+    },
     totalPreviewCierre() {
       return this.totalResidual + this.totalRankBonus
     },
@@ -391,7 +433,12 @@ export default {
       const q = this.search.toLowerCase()
       return (this.tree || [])
         .filter(e => e.rank && e.rank !== 'none')
-        .filter(e => !q || (e.name || '').toLowerCase().includes(q))
+        .filter((e) => {
+          if (!q) return true
+          const name = (e.name || '').toLowerCase()
+          const dni = String(e.dni || '').toLowerCase()
+          return name.includes(q) || dni.includes(q)
+        })
     },
   },
   methods: {
@@ -407,7 +454,20 @@ export default {
     },
     filteredHistory(cl) {
       const q = (cl._search || '').toLowerCase()
-      return (cl.users || []).filter(u => !q || (u.name || '').toLowerCase().includes(q))
+      return (cl.users || []).filter((u) => {
+        if (!q) return true
+        const name = (u.name || '').toLowerCase()
+        const dni = String(u.dni || '').toLowerCase()
+        return name.includes(q) || dni.includes(q)
+      })
+    },
+    rankBonusForUser(cl, userId) {
+      if (!cl || !cl.data || !userId) return { total: 0, lines: [] }
+      const logro = Array.isArray(cl.data.rank_bonus_logro) ? cl.data.rank_bonus_logro : []
+      const mant = Array.isArray(cl.data.rank_bonus_mantenimiento) ? cl.data.rank_bonus_mantenimiento : []
+      const lines = [...logro, ...mant].filter((x) => x && x.user_id === userId)
+      const total = lines.reduce((s, x) => s + Number(x.amount || 0), 0)
+      return { total, lines }
     },
     async GET() {
       this.loading = true
@@ -456,9 +516,15 @@ export default {
         const rb = data && data.rank_bonuses
         let extra = ''
         if (rb && !rb.error && typeof rb.totalAmount === 'number') {
-          extra = `\nBonos rango aplicados: S/ ${rb.totalAmount.toFixed(2)} (${(rb.applied || []).length} líneas).`
+          const lines = (rb.applied || []).length
+          const logro = rb.logro_count != null ? rb.logro_count : (rb.applied || []).filter(x => x.tipo === 'logro').length
+          const mant  = rb.mantenimiento_count != null ? rb.mantenimiento_count : (rb.applied || []).filter(x => x.tipo === 'mantenimiento').length
+          extra = `\nBonos rango aplicados: S/ ${rb.totalAmount.toFixed(2)} (${lines} líneas; logro=${logro}, mant=${mant}).`
+          if (lines === 0) {
+            extra += `\nNota: si en preview viste bonos pero aquí sale 0, revisa DB_URL/DB_NAME (Node) vs DB_URL_DEV/PROD (Go) y/o RankBonusPayment histórico.`
+          }
         } else if (rb && rb.error) {
-          extra = `\n⚠️ Bonos rango: error — ${rb.error}`
+          extra = `\n⚠️ Bonos rango: ${rb.error}`
         }
         alert(`✅ Cierre guardado exitosamente.${extra}`)
         location.reload()
@@ -597,6 +663,13 @@ export default {
 .cierre-table td { padding: 11px 16px; color: #2d3748; }
 .td-num   { color: #a0aec0; font-weight: 600; width: 40px; }
 .td-name  { font-weight: 500; }
+.user-dni-sub {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 4px;
+  line-height: 1.2;
+}
 .td-bonus { font-weight: 700; color: #38a169; }
 .td-bonus--detail { vertical-align: top; font-size: 0.82rem; max-width: 320px; font-weight: 400; }
 .td-bonus--detail strong { font-weight: 700; color: #276749; display: block; margin-bottom: 4px; }
