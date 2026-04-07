@@ -1565,10 +1565,11 @@ export default {
 
     getRankName(rank) {
       const rankNames = {
+        // Formato antiguo (MongoDB legacy)
         none: "Ninguno",
         active: "ACTIVO",
         star: "BRONCE",
-        master: "MASTER",
+        master: "PLATA",
         silver: "PLATA",
         gold: "ORO",
         sapphire: "ZAFIRO",
@@ -1577,8 +1578,18 @@ export default {
         "DOBLE DIAMANTE": "DOBLE DIAMANTE",
         "TRIPLE DIAMANTE": "TRIPLE DIAMANTE",
         "DIAMANTE ESTRELLA": "DIAMANTE ESTRELLA",
+        // Formato nuevo (Go engine)
+        ACTIVO: "ACTIVO",
+        BRONCE: "BRONCE",
+        PLATA: "PLATA",
+        ORO: "ORO",
+        "RUBÍ": "RUBÍ",
+        ESMERALDA: "ESMERALDA",
+        "DIAMANTE IMPERIAL": "DIAMANTE IMPERIAL",
+        "EMBAJADOR SIFRAH": "EMBAJADOR SIFRAH",
+        "DIAMANTE CORONA": "DIAMANTE CORONA",
       };
-      return rankNames[rank] || "Rango desconocido";
+      return rankNames[rank] || rank || "Rango desconocido";
     },
 
     getStatusText(person) {
