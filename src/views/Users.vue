@@ -415,16 +415,22 @@
                   </div>
                 </div>
                 <div class="field">
-                  <label class="label">Fecha</label>
+                  <label class="label">Periodo de cierre</label>
                   <div class="control">
-                    <input class="input" type="datetime-local" v-model="rankHistoryForm.date" />
+                    <div class="select is-fullwidth">
+                      <select v-model="rankHistoryForm.period" @change="onPeriodSelect">
+                        <option value="" disabled>Seleccionar período...</option>
+                        <option
+                          v-for="p in availablePeriods"
+                          :key="p.key"
+                          :value="p.key"
+                        >{{ p.key }}</option>
+                      </select>
+                    </div>
                   </div>
-                </div>
-                <div class="field">
-                  <label class="label">Periodo (YYYY-MM)</label>
-                  <div class="control">
-                    <input class="input" type="text" v-model="rankHistoryForm.period" placeholder="2026-04" />
-                  </div>
+                  <p v-if="!availablePeriods.length" class="help is-warning">
+                    No hay cierres guardados en la base de datos.
+                  </p>
                 </div>
                 <div class="field">
                   <button class="button is-primary is-fullwidth" @click="addRankHistoryEntry">
@@ -668,6 +674,7 @@ export default {
         affiliation_points: 0,
       },
       viewingUser: {},
+      availablePeriods: [],
       rankHistoryForm: {
         rank: "ACTIVO",
         date: "",
@@ -984,16 +991,49 @@ export default {
       }
     },
 
-    viewUser(user) {
+    async viewUser(user) {
       this.viewingUser = user;
       this.viewTab = "profile";
-      const now = new Date();
       this.rankHistoryForm = {
         rank: user.rank && user.rank !== "none" ? this.getRankLabel(user.rank) : "ACTIVO",
-        date: now.toISOString().slice(0, 16),
-        period: this.periodFromDate(now),
+        date: "",
+        period: "",
       };
       this.showViewModal = true;
+      await this.loadAvailablePeriods();
+    },
+
+    async loadAvailablePeriods() {
+      try {
+        const { data } = await api.closeds.GET();
+        const closeds = data.closeds || [];
+        // Ordenar por fecha descendente y extraer períodos únicos
+        const sorted = [...closeds].sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        );
+        const seen = new Set();
+        this.availablePeriods = sorted
+          .map((c) => {
+            const d = new Date(c.date);
+            if (isNaN(d.getTime())) return null;
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            return { key, date: c.date };
+          })
+          .filter((p) => {
+            if (!p || seen.has(p.key)) return false;
+            seen.add(p.key);
+            return true;
+          });
+        // Pre-seleccionar el período más reciente
+        if (this.availablePeriods.length && !this.rankHistoryForm.period) {
+          this.rankHistoryForm.period = this.availablePeriods[0].key;
+          this.rankHistoryForm.date = new Date(this.availablePeriods[0].date)
+            .toISOString()
+            .slice(0, 16);
+        }
+      } catch (e) {
+        console.error("Error cargando períodos disponibles:", e);
+      }
     },
 
     formatDateTime(value) {
@@ -1001,6 +1041,15 @@ export default {
       const d = new Date(value);
       if (isNaN(d.getTime())) return "-";
       return d.toLocaleString("es-PE");
+    },
+
+    onPeriodSelect() {
+      const found = this.availablePeriods.find(
+        (p) => p.key === this.rankHistoryForm.period
+      );
+      if (found) {
+        this.rankHistoryForm.date = new Date(found.date).toISOString().slice(0, 16);
+      }
     },
 
     periodFromDate(value) {
@@ -1287,10 +1336,6 @@ export default {
   watch: {
     showEditModal(val) {
       console.log("showEditModal changed:", val);
-    },
-    "rankHistoryForm.date"(val) {
-      if (!val) return;
-      this.rankHistoryForm.period = this.periodFromDate(val);
     },
   },
 };
