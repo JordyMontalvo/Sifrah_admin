@@ -534,6 +534,8 @@ export default {
           return "Activado";
         case "affiliated":
           return "Afiliado";
+        case "active_simple":
+          return "Activo (simple)";
         case "registered":
           return "Registrado";
         default:

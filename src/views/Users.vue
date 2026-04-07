@@ -339,7 +339,7 @@
                 <div
                   style="font-size: 0.95rem; color: #888; text-align: center"
                 >
-                  {{ getRankLabel(viewingUser.rank) }}
+                  {{ getEffectiveRankLabel(viewingUser) }}
                 </div>
               </div>
               <div
@@ -637,6 +637,7 @@ export default {
           options: [
             { value: "registered", label: "Registrado" },
             { value: "affiliated", label: "Afiliado" },
+            { value: "active_simple", label: "Activo (simple)" },
             { value: "activated", label: "Activado" },
           ],
         },
@@ -686,6 +687,8 @@ export default {
         ...user,
         status: user.activated
           ? "activated"
+          : user._activated
+          ? "active_simple"
           : user.affiliated
           ? "affiliated"
           : "registered",
@@ -709,7 +712,7 @@ export default {
             : "S/. 0.00",
         virtualbalanceRaw:
           user.virtualbalance != null ? Number(user.virtualbalance) : 0,
-        rankLabel: this.getRankLabel(user.rank),
+        rankLabel: this.getEffectiveRankLabel(user),
         plan: user.plan || "",
         planLabel: this.getPlanLabel(user.plan),
         affiliation_pointsplan: user.affiliation_pointsplan || 0,
@@ -843,7 +846,9 @@ export default {
     },
 
     getUserStatus(user) {
+      if (!user) return "-";
       if (user.activated) return "Activado";
+      if (user._activated) return "Activo (simple)";
       if (user.affiliated) return "Afiliado";
       return "Registrado";
     },
@@ -1221,6 +1226,21 @@ export default {
       if (val == "gold") return "ORO";
       if (val == "emerald") return "ESMERALDA";
       return val;
+    },
+
+    getEffectiveRankLabel(user) {
+      if (!user) return "-";
+
+      // 1) Si existe rank_history, usar el último registro (más reciente).
+      const rh = Array.isArray(user.rank_history) ? user.rank_history : [];
+      if (rh.length) {
+        const last = [...rh].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+        const r = last && last.rank ? String(last.rank).trim() : "";
+        if (r) return r;
+      }
+
+      // 2) Fallback al campo rank “actual” (códigos internos).
+      return this.getRankLabel(user.rank);
     },
 
     getPlanLabel(val) {
