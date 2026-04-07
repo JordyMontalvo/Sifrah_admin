@@ -1005,31 +1005,21 @@ export default {
 
     async loadAvailablePeriods() {
       try {
-        const { data } = await api.closeds.GET();
-        const closeds = data.closeds || [];
-        // Ordenar por fecha descendente y extraer períodos únicos
-        const sorted = [...closeds].sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
-        const seen = new Set();
-        this.availablePeriods = sorted
-          .map((c) => {
-            const d = new Date(c.date);
-            if (isNaN(d.getTime())) return null;
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-            return { key, date: c.date };
-          })
-          .filter((p) => {
-            if (!p || seen.has(p.key)) return false;
-            seen.add(p.key);
-            return true;
-          });
+        const { data } = await api.Periods.GET();
+        const periods = data.periods || [];
+
+        // Lista completa de períodos existentes en DB (YYYY-MM), ordenados desc.
+        this.availablePeriods = periods
+          .map((p) => ({
+            key: p.key || "",
+            createdAt: p.createdAt || null,
+          }))
+          .filter((p) => /^\d{4}-\d{2}$/.test(p.key));
+
         // Pre-seleccionar el período más reciente
         if (this.availablePeriods.length && !this.rankHistoryForm.period) {
           this.rankHistoryForm.period = this.availablePeriods[0].key;
-          this.rankHistoryForm.date = new Date(this.availablePeriods[0].date)
-            .toISOString()
-            .slice(0, 16);
+          this.onPeriodSelect();
         }
       } catch (e) {
         console.error("Error cargando períodos disponibles:", e);
@@ -1048,7 +1038,9 @@ export default {
         (p) => p.key === this.rankHistoryForm.period
       );
       if (found) {
-        this.rankHistoryForm.date = new Date(found.date).toISOString().slice(0, 16);
+        // Para rank_history, el campo date es obligatorio: usamos createdAt del período (o 'ahora' si no existe).
+        const d = found.createdAt ? new Date(found.createdAt) : new Date();
+        this.rankHistoryForm.date = d.toISOString().slice(0, 16);
       }
     },
 
