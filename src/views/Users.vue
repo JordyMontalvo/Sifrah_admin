@@ -446,16 +446,30 @@
                       <th>Periodo</th>
                       <th>Fecha</th>
                       <th>Rango</th>
+                      <th style="width: 120px">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(entry, idx) in sortedRankHistory" :key="`rh-${idx}`">
+                    <tr
+                      v-for="entry in sortedRankHistory"
+                      :key="rankHistoryRowKey(entry)"
+                    >
                       <td>{{ entry.period || periodFromDate(entry.date) || '-' }}</td>
                       <td>{{ formatDateTime(entry.date) }}</td>
                       <td>{{ entry.rank }}</td>
+                      <td>
+                        <button
+                          type="button"
+                          class="button is-small is-danger is-light"
+                          title="Eliminar este registro"
+                          @click="removeRankHistoryEntry(entry)"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
                     </tr>
                     <tr v-if="!sortedRankHistory.length">
-                      <td colspan="3" style="text-align: center; color: #7a7a7a;">
+                      <td colspan="4" style="text-align: center; color: #7a7a7a;">
                         Sin historial registrado
                       </td>
                     </tr>
@@ -1156,6 +1170,75 @@ export default {
           icon: "error",
           title: "Error",
           text: "No se pudo agregar el historial de rango",
+          timer: 2200,
+          showConfirmButton: false,
+        });
+      }
+    },
+
+    rankHistoryRowKey(entry) {
+      const p = entry.period || this.periodFromDate(entry.date) || "";
+      const t = new Date(entry.date).getTime();
+      return `rh-${entry.rank}-${t}-${p}`;
+    },
+
+    sameRankHistoryRow(a, b) {
+      if (String(a.rank) !== String(b.rank)) return false;
+      if (new Date(a.date).getTime() !== new Date(b.date).getTime()) return false;
+      const pa = a.period || this.periodFromDate(a.date);
+      const pb = b.period || this.periodFromDate(b.date);
+      return pa === pb;
+    },
+
+    async removeRankHistoryEntry(entry) {
+      const confirmed = await Swal.fire({
+        title: "¿Eliminar este registro?",
+        html: "Se quitará esta fila del historial de rangos del usuario.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#d209b6",
+      });
+      if (!confirmed.isConfirmed) return;
+      if (!this.viewingUser.id) return;
+      try {
+        await api.users.POST({
+          action: "remove_rank_history",
+          id: this.viewingUser.id,
+          data: {
+            rank: entry.rank,
+            date: entry.date,
+            period: entry.period || this.periodFromDate(entry.date),
+          },
+        });
+
+        const current = Array.isArray(this.viewingUser.rank_history)
+          ? [...this.viewingUser.rank_history]
+          : [];
+        const i = current.findIndex((e) => this.sameRankHistoryRow(e, entry));
+        if (i !== -1) current.splice(i, 1);
+        this.viewingUser = { ...this.viewingUser, rank_history: current };
+
+        const uid = this.viewingUser.id;
+        const listIdx = this.users.findIndex((u) => u.id === uid);
+        if (listIdx !== -1) {
+          const u = { ...this.users[listIdx], rank_history: current };
+          this.$set(this.users, listIdx, u);
+        }
+
+        Swal.fire({
+          icon: "success",
+          title: "Registro eliminado",
+          timer: 1600,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error removing rank history:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo eliminar el registro",
           timer: 2200,
           showConfirmButton: false,
         });
