@@ -270,6 +270,30 @@
                   selectedAffiliation.plan && selectedAffiliation.plan.amount
                 }}</span>
               </div>
+              <div class="detail-item" v-if="Array.isArray(selectedAffiliation.amounts)">
+                <span class="detail-label"
+                  ><i class="fas fa-wallet"></i> Abono con saldo:</span
+                >
+                <span class="detail-value">
+                  S/ {{ Number(selectedAffiliation.amounts[1] || 0).toFixed(2) }}
+                </span>
+              </div>
+              <div class="detail-item" v-if="Array.isArray(selectedAffiliation.amounts)">
+                <span class="detail-label"
+                  ><i class="fas fa-coins"></i> Abono con saldo no disponible:</span
+                >
+                <span class="detail-value">
+                  S/ {{ Number(selectedAffiliation.amounts[0] || 0).toFixed(2) }}
+                </span>
+              </div>
+              <div class="detail-item" v-if="Array.isArray(selectedAffiliation.amounts)">
+                <span class="detail-label"
+                  ><i class="fas fa-file-invoice-dollar"></i> Faltante / pago con voucher:</span
+                >
+                <span class="detail-value" style="font-weight: 800;">
+                  S/ {{ Number(selectedAffiliation.amounts[2] || 0).toFixed(2) }}
+                </span>
+              </div>
               <div class="detail-item">
                 <span class="detail-label"
                   ><i class="fas fa-box"></i> Productos:</span
