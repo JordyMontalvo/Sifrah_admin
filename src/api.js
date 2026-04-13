@@ -1,10 +1,17 @@
 import axios from "axios";
 
-// Configuración temporal para debugging
-const SERVER_URL = process.env.VUE_APP_SERVER || "http://localhost:3000";
-console.log("🔧 API configurada para servidor:", SERVER_URL);
+// Configuración para diferentes entornos (igual que la app)
+const getBaseURL = () => {
+    if (process.env.VUE_APP_SERVER) {
+        return process.env.VUE_APP_SERVER + "/api";
+    }
+    const isDevelopment = process.env.NODE_ENV === "development";
+    return isDevelopment
+        ? "/api"
+        : "https://sifrah-server-0920254d8662.herokuapp.com/api";
+};
 
-axios.defaults.baseURL = SERVER_URL + "/api";
+axios.defaults.baseURL = getBaseURL();
 
 class API {
     constructor({
