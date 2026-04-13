@@ -37,6 +37,7 @@ import Materials from "./views/Materials.vue";
 import Audios from "./views/Audios.vue";
 import Books from "./views/Books.vue";
 import RankHistorySummary from "./views/RankHistorySummary.vue";
+import ValidacionVouchers from "./views/ValidacionVouchers.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -230,6 +231,11 @@ const routes = [
   {
     path: "/rank-history-summary",
     component: RankHistorySummary,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/validacion-vouchers",
+    component: ValidacionVouchers,
     meta: { requiresAuth: true },
   },
 ];

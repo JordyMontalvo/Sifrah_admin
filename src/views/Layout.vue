@@ -448,6 +448,12 @@
         </div>
 
         <div v-if="activeMenu === 'payments'" class="menu-items">
+          <a class="menu-item" href="/validacion-vouchers" @click="closeMenu" v-if="accountType === 'admin'">
+            <span class="icon">
+              <i class="fas fa-receipt"></i>
+            </span>
+            <span>Validación de Vouchers</span>
+          </a>
           <a class="menu-item" href="/pay" @click="closeMenu">
             <span class="icon">
               <i class="fas fa-credit-card"></i>

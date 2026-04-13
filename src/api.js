@@ -394,6 +394,12 @@ class PaymentMethods {
     }
 }
 
+class PaymentValidations {
+    GET({ filter = "pending", kind = "all" } = {}) {
+        return axios.get(`/admin/payment-validations?filter=${filter}&kind=${kind}`);
+    }
+}
+
 class Periods {
     GET() {
         return axios.get(`/admin/periods`);
@@ -512,6 +518,7 @@ export default new API({
     mlmApi: new MLMApi(),
     deliveryManagement: new DeliveryManagement(),
     paymentMethods: new PaymentMethods(),
+    paymentValidations: new PaymentValidations(),
     Periods: new Periods(),
     flyers: new Flyers(),
     materials: new Materials(),
