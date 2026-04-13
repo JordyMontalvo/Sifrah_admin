@@ -117,12 +117,35 @@
             <span v-else>N/A</span>
           </template>
           <template #cell-payment_split="{ row }">
-            <div style="display:flex; flex-direction:column; gap:4px; line-height:1.1;">
+            <div
+              v-if="paymentSplitDisplay(row.raw).legacyMissing"
+              style="display:flex; flex-direction:column; gap:4px; line-height:1.15;"
+            >
+              <span class="tag is-warning is-light" style="align-self:flex-start;">Histórico</span>
+              <small style="color:#6b7280;">Sin detalle de abono guardado</small>
+            </div>
+            <div
+              v-else
+              style="display:flex; flex-direction:column; gap:4px; line-height:1.15;"
+            >
+              <span
+                class="tag is-light"
+                style="align-self:flex-start;"
+                :class="{
+                  'is-info': paymentSplitDisplay(row.raw).mode === 'mixed',
+                  'is-success': paymentSplitDisplay(row.raw).mode === 'balance_only',
+                  'is-dark': paymentSplitDisplay(row.raw).mode === 'external_only',
+                }"
+              >{{ paymentSplitDisplay(row.raw).modeLabel }}</span>
+              <small
+                v-if="paymentSplitDisplay(row.raw).paid_virtual > 0"
+                style="color:#6b7280;"
+              >No disp.: S/ {{ paymentSplitDisplay(row.raw).paid_virtual.toFixed(2) }}</small>
               <small style="color:#374151; font-weight:700;">
-                Saldo: S/ {{ Number(getPaidBalance(row.raw) || 0).toFixed(2) }}
+                Saldo disp.: S/ {{ paymentSplitDisplay(row.raw).paid_balance.toFixed(2) }}
               </small>
               <small style="color:#6b7280;">
-                Faltante: S/ {{ Number(getDueAmount(row.raw) || 0).toFixed(2) }}
+                Faltante: S/ {{ paymentSplitDisplay(row.raw).due.toFixed(2) }}
               </small>
             </div>
           </template>
@@ -280,30 +303,44 @@
                   selectedAffiliation.plan && selectedAffiliation.plan.amount
                 }}</span>
               </div>
-              <div class="detail-item" v-if="Array.isArray(selectedAffiliation.amounts)">
+              <div class="detail-item" v-if="paymentSplitDisplay(selectedAffiliation).legacyMissing">
                 <span class="detail-label"
-                  ><i class="fas fa-wallet"></i> Abono con saldo:</span
+                  ><i class="fas fa-wallet"></i> Abono / faltante:</span
                 >
-                <span class="detail-value">
-                  S/ {{ Number(selectedAffiliation.amounts[1] || 0).toFixed(2) }}
-                </span>
+                <span class="detail-value">Registro histórico sin detalle guardado</span>
               </div>
-              <div class="detail-item" v-if="Array.isArray(selectedAffiliation.amounts)">
-                <span class="detail-label"
-                  ><i class="fas fa-coins"></i> Abono con saldo no disponible:</span
-                >
-                <span class="detail-value">
-                  S/ {{ Number(selectedAffiliation.amounts[0] || 0).toFixed(2) }}
-                </span>
-              </div>
-              <div class="detail-item" v-if="Array.isArray(selectedAffiliation.amounts)">
-                <span class="detail-label"
-                  ><i class="fas fa-file-invoice-dollar"></i> Faltante / pago con voucher:</span
-                >
-                <span class="detail-value" style="font-weight: 800;">
-                  S/ {{ Number(selectedAffiliation.amounts[2] || 0).toFixed(2) }}
-                </span>
-              </div>
+              <template v-else>
+                <div class="detail-item">
+                  <span class="detail-label"
+                    ><i class="fas fa-random"></i> Tipo:</span
+                  >
+                  <span class="detail-value">{{ paymentSplitDisplay(selectedAffiliation).modeLabel }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label"
+                    ><i class="fas fa-wallet"></i> Abono con saldo disponible:</span
+                  >
+                  <span class="detail-value">
+                    S/ {{ paymentSplitDisplay(selectedAffiliation).paid_balance.toFixed(2) }}
+                  </span>
+                </div>
+                <div class="detail-item" v-if="paymentSplitDisplay(selectedAffiliation).paid_virtual > 0">
+                  <span class="detail-label"
+                    ><i class="fas fa-coins"></i> Abono saldo no disponible:</span
+                  >
+                  <span class="detail-value">
+                    S/ {{ paymentSplitDisplay(selectedAffiliation).paid_virtual.toFixed(2) }}
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label"
+                    ><i class="fas fa-file-invoice-dollar"></i> Faltante (voucher/efectivo):</span
+                  >
+                  <span class="detail-value" style="font-weight: 800;">
+                    S/ {{ paymentSplitDisplay(selectedAffiliation).due.toFixed(2) }}
+                  </span>
+                </div>
+              </template>
               <div class="detail-item">
                 <span class="detail-label"
                   ><i class="fas fa-box"></i> Productos:</span
@@ -1043,23 +1080,45 @@ export default {
     await this.GET(this.$route.params.filter);
   },
   methods: {
+    paymentSplitDisplay(affiliation) {
+      const pb = affiliation && affiliation.payment_breakdown;
+      if (pb && pb.legacy_missing_amounts) {
+        return { legacyMissing: true };
+      }
+      let paid_virtual = 0;
+      let paid_balance = 0;
+      let due = 0;
+      let mode = "external_only";
+      if (pb) {
+        paid_virtual = Number(pb.paid_virtual || 0);
+        paid_balance = Number(pb.paid_balance || 0);
+        due = Number(pb.due || 0);
+        mode = pb.mode || "external_only";
+      } else if (affiliation && Array.isArray(affiliation.amounts) && affiliation.amounts.length >= 3) {
+        paid_virtual = Number(affiliation.amounts[0] || 0);
+        paid_balance = Number(affiliation.amounts[1] || 0);
+        due = Number(affiliation.amounts[2] || 0);
+      }
+      const modeLabel =
+        mode === "balance_only"
+          ? "Todo con saldo"
+          : mode === "mixed"
+          ? "Mixto (saldo + voucher)"
+          : "Sin saldo (solo voucher/banco)";
+      return {
+        legacyMissing: false,
+        paid_virtual,
+        paid_balance,
+        due,
+        mode,
+        modeLabel,
+      };
+    },
     getPaidBalance(affiliation) {
-      if (affiliation && affiliation.payment_breakdown) {
-        return affiliation.payment_breakdown.paid_balance || 0;
-      }
-      if (affiliation && Array.isArray(affiliation.amounts)) {
-        return affiliation.amounts[1] || 0;
-      }
-      return 0;
+      return this.paymentSplitDisplay(affiliation).paid_balance;
     },
     getDueAmount(affiliation) {
-      if (affiliation && affiliation.payment_breakdown) {
-        return affiliation.payment_breakdown.due || 0;
-      }
-      if (affiliation && Array.isArray(affiliation.amounts)) {
-        return affiliation.amounts[2] || 0;
-      }
-      return 0;
+      return this.paymentSplitDisplay(affiliation).due;
     },
     async loadPeriods() {
       try {
