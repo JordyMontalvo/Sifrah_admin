@@ -116,6 +116,16 @@
             </span>
             <span v-else>N/A</span>
           </template>
+          <template #cell-payment_split="{ row }">
+            <div style="display:flex; flex-direction:column; gap:4px; line-height:1.1;">
+              <small style="color:#374151; font-weight:700;">
+                Saldo: S/ {{ Number(getPaidBalance(row.raw) || 0).toFixed(2) }}
+              </small>
+              <small style="color:#6b7280;">
+                Faltante: S/ {{ Number(getDueAmount(row.raw) || 0).toFixed(2) }}
+              </small>
+            </div>
+          </template>
           <template #cell-office="{ row }">
             {{ row.raw.officeName || getOfficeName(row.raw.officeId || row.raw.office) }}
           </template>
@@ -579,6 +589,11 @@ export default {
           type: "currency",
         },
         {
+          key: "payment_split",
+          label: "Abono / Faltante",
+          sortable: false,
+        },
+        {
           key: "products",
           label: "Productos",
           sortable: false,
@@ -1028,6 +1043,24 @@ export default {
     await this.GET(this.$route.params.filter);
   },
   methods: {
+    getPaidBalance(affiliation) {
+      if (affiliation && affiliation.payment_breakdown) {
+        return affiliation.payment_breakdown.paid_balance || 0;
+      }
+      if (affiliation && Array.isArray(affiliation.amounts)) {
+        return affiliation.amounts[1] || 0;
+      }
+      return 0;
+    },
+    getDueAmount(affiliation) {
+      if (affiliation && affiliation.payment_breakdown) {
+        return affiliation.payment_breakdown.due || 0;
+      }
+      if (affiliation && Array.isArray(affiliation.amounts)) {
+        return affiliation.amounts[2] || 0;
+      }
+      return 0;
+    },
     async loadPeriods() {
       try {
         const { data } = await api.Periods.GET();
