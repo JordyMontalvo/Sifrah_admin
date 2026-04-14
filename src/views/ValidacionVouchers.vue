@@ -85,6 +85,7 @@
 
           <template #cell-voucher="{ row }">
             <div style="display:flex; gap:8px; align-items:center;">
+              <!-- Voucher 1 -->
               <span v-if="row.voucher && isImage(row.voucher)">
                 <img
                   :src="row.voucher"
@@ -94,7 +95,19 @@
                   style="max-width: 60px; max-height: 60px; cursor:pointer; border-radius:6px; border:1px solid #eee;"
                 />
               </span>
-              <span v-else-if="row.voucher">{{ row.voucher }}</span>
+              <span v-else-if="row.voucher" class="is-size-7">{{ row.voucher }}</span>
+
+              <!-- Voucher 2 -->
+              <span v-if="row.voucher2 && isImage(row.voucher2)">
+                <img
+                  :src="row.voucher2"
+                  alt="Voucher 2"
+                  class="voucher-thumb"
+                  @click="openImageModal(row.voucher2)"
+                  style="max-width: 60px; max-height: 60px; cursor:pointer; border-radius:6px; border:1px solid #eee;"
+                />
+              </span>
+              <span v-else-if="row.voucher2" class="is-size-7">{{ row.voucher2 }}</span>
             </div>
           </template>
 
@@ -234,7 +247,14 @@ export default {
   },
   methods: {
     isImage(url) {
-      return /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(String(url || ""));
+      if (!url) return false;
+      const s = String(url);
+      return (
+        /\.(png|jpg|jpeg|gif|webp|svg)/i.test(s) || 
+        s.startsWith("data:image/") ||
+        s.includes("cloudinary.com") ||
+        s.includes("blob:")
+      );
     },
     modeLabel(mode) {
       if (mode === "balance_only") return "Todo con saldo";
