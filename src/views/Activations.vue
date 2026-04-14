@@ -172,6 +172,25 @@
               {{ row.products_delivered ? 'Entregado' : 'Pendiente' }}
             </span>
           </template>
+          <template #cell-payment_step="{ row }">
+            <div v-if="checkIsBank(row.raw)" class="payment-step-container">
+              <span v-if="row.status === 'pending'" class="payment-tag is-pending">
+                <i class="fas fa-clock"></i> Pendiente
+                <button class="button is-mini is-primary mt-1" @click="handleItemAction({ action: 'validate_voucher', item: row })">
+                  Validar
+                </button>
+              </span>
+              <span v-else-if="row.status === 'verified'" class="payment-tag is-verified">
+                <i class="fas fa-check-double"></i> Verificado
+              </span>
+              <span v-else class="payment-tag is-approved">
+                <i class="fas fa-check-circle"></i> Confirmado
+              </span>
+            </div>
+            <div v-else>
+              <span class="tag is-light is-rounded">No aplica</span>
+            </div>
+          </template>
         </ModernTable>
       </div>
       <!-- End of Modern Table -->
@@ -598,6 +617,11 @@ export default {
         {
           key: "voucher",
           label: "Voucher",
+          sortable: false,
+        },
+        {
+          key: "payment_step",
+          label: "Estado Financiero",
           sortable: false,
         },
         {
@@ -1409,6 +1433,18 @@ export default {
       }
     },
 
+    checkIsBank(activation) {
+      if (!activation) return false;
+      const method = (activation.pay_method || "").toLowerCase();
+      const bank = (activation.bank || "").toLowerCase();
+      return (
+        method.includes("bank") ||
+        method.includes("banco") ||
+        bank.includes("transferencia") ||
+        bank.includes("efectivo")
+      );
+    },
+
     async download() {
       try {
         // Mostrar loading
@@ -2100,5 +2136,52 @@ export default {
 .delivery-checkbox span {
   font-size: 0.95rem;
   color: #222;
+}
+
+.payment-step-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.payment-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: 100%;
+  text-align: center;
+}
+
+.payment-tag.is-pending {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.payment-tag.is-verified {
+  background: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #d8b4fe;
+}
+
+.payment-tag.is-approved {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.button.is-mini {
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  height: auto;
+}
+
+.mt-1 {
+  margin-top: 4px;
 }
 </style>
