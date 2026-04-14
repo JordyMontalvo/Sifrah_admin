@@ -305,19 +305,6 @@ export default {
           kind: this.kind,
         });
         let items = (data && data.items) || [];
-        // Filtro local por search: nombre/dni/operación
-        if (this.search) {
-          const s = String(this.search).toLowerCase();
-          items = items.filter((it) => {
-            const u = it.user || {};
-            return (
-              String(u.name || "").toLowerCase().includes(s) ||
-              String(u.lastName || "").toLowerCase().includes(s) ||
-              String(u.dni || "").toLowerCase().includes(s) ||
-              String(it.voucher_number || "").toLowerCase().includes(s)
-            );
-          });
-        }
         this.items = this.buildDuplicateFlags(items);
       } catch (e) {
         console.error("Error cargando payment-validations:", e);
