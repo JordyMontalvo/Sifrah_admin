@@ -29,6 +29,9 @@
           :show-pagination="false"
           search-placeholder="Buscar por nombre, DNI o N° operación..."
           :filters="tableFilters"
+          :server-pagination="true"
+          :initial-search="search"
+          :initial-filters="{ filter, kind }"
           @item-action="handleItemAction"
           @search="handleSearch"
           @filter="handleFilter"
@@ -154,6 +157,7 @@ export default {
           key: "filter",
           label: "Estado",
           type: "select",
+          placeholder: "Estado",
           options: [
             { value: "pending", label: "Pendiente" },
             { value: "approved", label: "Aprobada" },
@@ -165,6 +169,7 @@ export default {
           key: "kind",
           label: "Tipo",
           type: "select",
+          placeholder: "Tipo",
           options: [
             { value: "all", label: "Todos" },
             { value: "affiliation", label: "Afiliación" },

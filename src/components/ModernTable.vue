@@ -356,6 +356,18 @@ export default {
       type: Boolean,
       default: false,
     },
+    initialSearch: {
+      type: String,
+      default: "",
+    },
+    initialFilters: {
+      type: Object,
+      default: () => ({}),
+    },
+  },
+  created() {
+    this.searchQuery = this.initialSearch;
+    this.filterValues = { ...this.initialFilters };
   },
   data() {
     return {
