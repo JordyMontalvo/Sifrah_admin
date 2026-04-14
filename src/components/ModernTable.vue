@@ -403,7 +403,10 @@ export default {
       // Apply filters
       Object.keys(this.filterValues).forEach((key) => {
         const value = this.filterValues[key];
-        if (value) {
+        // Tratar "all"/"todos" como "sin filtro"
+        const normalized =
+          value == null ? "" : String(value).trim().toLowerCase();
+        if (normalized && normalized !== "all" && normalized !== "todos") {
           data = data.filter((item) => item[key] === value);
         }
       });
