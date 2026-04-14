@@ -224,10 +224,13 @@
     </div>
 
     <!-- Pagination -->
-    <div class="table-pagination" v-if="showPagination && totalPages > 1">
+    <div
+      class="table-pagination"
+      v-if="showPagination && effectiveTotalPages > 1"
+    >
       <div class="pagination-info">
         Mostrando {{ startIndex + 1 }} - {{ endIndex }} de
-        {{ totalItems }} registros
+        {{ effectiveTotalItems }} registros
       </div>
 
       <div class="pagination-controls">
@@ -255,7 +258,7 @@
 
         <button
           class="pagination-btn"
-          :disabled="currentPage === totalPages"
+          :disabled="currentPage === effectiveTotalPages"
           @click="goToPage(currentPage + 1)"
         >
           <span class="icon">
@@ -436,17 +439,29 @@ export default {
         return this.filteredData.slice(this.startIndex, this.endIndex);
       }
     },
+    effectiveTotalItems() {
+      // En paginación local, el total real lo determina `filteredData`.
+      return this.serverPagination ? this.totalItems : this.filteredData.length;
+    },
+    effectiveTotalPages() {
+      if (this.serverPagination) return this.totalPages;
+      const perPage = Number(this.itemsPerPage) || 20;
+      return Math.max(1, Math.ceil(this.effectiveTotalItems / perPage));
+    },
     visiblePages() {
       const pages = [];
       const maxVisible = 5;
 
-      if (this.totalPages <= maxVisible) {
-        for (let i = 1; i <= this.totalPages; i++) {
+      if (this.effectiveTotalPages <= maxVisible) {
+        for (let i = 1; i <= this.effectiveTotalPages; i++) {
           pages.push(i);
         }
       } else {
         const start = Math.max(1, this.currentPage - 2);
-        const end = Math.min(this.totalPages, start + maxVisible - 1);
+        const end = Math.min(
+          this.effectiveTotalPages,
+          start + maxVisible - 1
+        );
 
         for (let i = start; i <= end; i++) {
           pages.push(i);
@@ -466,7 +481,10 @@ export default {
       if (this.serverPagination) {
         return Math.min(this.startIndex + this.itemsPerPage, this.totalItems);
       } else {
-        return Math.min(this.startIndex + this.itemsPerPage, this.totalItems);
+        return Math.min(
+          this.startIndex + this.itemsPerPage,
+          this.effectiveTotalItems
+        );
       }
     },
   },
@@ -513,7 +531,7 @@ export default {
       });
     },
     goToPage(page) {
-      if (page >= 1 && page <= this.totalPages) {
+      if (page >= 1 && page <= this.effectiveTotalPages) {
         this.$emit("page-change", page);
       }
     },
