@@ -220,6 +220,10 @@ export default {
     },
   },
   async created() {
+    const { search, voucher_number } = this.$route.query;
+    if (search || voucher_number) {
+      this.search = search || voucher_number;
+    }
     await this.refresh();
   },
   methods: {
@@ -250,16 +254,20 @@ export default {
       this.imageModalUrl = "";
     },
     buildDuplicateFlags(items) {
-      // Heurística simple: mismo bank + voucher_number (si existe) repetido
+      // Usamos el flag possibleDuplicate que viene del backend (valida contra toda la base de datos)
+      // Pero también hacemos un chequeo local rápido por si acaso
       const keyCount = new Map();
       items.forEach((it) => {
         const k = `${String(it.bank || "").toLowerCase()}::${String(it.voucher_number || "").trim()}`;
         if (!it.voucher_number) return;
         keyCount.set(k, (keyCount.get(k) || 0) + 1);
       });
+
       return items.map((it) => {
         const k = `${String(it.bank || "").toLowerCase()}::${String(it.voucher_number || "").trim()}`;
-        const possibleDuplicate = !!it.voucher_number && (keyCount.get(k) || 0) > 1;
+        const localDup = !!it.voucher_number && (keyCount.get(k) || 0) > 1;
+        // Priorizamos el flag del backend if exists, sino el local
+        const possibleDuplicate = it.possibleDuplicate || localDup;
         return { ...it, possibleDuplicate };
       });
     },
@@ -319,7 +327,10 @@ export default {
           await this.refresh();
         } catch (e) {
           console.error("Error acción validación:", e);
-          if (this.$toast) this.$toast.error("No se pudo ejecutar la acción");
+          const msg = e.response && e.response.data && e.response.data.error 
+            ? e.response.data.error 
+            : "No se pudo ejecutar la acción";
+          if (this.$toast) this.$toast.error(msg);
         }
       }
     },

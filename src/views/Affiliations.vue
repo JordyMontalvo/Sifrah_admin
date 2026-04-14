@@ -715,6 +715,13 @@ export default {
           class: "is-danger",
         },
         {
+          key: "validate_voucher",
+          label: "Validar Voucher",
+          icon: "fas fa-file-invoice-dollar",
+          class: "is-success",
+          condition: (item) => (item.pay_method || "").toLowerCase().includes("bank") || (item.pay_method || "").toLowerCase().includes("banco"),
+        },
+        {
           key: "view",
           label: "Ver Detalles",
           icon: "fas fa-eye",
@@ -1408,6 +1415,12 @@ export default {
       } else if (action === "view") {
         this.selectedAffiliation = affiliation;
         this.showViewModal = true;
+      } else if (action === "validate_voucher") {
+        const vn = affiliation.voucher_number || "";
+        this.$router.push({
+          path: "/validacion-vouchers",
+          query: { search: vn },
+        });
       }
     },
 
