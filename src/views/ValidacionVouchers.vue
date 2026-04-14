@@ -325,11 +325,7 @@ export default {
         const ok = confirm(`¿Deseas ${action === "approve" ? "aprobar" : "rechazar"} este pago?`);
         if (!ok) return;
         try {
-          if (raw.kind === "activation") {
-            await api.Activations.POST({ action, id: raw.id });
-          } else {
-            await api.Affiliations.POST({ action, id: raw.id });
-          }
+          await api.paymentValidations.POST({ action, id: raw.id, kind: raw.kind });
           await this.refresh();
         } catch (e) {
           console.error("Error acción validación:", e);

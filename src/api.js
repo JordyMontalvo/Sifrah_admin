@@ -400,6 +400,9 @@ class PaymentValidations {
     GET({ filter = "pending", kind = "all" } = {}) {
         return axios.get(`/admin/payment-validations?filter=${filter}&kind=${kind}`);
     }
+    POST({ action, id, kind }) {
+        return axios.post(`/admin/payment-validations`, { action, id, kind });
+    }
 }
 
 class Periods {
