@@ -41,6 +41,7 @@ class API {
         mlmApi,
         deliveryManagement,
         paymentMethods,
+        paymentValidations,
         Periods,
         flyers,
         materials,
@@ -76,6 +77,7 @@ class API {
         this.mlmApi = mlmApi;
         this.deliveryManagement = deliveryManagement;
         this.paymentMethods = paymentMethods;
+        this.paymentValidations = paymentValidations;
         this.Periods = Periods;
         this.flyers = flyers;
         this.materials = materials;
