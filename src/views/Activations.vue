@@ -1437,11 +1437,13 @@ export default {
       if (!activation) return false;
       const method = (activation.pay_method || "").toLowerCase();
       const bank = (activation.bank || "").toLowerCase();
+      const hasVoucher = !!(activation.voucher || activation.voucher2);
       return (
         method.includes("bank") ||
         method.includes("banco") ||
         bank.includes("transferencia") ||
-        bank.includes("efectivo")
+        bank.includes("efectivo") ||
+        hasVoucher
       );
     },
 

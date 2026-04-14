@@ -1426,11 +1426,13 @@ export default {
       if (!aff) return false;
       const method = (aff.pay_method || "").toLowerCase();
       const bank = (aff.bank || "").toLowerCase();
+      const hasVoucher = !!(aff.voucher || aff.voucher2);
       return (
         method.includes("bank") ||
         method.includes("banco") ||
         bank.includes("transferencia") ||
-        bank.includes("efectivo")
+        bank.includes("efectivo") ||
+        hasVoucher
       );
     },
 
