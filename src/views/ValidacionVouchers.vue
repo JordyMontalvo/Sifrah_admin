@@ -230,6 +230,10 @@ export default {
           voucher: raw.voucher || "",
           dup: raw.possibleDuplicate ? "dup" : "ok",
           status: raw.status,
+          // ModernTable filtra por `filter` y `kind` según las keys definidas en `tableFilters`.
+          // Si no existen en el item, el filtro por defecto (pending) elimina todas las filas.
+          filter: String(raw.status || "pending").toLowerCase(),
+          kind: String(raw.kind || "affiliation").toLowerCase(),
           kindLabel,
           payment_breakdown: raw.payment_breakdown || null,
           possibleDuplicate: !!raw.possibleDuplicate,
