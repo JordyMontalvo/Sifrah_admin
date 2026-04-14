@@ -258,6 +258,24 @@ body.dark-mode {
   color: #991b1b;
 }
 
+/* Status Badge Component Styles */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.status-verified {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #d8b4fe;
+}
+
 /* Table Styles */
 .table-container {
   background: white;

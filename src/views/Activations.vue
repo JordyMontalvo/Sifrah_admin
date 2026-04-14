@@ -152,6 +152,7 @@
               :class="{
                 'status-approved': row.status === 'approved',
                 'status-pending': row.status === 'pending',
+                'status-verified': row.status === 'verified',
                 'status-rejected': row.status === 'rejected',
                 'status-cancelled': row.status === 'cancelled'
               }"
@@ -637,14 +638,19 @@ export default {
           label: "Aprobar",
           icon: "fas fa-check",
           class: "is-success",
-          condition: (item) => item.status === "pending",
+          condition: (item) => {
+            const isBank = (item.pay_method || "").toLowerCase().includes("bank") || 
+                           (item.pay_method || "").toLowerCase().includes("banco");
+            if (isBank) return item.status === "verified";
+            return item.status === "pending";
+          },
         },
         {
           key: "reject",
           label: "Rechazar",
           icon: "fas fa-times",
           class: "is-danger",
-          condition: (item) => item.status === "pending",
+          condition: (item) => item.status === "pending" || item.status === "verified",
         },
         {
           key: "edit",
@@ -695,6 +701,7 @@ export default {
           options: [
             { value: "", label: "Todos" },
             { value: "pending", label: "Pendiente" },
+            { value: "verified", label: "Pago Verificado" },
             { value: "approved", label: "Aprobada" },
             { value: "rejected", label: "Rechazada" },
             { value: "cancelled", label: "Anulada" },

@@ -160,6 +160,7 @@ export default {
           placeholder: "Estado",
           options: [
             { value: "pending", label: "Pendiente" },
+            { value: "verified", label: "Verificada" },
             { value: "approved", label: "Aprobada" },
             { value: "rejected", label: "Rechazada" },
             { value: "all", label: "Todos" },

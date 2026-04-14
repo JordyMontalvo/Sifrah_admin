@@ -685,14 +685,19 @@ export default {
           label: "Aprobar",
           icon: "fas fa-check",
           class: "is-success",
-          condition: (item) => item.status === "pending",
+          condition: (item) => {
+            const isBank = (item.pay_method || "").toLowerCase().includes("bank") || 
+                           (item.pay_method || "").toLowerCase().includes("banco");
+            if (isBank) return item.status === "verified";
+            return item.status === "pending";
+          },
         },
         {
           key: "reject",
           label: "Rechazar",
           icon: "fas fa-times",
           class: "is-danger",
-          condition: (item) => item.status === "pending",
+          condition: (item) => item.status === "pending" || item.status === "verified",
         },
         {
           key: "invoice",
@@ -736,6 +741,7 @@ export default {
           options: [
             { value: "", label: "Todos" },
             { value: "pending", label: "Pendiente" },
+            { value: "verified", label: "Pago Verificado" },
             { value: "approved", label: "Aprobada" },
             { value: "rejected", label: "Rechazada" },
             { value: "cancelled", label: "Anulada" },
@@ -1637,6 +1643,7 @@ export default {
           let estado = affiliation.status || "-";
           if (estado === "approved") estado = "Aprobada";
           if (estado === "pending") estado = "Pendiente";
+          if (estado === "verified") estado = "Verificada";
           if (estado === "rejected") estado = "Rechazada";
           if (estado === "cancelled") estado = "Anulada";
 

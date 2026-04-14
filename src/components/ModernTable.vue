@@ -537,6 +537,7 @@ export default {
         pending: "status-pending",
         completed: "status-completed",
         cancelled: "status-cancelled",
+        verified: "status-verified",
       };
       return statusClasses[status] || "status-default";
     },
@@ -550,6 +551,14 @@ export default {
           return "Activo (simple)";
         case "registered":
           return "Registrado";
+        case "verified":
+          return "Verificado";
+        case "pending":
+          return "Pendiente";
+        case "approved":
+          return "Aprobado";
+        case "rejected":
+          return "Rechazado";
         default:
           return status;
       }
