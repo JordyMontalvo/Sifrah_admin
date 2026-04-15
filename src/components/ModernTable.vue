@@ -80,7 +80,12 @@
               @click="handleSort(column)"
             >
               <div class="header-content">
-                <span class="header-text">{{ column.label }}</span>
+                <slot
+                  :column="column"
+                  :name="`header-${column.key}`"
+                >
+                  <span class="header-text">{{ column.label }}</span>
+                </slot>
                 <span v-if="column.sortable" class="sort-icon">
                   <i class="fas fa-sort"></i>
                   <i

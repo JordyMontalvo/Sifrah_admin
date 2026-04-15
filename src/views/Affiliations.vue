@@ -93,6 +93,12 @@
           @page-change="handlePageChange"
           @page-size-change="handlePageSizeChange"
         >
+          <template #header-comprobante>
+            <div class="comprobante-header">
+              <span>Comprobante</span>
+              <span class="comprobante-header__right">Entrega</span>
+            </div>
+          </template>
           <template #cell-date="{ row }">
             <div style="display:flex; flex-direction:column; gap:4px;">
               <span>{{ formatDateTime(row.date) }}</span>
@@ -191,22 +197,26 @@
               <span v-else-if="row.voucher2 && row.voucher2.url">{{ row.voucher2.url }}</span>
             </div>
           </template>
-          <template #cell-payment_step="{ row }">
+          <template #cell-comprobante="{ row }">
             <div class="payment-step-stack">
               <div class="payment-step-top-row">
                 <div class="payment-step-top-row__fin">
                   <div v-if="checkIsBank(row.raw)" class="payment-step-container">
                     <span v-if="row.status === 'pending'" class="payment-tag is-pending">
                       <i class="fas fa-clock"></i> Pendiente
-                      <button class="button is-mini is-primary mt-1" @click="handleItemAction({ action: 'validate_voucher', item: row })">
+                      <button
+                        class="button is-mini is-primary mt-1"
+                        @click="handleItemAction({ action: 'validate_voucher', item: row })"
+                      >
                         Validar
                       </button>
                     </span>
                     <span v-else-if="row.status === 'verified'" class="payment-tag is-verified">
                       <i class="fas fa-check-double"></i> Verificado
                     </span>
-                    <span v-else class="payment-tag is-approved">
-                      <i class="fas fa-check-circle"></i> Confirmado
+                    <span v-else class="delivery-badge delivery-delivered">
+                      <i class="fas fa-check-circle"></i>
+                      Confirmado
                     </span>
                   </div>
                   <div v-else>
@@ -227,7 +237,7 @@
                 </div>
               </div>
               <div class="payment-step-record-row">
-                <span :class="recordTabClass(row.status)" class="payment-step-record-tab">
+                <span :class="recordTabClass(row.status)" class="record-tab record-tab--full">
                   {{ recordTabLabel(row.status) }}
                 </span>
               </div>
@@ -651,20 +661,15 @@ export default {
           sortable: true,
         },
         {
+          key: "products",
+          label: "Productos",
+          sortable: false,
+        },
+        {
           key: "total",
           label: "Total",
           sortable: true,
           type: "currency",
-        },
-        {
-          key: "payment_split",
-          label: "Abono / Faltante",
-          sortable: false,
-        },
-        {
-          key: "products",
-          label: "Productos",
-          sortable: false,
         },
         {
           key: "pay_method",
@@ -677,8 +682,13 @@ export default {
           sortable: false,
         },
         {
-          key: "payment_step",
-          label: "Estado financiero y entrega",
+          key: "payment_split",
+          label: "Bono faltante",
+          sortable: false,
+        },
+        {
+          key: "comprobante",
+          label: "Comprobante | Entrega",
           sortable: false,
         },
         {
@@ -2050,7 +2060,7 @@ function parseDate(dateStr) {
 </script>
 
 <style scoped>
-/* Estado financiero + entrega en una columna; tabcito de situación centrado entre ambos */
+/* Comprobante (con entrega) en una sola celda */
 .payment-step-stack {
   display: flex;
   flex-direction: column;
@@ -2063,7 +2073,7 @@ function parseDate(dateStr) {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   width: 100%;
 }
@@ -2086,16 +2096,27 @@ function parseDate(dateStr) {
   flex: 0 0 auto;
   display: flex;
   justify-content: flex-end;
-  align-items: flex-start;
-  margin-top: 2px;
+  align-items: center;
+  margin-top: 0;
 }
 .payment-step-record-row {
   display: flex;
   justify-content: center;
   width: 100%;
 }
-.payment-step-record-tab {
-  flex-shrink: 0;
+.record-tab--full {
+  width: 100%;
+  box-sizing: border-box;
+}
+.comprobante-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 25px;
+}
+.comprobante-header__right {
+  text-align: right;
 }
 .record-tab {
   display: inline-flex;
