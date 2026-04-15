@@ -123,8 +123,11 @@
             <tr
               v-else
               :key="item.id || index"
-              class="table-row"
-              :class="{ 'is-selected': selectedItems.includes(item.id) }"
+              :class="[
+                'table-row',
+                rowClass ? rowClass(item) : null,
+                { 'is-selected': selectedItems.includes(item.id) },
+              ]"
             >
               <td
                 v-for="column in visibleColumns"
@@ -367,6 +370,11 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    /** (item) => string | null — clases extra en cada <tr> de datos (ej. anulado) */
+    rowClass: {
+      type: Function,
+      default: null,
+    },
   },
   created() {
     this.searchQuery = this.initialSearch;
@@ -547,6 +555,7 @@ export default {
 
       if (column.type === "status") {
         classes.push(`status-${item[column.key]}`);
+        classes.push("table-cell-status-col");
       }
 
       return classes;
@@ -580,6 +589,8 @@ export default {
           return "Aprobado";
         case "rejected":
           return "Rechazado";
+        case "cancelled":
+          return "Anulada";
         default:
           return status;
       }
@@ -780,6 +791,25 @@ export default {
   background: #eff6ff;
 }
 
+.table-row--cancelled {
+  background: #e8eaef;
+}
+.table-row--cancelled .table-cell {
+  background-color: #e8eaef;
+}
+.table-row--cancelled:hover {
+  background: #dde0e7;
+}
+.table-row--cancelled:hover .table-cell {
+  background-color: #dde0e7;
+}
+.table-row--cancelled.is-selected {
+  background: #dbeafe;
+}
+.table-row--cancelled.is-selected .table-cell {
+  background-color: #dbeafe;
+}
+
 .table-cell {
   padding: 16px 12px;
   font-size: 0.875rem;
@@ -811,6 +841,11 @@ export default {
 .cell-content {
   display: flex;
   align-items: center;
+}
+
+.table-cell-status-col .cell-content {
+  justify-content: center;
+  width: 100%;
 }
 
 /* Status Badges */
@@ -846,6 +881,19 @@ export default {
 .status-cancelled {
   background: #f3e8ff;
   color: #7c3aed;
+}
+
+/* Alineado con Lista de Afiliaciones: aprobado/rechazado/anulado sin chip de color */
+.status-badge.status-default {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: 0.02em;
 }
 
 /* Actions */
@@ -1053,6 +1101,25 @@ export default {
 
 .dark-mode .table-row:hover {
   background: #2d3748;
+}
+
+.dark-mode .table-row--cancelled {
+  background: #2d3748;
+}
+.dark-mode .table-row--cancelled .table-cell {
+  background-color: #2d3748;
+}
+.dark-mode .table-row--cancelled:hover {
+  background: #374151;
+}
+.dark-mode .table-row--cancelled:hover .table-cell {
+  background-color: #374151;
+}
+.dark-mode .table-row--cancelled.is-selected {
+  background: #1e3a5f;
+}
+.dark-mode .table-row--cancelled.is-selected .table-cell {
+  background-color: #1e3a5f;
 }
 
 .dark-mode .table-pagination {

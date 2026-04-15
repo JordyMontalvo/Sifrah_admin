@@ -72,6 +72,7 @@
         <ModernTable
           :data="tableData"
           :columns="tableColumns"
+          :row-class="tableRowClass"
           title="Lista de Afiliaciones"
           subtitle="Gestiona y aprueba afiliaciones de usuarios"
           :actions="tableActions"
@@ -191,22 +192,45 @@
             </div>
           </template>
           <template #cell-payment_step="{ row }">
-            <div v-if="checkIsBank(row.raw)" class="payment-step-container">
-              <span v-if="row.status === 'pending'" class="payment-tag is-pending">
-                <i class="fas fa-clock"></i> Pendiente
-                <button class="button is-mini is-primary mt-1" @click="handleItemAction({ action: 'validate_voucher', item: row })">
-                  Validar
-                </button>
-              </span>
-              <span v-else-if="row.status === 'verified'" class="payment-tag is-verified">
-                <i class="fas fa-check-double"></i> Verificado
-              </span>
-              <span v-else class="payment-tag is-approved">
-                <i class="fas fa-check-circle"></i> Confirmado
-              </span>
-            </div>
-            <div v-else>
-              <span class="tag is-light is-rounded">No aplica</span>
+            <div class="payment-step-stack">
+              <div class="payment-step-top-row">
+                <div class="payment-step-top-row__fin">
+                  <div v-if="checkIsBank(row.raw)" class="payment-step-container">
+                    <span v-if="row.status === 'pending'" class="payment-tag is-pending">
+                      <i class="fas fa-clock"></i> Pendiente
+                      <button class="button is-mini is-primary mt-1" @click="handleItemAction({ action: 'validate_voucher', item: row })">
+                        Validar
+                      </button>
+                    </span>
+                    <span v-else-if="row.status === 'verified'" class="payment-tag is-verified">
+                      <i class="fas fa-check-double"></i> Verificado
+                    </span>
+                    <span v-else class="payment-tag is-approved">
+                      <i class="fas fa-check-circle"></i> Confirmado
+                    </span>
+                  </div>
+                  <div v-else>
+                    <span class="tag is-light is-rounded">No aplica</span>
+                  </div>
+                </div>
+                <div class="payment-step-top-row__del">
+                  <span
+                    class="delivery-badge"
+                    :class="{
+                      'delivery-delivered': row.products_delivered,
+                      'delivery-pending': !row.products_delivered,
+                    }"
+                  >
+                    <i :class="row.products_delivered ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
+                    {{ row.products_delivered ? "Entregado" : "Pendiente" }}
+                  </span>
+                </div>
+              </div>
+              <div class="payment-step-record-row">
+                <span :class="recordTabClass(row.status)" class="payment-step-record-tab">
+                  {{ recordTabLabel(row.status) }}
+                </span>
+              </div>
             </div>
           </template>
           <template #cell-type="{ value }">
@@ -214,18 +238,6 @@
               >Upgrade</span
             >
             <span v-else class="tag is-info">Afiliación</span>
-          </template>
-          <template #cell-products_delivered="{ row }">
-            <span 
-              class="delivery-badge" 
-              :class="{
-                'delivery-delivered': row.products_delivered,
-                'delivery-pending': !row.products_delivered
-              }"
-            >
-              <i :class="row.products_delivered ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
-              {{ row.products_delivered ? 'Entregado' : 'Pendiente' }}
-            </span>
           </template>
         </ModernTable>
       </div>
@@ -666,14 +678,8 @@ export default {
         },
         {
           key: "payment_step",
-          label: "Estado Financiero",
+          label: "Estado financiero y entrega",
           sortable: false,
-        },
-        {
-          key: "status",
-          label: "Estado",
-          sortable: true,
-          type: "status",
         },
         {
           key: "type",
@@ -681,12 +687,6 @@ export default {
           sortable: false,
           formatter: (value, row) =>
             value === "upgrade" ? "Upgrade" : "Afiliación",
-        },
-        {
-          key: "products_delivered",
-          label: "Productos Entregados",
-          sortable: true,
-          type: "boolean",
         },
       ],
       tableActions: [
@@ -1117,6 +1117,34 @@ export default {
     await this.GET(this.$route.params.filter);
   },
   methods: {
+    recordTabLabel(status) {
+      if (status == null || status === "" || status === "-") return "—";
+      const s = String(status).toLowerCase();
+      if (s === "approved") return "Aprobado";
+      if (s === "pending") return "Pendiente";
+      if (s === "verified") return "Verificado";
+      if (s === "rejected") return "Rechazado";
+      if (s === "cancelled") return "Anulada";
+      return String(status);
+    },
+    recordTabClass(status) {
+      const base = ["record-tab"];
+      if (status == null || status === "" || status === "-")
+        return base.concat(["record-tab--default"]);
+      const s = String(status).toLowerCase();
+      if (s === "pending") return base.concat(["record-tab--pending"]);
+      if (s === "verified") return base.concat(["record-tab--verified"]);
+      if (s === "approved") return base.concat(["record-tab--approved"]);
+      if (s === "rejected") return base.concat(["record-tab--rejected"]);
+      if (s === "cancelled") return base.concat(["record-tab--cancelled"]);
+      return base.concat(["record-tab--default"]);
+    },
+    tableRowClass(item) {
+      if (!item || item._rowType === "separator") return null;
+      if (String(item.status || "").toLowerCase() === "cancelled")
+        return "table-row--cancelled";
+      return null;
+    },
     paymentSplitDisplay(affiliation) {
       const pb = affiliation && affiliation.payment_breakdown;
       if (pb && pb.legacy_missing_amounts) {
@@ -2022,6 +2050,99 @@ function parseDate(dateStr) {
 </script>
 
 <style scoped>
+/* Estado financiero + entrega en una columna; tabcito de situación centrado entre ambos */
+.payment-step-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  min-width: 220px;
+}
+.payment-step-top-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+.payment-step-top-row__fin {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-start;
+}
+.payment-step-top-row__fin .payment-step-container {
+  align-items: flex-start;
+  width: auto;
+}
+.payment-step-top-row__fin .payment-tag {
+  width: auto;
+  max-width: 100%;
+  align-self: flex-start;
+}
+.payment-step-top-row__del {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  margin-top: 2px;
+}
+.payment-step-record-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.payment-step-record-tab {
+  flex-shrink: 0;
+}
+.record-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.record-tab--pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+.record-tab--verified {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #d8b4fe;
+}
+.record-tab--approved {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+.record-tab--rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.record-tab--cancelled {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+  text-decoration: line-through;
+  opacity: 0.92;
+}
+.record-tab--default {
+  background: #f9fafb;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
 .affiliations-section {
   min-height: 100vh;
   background: #f8f9fa;
@@ -2237,7 +2358,7 @@ function parseDate(dateStr) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 11px 12px;
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
