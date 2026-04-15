@@ -95,6 +95,12 @@
           @page-change="handlePageChange"
           @page-size-change="handlePageSizeChange"
         >
+          <template #header-comprobante>
+            <div class="comprobante-header">
+              <span>Comprobante</span>
+              <span class="comprobante-header__right">Entrega</span>
+            </div>
+          </template>
           <template #cell-date="{ row }">
             <div style="display:flex; flex-direction:column; gap:4px;">
               <span>{{ formatDateTime(row.date) }}</span>
@@ -147,22 +153,85 @@
               <span v-else-if="row.voucher2 && row.voucher2.url">{{ row.voucher2.url }}</span>
             </div>
           </template>
-          <template #cell-payment_step="{ row }">
+          <template #cell-payment_split="{ row }">
+            <div
+              v-if="paymentSplitDisplay(row.raw).legacyMissing"
+              style="display:flex; flex-direction:column; gap:4px; line-height:1.15;"
+            >
+              <span class="tag is-warning is-light" style="align-self:flex-start;">Histórico</span>
+              <small style="color:#6b7280;">Sin detalle de abono guardado</small>
+            </div>
+            <div
+              v-else
+              style="display:flex; flex-direction:column; gap:4px; line-height:1.15;"
+            >
+              <span
+                class="tag is-light"
+                style="align-self:flex-start;"
+                :class="{
+                  'is-info': paymentSplitDisplay(row.raw).mode === 'mixed',
+                  'is-success': paymentSplitDisplay(row.raw).mode === 'balance_only',
+                  'is-dark': paymentSplitDisplay(row.raw).mode === 'external_only',
+                }"
+              >{{ paymentSplitDisplay(row.raw).modeLabel }}</span>
+              <small
+                v-if="paymentSplitDisplay(row.raw).paid_virtual > 0"
+                style="color:#6b7280;"
+              >No disp.: S/ {{ paymentSplitDisplay(row.raw).paid_virtual.toFixed(2) }}</small>
+              <small style="color:#374151; font-weight:700;">
+                Saldo disp.: S/ {{ paymentSplitDisplay(row.raw).paid_balance.toFixed(2) }}
+              </small>
+              <small style="color:#6b7280;">
+                Faltante: S/ {{ paymentSplitDisplay(row.raw).due.toFixed(2) }}
+              </small>
+            </div>
+          </template>
+          <template #cell-comprobante="{ row }">
             <div class="payment-step-stack">
               <div class="payment-step-top-row">
                 <div class="payment-step-top-row__fin">
                   <div v-if="checkIsBank(row.raw)" class="payment-step-container">
-                    <span v-if="row.status === 'pending'" class="payment-tag is-pending">
-                      <i class="fas fa-clock"></i> Pendiente
-                      <button class="button is-mini is-primary mt-1" @click="handleItemAction({ action: 'validate_voucher', item: row })">
-                        Validar
-                      </button>
+                    <span
+                      v-if="row.status === 'pending'"
+                      class="delivery-badge delivery-pending status-main-badge"
+                      style="cursor:pointer;"
+                      @click="handleItemAction({ action: 'validate_voucher', item: row })"
+                      title="Validar comprobante"
+                    >
+                      <i class="fas fa-clock"></i>
+                      Pendiente
                     </span>
-                    <span v-else-if="row.status === 'verified'" class="payment-tag is-verified">
-                      <i class="fas fa-check-double"></i> Verificado
+                    <span
+                      v-else-if="row.status === 'verified'"
+                      class="delivery-badge delivery-verified status-main-badge"
+                    >
+                      <i class="fas fa-check-double"></i>
+                      Verificado
                     </span>
-                    <span v-else class="payment-tag is-approved">
-                      <i class="fas fa-check-circle"></i> Confirmado
+                    <span
+                      v-else-if="row.status === 'approved'"
+                      class="delivery-badge delivery-delivered status-main-badge"
+                    >
+                      <i class="fas fa-check-circle"></i>
+                      Confirmado
+                    </span>
+                    <span
+                      v-else-if="row.status === 'rejected'"
+                      class="delivery-badge delivery-rejected status-main-badge"
+                    >
+                      <i class="fas fa-times-circle"></i>
+                      Rechazado
+                    </span>
+                    <span
+                      v-else-if="row.status === 'cancelled'"
+                      class="delivery-badge delivery-cancelled status-main-badge"
+                    >
+                      <i class="fas fa-ban"></i>
+                      Anulada
+                    </span>
+                    <span v-else class="delivery-badge delivery-delivered status-main-badge">
+                      <i class="fas fa-check-circle"></i>
+                      Confirmado
                     </span>
                   </div>
                   <div v-else>
@@ -171,7 +240,7 @@
                 </div>
                 <div class="payment-step-top-row__del">
                   <span
-                    class="delivery-badge"
+                    class="delivery-badge status-main-badge"
                     :class="{
                       'delivery-delivered': row.products_delivered,
                       'delivery-pending': !row.products_delivered,
@@ -183,7 +252,7 @@
                 </div>
               </div>
               <div class="payment-step-record-row">
-                <span :class="recordTabClass(row.status)" class="payment-step-record-tab">
+                <span :class="recordTabClass(row.status)" class="record-tab record-tab--full">
                   {{ recordTabLabel(row.status) }}
                 </span>
               </div>
@@ -596,16 +665,16 @@ export default {
           sortable: false,
         },
         {
-          key: "price",
-          label: "Precio Total",
-          sortable: true,
-          type: "currency",
-        },
-        {
           key: "points",
           label: "Puntos",
           sortable: true,
           type: "number",
+        },
+        {
+          key: "price",
+          label: "Total",
+          sortable: true,
+          type: "currency",
         },
         {
           key: "pay_method",
@@ -618,13 +687,13 @@ export default {
           sortable: false,
         },
         {
-          key: "payment_step",
-          label: "Estado financiero y entrega",
+          key: "payment_split",
+          label: "Bono faltante",
           sortable: false,
         },
         {
-          key: "balance",
-          label: "Saldo",
+          key: "comprobante",
+          label: "Comprobante",
           sortable: false,
         },
       ],
@@ -1016,7 +1085,7 @@ export default {
           pay_method: this.formatPayMethod(activation) || "-",
           voucher,
           voucher2,
-          balance: this.formatBalanceObj(this.formatBalance(activation)),
+          comprobante: true,
           status: activation.status || "-",
           products_delivered: activation.delivered || false,
           raw: activation,
@@ -1045,6 +1114,43 @@ export default {
     await this.fetchStatusTotals();
   },
   methods: {
+    paymentSplitDisplay(activation) {
+      const pb = activation && activation.payment_breakdown;
+      if (pb && pb.legacy_missing_amounts) {
+        return { legacyMissing: true };
+      }
+      let paid_virtual = 0;
+      let paid_balance = 0;
+      let due = 0;
+      let mode = "external_only";
+      if (pb) {
+        paid_virtual = Number(pb.paid_virtual || 0);
+        paid_balance = Number(pb.paid_balance || 0);
+        due = Number(pb.due || 0);
+        mode = pb.mode || "external_only";
+      } else if (activation && Array.isArray(activation.amounts) && activation.amounts.length >= 3) {
+        paid_virtual = Number(activation.amounts[0] || 0);
+        paid_balance = Number(activation.amounts[1] || 0);
+        due = Number(activation.amounts[2] || 0);
+      } else {
+        // Fallback: si no hay breakdown, intenta derivar desde price vs paid (si existe)
+        due = 0;
+      }
+      const modeLabel =
+        mode === "balance_only"
+          ? "Todo con saldo"
+          : mode === "mixed"
+          ? "Mixto (saldo + voucher)"
+          : "Sin saldo (solo voucher/banco)";
+      return {
+        legacyMissing: false,
+        paid_virtual,
+        paid_balance,
+        due,
+        mode,
+        modeLabel,
+      };
+    },
     recordTabLabel(status) {
       if (status == null || status === "" || status === "-") return "—";
       const s = String(status).toLowerCase();
@@ -2079,7 +2185,7 @@ export default {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   width: 100%;
 }
@@ -2102,16 +2208,27 @@ export default {
   flex: 0 0 auto;
   display: flex;
   justify-content: flex-end;
-  align-items: flex-start;
-  margin-top: 2px;
+  align-items: center;
+  margin-top: 0;
 }
 .payment-step-record-row {
   display: flex;
   justify-content: center;
   width: 100%;
 }
-.payment-step-record-tab {
-  flex-shrink: 0;
+.record-tab--full {
+  width: 100%;
+  box-sizing: border-box;
+}
+.comprobante-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 10px;
+}
+.comprobante-header__right {
+  text-align: right;
 }
 .record-tab {
   display: inline-flex;
@@ -2168,6 +2285,15 @@ export default {
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+/* Igualar tamaño de estados principales (Pendiente/Verificado/Confirmado/Entregado) */
+.status-main-badge {
+  min-width: 150px;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .delivery-delivered {
@@ -2178,6 +2304,24 @@ export default {
 .delivery-pending {
   background: linear-gradient(135deg, #ffd32a 0%, #f39c12 100%);
   color: #333;
+}
+
+.delivery-verified {
+  background: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #d8b4fe;
+}
+
+.delivery-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.delivery-cancelled {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
 }
 
 /* Delivery Checkbox */

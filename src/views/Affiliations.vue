@@ -202,19 +202,45 @@
               <div class="payment-step-top-row">
                 <div class="payment-step-top-row__fin">
                   <div v-if="checkIsBank(row.raw)" class="payment-step-container">
-                    <span v-if="row.status === 'pending'" class="payment-tag is-pending">
-                      <i class="fas fa-clock"></i> Pendiente
-                      <button
-                        class="button is-mini is-primary mt-1"
-                        @click="handleItemAction({ action: 'validate_voucher', item: row })"
-                      >
-                        Validar
-                      </button>
+                    <span
+                      v-if="row.status === 'pending'"
+                      class="delivery-badge delivery-pending status-main-badge"
+                      style="cursor:pointer;"
+                      @click="handleItemAction({ action: 'validate_voucher', item: row })"
+                      title="Validar comprobante"
+                    >
+                      <i class="fas fa-clock"></i>
+                      Pendiente
                     </span>
-                    <span v-else-if="row.status === 'verified'" class="payment-tag is-verified">
-                      <i class="fas fa-check-double"></i> Verificado
+                    <span
+                      v-else-if="row.status === 'verified'"
+                      class="delivery-badge delivery-verified status-main-badge"
+                    >
+                      <i class="fas fa-check-double"></i>
+                      Verificado
                     </span>
-                    <span v-else class="delivery-badge delivery-delivered">
+                    <span
+                      v-else-if="row.status === 'approved'"
+                      class="delivery-badge delivery-delivered status-main-badge"
+                    >
+                      <i class="fas fa-check-circle"></i>
+                      Confirmado
+                    </span>
+                    <span
+                      v-else-if="row.status === 'rejected'"
+                      class="delivery-badge delivery-rejected status-main-badge"
+                    >
+                      <i class="fas fa-times-circle"></i>
+                      Rechazado
+                    </span>
+                    <span
+                      v-else-if="row.status === 'cancelled'"
+                      class="delivery-badge delivery-cancelled status-main-badge"
+                    >
+                      <i class="fas fa-ban"></i>
+                      Anulada
+                    </span>
+                    <span v-else class="delivery-badge delivery-delivered status-main-badge">
                       <i class="fas fa-check-circle"></i>
                       Confirmado
                     </span>
@@ -225,7 +251,7 @@
                 </div>
                 <div class="payment-step-top-row__del">
                   <span
-                    class="delivery-badge"
+                    class="delivery-badge status-main-badge"
                     :class="{
                       'delivery-delivered': row.products_delivered,
                       'delivery-pending': !row.products_delivered,
@@ -2383,6 +2409,8 @@ function parseDate(dateStr) {
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
 
 .delivery-delivered {
@@ -2393,6 +2421,31 @@ function parseDate(dateStr) {
 .delivery-pending {
   background: linear-gradient(135deg, #ffd32a 0%, #f39c12 100%);
   color: #333;
+}
+
+.delivery-verified {
+  background: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #d8b4fe;
+}
+
+.delivery-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.delivery-cancelled {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+/* Igualar tamaño de estados principales (Pendiente/Verificado/Confirmado/Entregado) */
+.status-main-badge {
+  min-width: 150px;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 /* Delivery Checkbox */
