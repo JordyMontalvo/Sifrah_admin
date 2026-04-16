@@ -173,7 +173,6 @@ export default {
           placeholder: "Estado",
           options: [
             { value: "pending", label: "Pendiente" },
-            { value: "verified", label: "Verificada" },
             { value: "approved", label: "Aprobada" },
             { value: "rejected", label: "Rechazada" },
             { value: "all", label: "Todos" },
@@ -336,13 +335,25 @@ export default {
         const ok = confirm(`¿Deseas ${action === "approve" ? "aprobar" : "rechazar"} este pago?`);
         if (!ok) return;
         try {
-          await api.paymentValidations.POST({ action, id: raw.id, kind: raw.kind });
+          const { data } = await api.paymentValidations.POST({
+            action,
+            id: raw.id,
+            kind: raw.kind,
+          });
+          // El backend a veces responde 200 con `{ error:true, msg }`.
+          // Si pasa eso, mostrar el motivo (p.ej. voucher duplicado) en lugar de fallar silenciosamente.
+          if (data && data.error) {
+            const msg = data.msg || "No se pudo ejecutar la acción";
+            if (this.$toast) this.$toast.error(msg);
+            return;
+          }
           await this.refresh();
         } catch (e) {
           console.error("Error acción validación:", e);
-          const msg = e.response && e.response.data && e.response.data.error 
-            ? e.response.data.error 
-            : "No se pudo ejecutar la acción";
+          const msg =
+            (e.response && e.response.data && (e.response.data.msg || e.response.data.error)) ||
+            e.message ||
+            "No se pudo ejecutar la acción";
           if (this.$toast) this.$toast.error(msg);
         }
       }

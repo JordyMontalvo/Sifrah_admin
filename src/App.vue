@@ -270,12 +270,6 @@ body.dark-mode {
   letter-spacing: 0.025em;
 }
 
-.status-verified {
-  background-color: #f3e8ff;
-  color: #7e22ce;
-  border: 1px solid #d8b4fe;
-}
-
 /* Table Styles */
 .table-container {
   background: white;

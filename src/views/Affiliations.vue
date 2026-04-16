@@ -203,7 +203,7 @@
                 <div class="payment-step-top-row__fin">
                   <div v-if="checkIsBank(row.raw)" class="payment-step-container">
                     <span
-                      v-if="row.status === 'pending'"
+                      v-if="purchaseStatus(row) === 'pending'"
                       class="delivery-badge delivery-pending status-main-badge"
                       style="cursor:pointer;"
                       @click="handleItemAction({ action: 'validate_voucher', item: row })"
@@ -213,28 +213,21 @@
                       Pendiente
                     </span>
                     <span
-                      v-else-if="row.status === 'verified'"
-                      class="delivery-badge delivery-verified status-main-badge"
-                    >
-                      <i class="fas fa-check-double"></i>
-                      Verificado
-                    </span>
-                    <span
-                      v-else-if="row.status === 'approved'"
+                      v-else-if="purchaseStatus(row) === 'in_process' || purchaseStatus(row) === 'finalized'"
                       class="delivery-badge delivery-delivered status-main-badge"
                     >
                       <i class="fas fa-check-circle"></i>
                       Confirmado
                     </span>
                     <span
-                      v-else-if="row.status === 'rejected'"
+                      v-else-if="purchaseStatus(row) === 'rejected'"
                       class="delivery-badge delivery-rejected status-main-badge"
                     >
                       <i class="fas fa-times-circle"></i>
                       Rechazado
                     </span>
                     <span
-                      v-else-if="row.status === 'cancelled'"
+                      v-else-if="purchaseStatus(row) === 'cancelled'"
                       class="delivery-badge delivery-cancelled status-main-badge"
                     >
                       <i class="fas fa-ban"></i>
@@ -254,8 +247,11 @@
                     class="delivery-badge status-main-badge"
                     :class="{
                       'delivery-delivered': row.products_delivered,
-                      'delivery-pending': !row.products_delivered,
+                      'delivery-pending': !row.products_delivered && isDeliveryEnabled(row),
+                      'delivery-disabled': !isDeliveryEnabled(row),
                     }"
+                    :title="deliveryBadgeTitle(row)"
+                    @click="handleDeliveryBadgeClick(row)"
                   >
                     <i :class="row.products_delivered ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
                     {{ row.products_delivered ? "Entregado" : "Pendiente" }}
@@ -263,8 +259,8 @@
                 </div>
               </div>
               <div class="payment-step-record-row">
-                <span :class="recordTabClass(row.status)" class="record-tab record-tab--full">
-                  {{ recordTabLabel(row.status) }}
+                <span :class="recordTabClass(purchaseStatus(row))" class="record-tab record-tab--full">
+                  {{ recordTabLabel(purchaseStatus(row)) }}
                 </span>
               </div>
             </div>
@@ -466,20 +462,7 @@
                   ><i class="fas fa-box-check"></i> Productos Entregados:</span
                 >
                 <span class="detail-value">
-                  <label class="checkbox delivery-checkbox">
-                    <input
-                      type="checkbox"
-                      :checked="selectedAffiliation.delivered || false"
-                      @change="toggleDelivery(selectedAffiliation, $event)"
-                      :disabled="selectedAffiliation.savingDelivery"
-                    />
-                    <span v-if="selectedAffiliation.savingDelivery">
-                      <i class="fas fa-spinner fa-spin"></i> Guardando...
-                    </span>
-                    <span v-else>
-                      {{ selectedAffiliation.delivered ? 'Sí, productos entregados' : 'No, productos pendientes' }}
-                    </span>
-                  </label>
+                  {{ selectedAffiliation.delivered ? "Sí, productos entregados" : "No, productos pendientes" }}
                 </span>
               </div>
               <div class="detail-item">
@@ -748,7 +731,8 @@ export default {
           condition: (item) => {
             const isBank = (item.pay_method || "").toLowerCase().includes("bank") || 
                            (item.pay_method || "").toLowerCase().includes("banco");
-            if (isBank) return item.status === "verified";
+            // `verified` ya no existe. Para pagos banco/voucher se aprueba desde pendiente.
+            if (isBank) return item.status === "pending";
             return item.status === "pending";
           },
         },
@@ -757,7 +741,7 @@ export default {
           label: "Rechazar",
           icon: "fas fa-times",
           class: "is-danger",
-          condition: (item) => item.status === "pending" || item.status === "verified",
+          condition: (item) => item.status === "pending",
         },
         {
           key: "invoice",
@@ -801,7 +785,6 @@ export default {
           options: [
             { value: "", label: "Todos" },
             { value: "pending", label: "Pendiente" },
-            { value: "verified", label: "Pago Verificado" },
             { value: "approved", label: "Aprobada" },
             { value: "rejected", label: "Rechazada" },
             { value: "cancelled", label: "Anulada" },
@@ -1153,14 +1136,69 @@ export default {
     await this.GET(this.$route.params.filter);
   },
   methods: {
+    isDeliveryEnabled(row) {
+      // Entrega solo se habilita cuando el comprobante está aprobado (en proceso/finalizado).
+      // Si está pendiente/rechazado/anulado, se muestra deshabilitado.
+      const ps = this.purchaseStatus(row);
+      return ps === "in_process" || ps === "finalized";
+    },
+    deliveryBadgeTitle(row) {
+      if (!this.isDeliveryEnabled(row)) return "La entrega se habilita al aprobar el comprobante";
+      if (row && row.products_delivered) return "Entregado";
+      return "Click para marcar como entregado";
+    },
+    async handleDeliveryBadgeClick(row) {
+      if (!this.isDeliveryEnabled(row)) return;
+      if (row && row.products_delivered) return;
+      const affiliation = row && row.raw ? row.raw : row;
+      if (!affiliation || !affiliation.id) return;
+      if (affiliation.savingDelivery) return;
+      affiliation.savingDelivery = true;
+
+      try {
+        await api.Affiliations.POST({ action: "check", id: affiliation.id });
+        affiliation.delivered = true;
+        const itemInList = this.affiliations.find((a) => a.id === affiliation.id);
+        if (itemInList) itemInList.delivered = true;
+        if (this.selectedAffiliation && this.selectedAffiliation.id === affiliation.id) {
+          this.selectedAffiliation.delivered = true;
+        }
+        this.$toast.success("Productos marcados como entregados");
+      } catch (error) {
+        console.error("Error marcando como entregado:", error);
+        const msg =
+          (error && error.response && error.response.data && (error.response.data.msg || error.response.data.error)) ||
+          (error && error.message) ||
+          "Error al actualizar el estado de entrega";
+        this.$toast.error(msg);
+      } finally {
+        affiliation.savingDelivery = false;
+      }
+    },
+    purchaseStatus(row) {
+      // Estado global automático:
+      // - Pendiente: voucher no aprobado
+      // - En proceso: voucher aprobado pero no entregado
+      // - Finalizado: voucher aprobado y entregado
+      // - Rechazado: voucher rechazado
+      // - Anulado: compra anulada
+      const rawStatus = String((row && row.status) || "").toLowerCase();
+      // `verified` ya no existe: tratar como pendiente para que se regularice el flujo.
+      const status = rawStatus === "verified" ? "pending" : rawStatus;
+      if (status === "cancelled") return "cancelled";
+      if (status === "rejected") return "rejected";
+      const delivered = !!(row && row.products_delivered);
+      if (status === "approved") return delivered ? "finalized" : "in_process";
+      return "pending";
+    },
     recordTabLabel(status) {
       if (status == null || status === "" || status === "-") return "—";
       const s = String(status).toLowerCase();
-      if (s === "approved") return "Aprobado";
       if (s === "pending") return "Pendiente";
-      if (s === "verified") return "Verificado";
+      if (s === "in_process") return "En proceso";
+      if (s === "finalized") return "Finalizado";
       if (s === "rejected") return "Rechazado";
-      if (s === "cancelled") return "Anulada";
+      if (s === "cancelled") return "Anulado";
       return String(status);
     },
     recordTabClass(status) {
@@ -1169,8 +1207,8 @@ export default {
         return base.concat(["record-tab--default"]);
       const s = String(status).toLowerCase();
       if (s === "pending") return base.concat(["record-tab--pending"]);
-      if (s === "verified") return base.concat(["record-tab--verified"]);
-      if (s === "approved") return base.concat(["record-tab--approved"]);
+      if (s === "in_process") return base.concat(["record-tab--process"]);
+      if (s === "finalized") return base.concat(["record-tab--finalized"]);
       if (s === "rejected") return base.concat(["record-tab--rejected"]);
       if (s === "cancelled") return base.concat(["record-tab--cancelled"]);
       return base.concat(["record-tab--default"]);
@@ -1756,7 +1794,6 @@ export default {
           let estado = affiliation.status || "-";
           if (estado === "approved") estado = "Aprobada";
           if (estado === "pending") estado = "Pendiente";
-          if (estado === "verified") estado = "Verificada";
           if (estado === "rejected") estado = "Rechazada";
           if (estado === "cancelled") estado = "Anulada";
 
@@ -2039,38 +2076,7 @@ export default {
       );
     },
 
-    async toggleDelivery(affiliation, event) {
-      const isChecked = event.target.checked;
-      affiliation.savingDelivery = true;
-
-      try {
-        await api.Affiliations.POST({
-          action: isChecked ? "check" : "uncheck",
-          id: affiliation.id,
-        });
-
-        affiliation.delivered = isChecked;
-        
-        // Actualizar también en la lista
-        const itemInList = this.affiliations.find(a => a.id === affiliation.id);
-        if (itemInList) {
-          itemInList.delivered = isChecked;
-        }
-
-        this.$toast.success(
-          isChecked
-            ? "Productos marcados como entregados"
-            : "Productos marcados como pendientes"
-        );
-      } catch (error) {
-        console.error("Error actualizando estado de entrega:", error);
-        this.$toast.error("Error al actualizar el estado de entrega");
-        // Revertir el checkbox
-        event.target.checked = !isChecked;
-      } finally {
-        affiliation.savingDelivery = false;
-      }
-    },
+    // toggleDelivery eliminado: ahora se marca desde el badge de tabla con un click.
   },
 };
 
@@ -2162,12 +2168,12 @@ function parseDate(dateStr) {
   color: #92400e;
   border: 1px solid #fcd34d;
 }
-.record-tab--verified {
-  background: #f3e8ff;
-  color: #6b21a8;
-  border: 1px solid #d8b4fe;
+.record-tab--process {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
-.record-tab--approved {
+.record-tab--finalized {
   background: #ecfdf5;
   color: #065f46;
   border: 1px solid #6ee7b7;
@@ -2423,10 +2429,12 @@ function parseDate(dateStr) {
   color: #333;
 }
 
-.delivery-verified {
-  background: #f3e8ff;
-  color: #7e22ce;
-  border: 1px solid #d8b4fe;
+.delivery-disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  opacity: 0.75;
+  cursor: not-allowed;
 }
 
 .delivery-rejected {
@@ -2441,7 +2449,7 @@ function parseDate(dateStr) {
   border: 1px solid #e5e7eb;
 }
 
-/* Igualar tamaño de estados principales (Pendiente/Verificado/Confirmado/Entregado) */
+/* Igualar tamaño de estados principales (Pendiente/Confirmado/Entregado) */
 .status-main-badge {
   min-width: 150px;
   justify-content: center;
@@ -2497,12 +2505,6 @@ function parseDate(dateStr) {
   background: #fffbeb;
   color: #92400e;
   border: 1px solid #fde68a;
-}
-
-.payment-tag.is-verified {
-  background: #f3e8ff;
-  color: #7e22ce;
-  border: 1px solid #d8b4fe;
 }
 
 .payment-tag.is-approved {
