@@ -398,7 +398,9 @@ class PaymentMethods {
 
 class PaymentValidations {
     GET({ filter = "pending", kind = "all" } = {}) {
-        return axios.get(`/admin/payment-validations?filter=${filter}&kind=${kind}`);
+        // Evita respuestas cacheadas en producción (CDN/proxy) después de aprobar/rechazar
+        const ts = Date.now();
+        return axios.get(`/admin/payment-validations?filter=${filter}&kind=${kind}&_ts=${ts}`);
     }
     POST({ action, id, kind }) {
         return axios.post(`/admin/payment-validations`, { action, id, kind });

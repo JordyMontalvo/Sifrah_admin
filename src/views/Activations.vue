@@ -671,7 +671,7 @@ export default {
         },
         {
           key: "payment_split",
-          label: "Bono faltante",
+          label: "Monto Faltante",
           sortable: false,
         },
         {
