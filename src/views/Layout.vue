@@ -165,31 +165,7 @@
                 <span>Banner</span>
               </a>
 
-              <!-- Audios -->
-              <a
-                class="navbar-item"
-                href="/audios"
-                v-if="accountType === 'admin'"
-              >
-                <span class="icon">
-                  <i class="fas fa-microphone"></i>
-                </span>
-                <span>Audio</span>
-              </a>
-
-              <!-- Libros -->
-              <a
-                class="navbar-item"
-                href="/books"
-                v-if="accountType === 'admin'"
-              >
-                <span class="icon">
-                  <i class="fas fa-book"></i>
-                </span>
-                <span>Libros</span>
-              </a>
-
-              <!-- Herramientas Menu -->
+              <!-- Herramientas Menu (incluye Audio y Libros en el desplegable) -->
               <div
                 class="navbar-item menu-trigger"
                 @click="toggleMenu('tools')"
@@ -510,6 +486,18 @@
               <i class="fas fa-layer-group"></i>
             </span>
             <span>Materiales</span>
+          </a>
+          <a class="menu-item" href="/audios" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-microphone"></i>
+            </span>
+            <span>Audio</span>
+          </a>
+          <a class="menu-item" href="/books" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-book"></i>
+            </span>
+            <span>Libros</span>
           </a>
         </div>
       </div>
