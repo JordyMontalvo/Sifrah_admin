@@ -39,13 +39,6 @@
             <strong class="summary-card__value">{{ activosFull }}</strong>
           </div>
         </div>
-        <div class="summary-card">
-          <span class="summary-card__icon">🌟</span>
-          <div>
-            <span class="summary-card__label">Activos Simple</span>
-            <strong class="summary-card__value">{{ activosSimple }}</strong>
-          </div>
-        </div>
         <div class="summary-card summary-card--accent">
           <span class="summary-card__icon">🏆</span>
           <div>
@@ -421,18 +414,20 @@ export default {
       )
     },
     usersWithRank() {
-      return (this.tree || []).filter(e => e.rank && e.rank !== 'none').length
+      // Solo rangos reales (Bronce en adelante). Excluir "active/activo" y "none".
+      const excluded = new Set(['none', 'active', 'activo'])
+      return (this.tree || []).filter((e) => e.rank && !excluded.has(String(e.rank).toLowerCase())).length
     },
     activosFull() {
       return (this.tree || []).filter(e => e.activated).length
     },
-    activosSimple() {
-      return (this.tree || []).filter(e => e._activated).length
-    },
     filteredTree() {
       const q = this.search.toLowerCase()
       return (this.tree || [])
-        .filter(e => e.rank && e.rank !== 'none')
+        .filter((e) => {
+          const r = e.rank ? String(e.rank).toLowerCase() : ''
+          return r && r !== 'none' && r !== 'active' && r !== 'activo'
+        })
         .filter((e) => {
           if (!q) return true
           const name = (e.name || '').toLowerCase()
