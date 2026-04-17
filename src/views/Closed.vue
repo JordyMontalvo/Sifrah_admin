@@ -354,29 +354,50 @@
 import Layout from '@/views/Layout'
 import api    from '@/api'
 
-/** BRONCE en admin = `star` (ver Users.vue). Desde aquí hacia arriba cuenta la card "Usuarios con Rango". */
+/**
+ * Rangos "Bronce en adelante" para la card.
+ * El motor Go (`cierre_engine`) usa nombres en ESPAÑOL mayúsculas: BRONCE, PLATA, ORO, RUBÍ, …
+ * El admin antiguo podía usar inglés (star, silver, …). Normalizamos tildes y mayúsculas.
+ * @see server/cierre_engine/engine/config.go — Ranks (excluimos ACTIVO).
+ */
 const RANKS_BRONCE_ADELANTE = new Set([
-  'star',
-  'master',
-  'silver',
+  // Motor Go (español)
+  'bronce',
   'plata',
-  'gold',
   'oro',
-  'sapphire',
   'rubi',
-  'ruby',
+  'esmeralda',
   'diamante',
   'doble diamante',
   'triple diamante',
+  'diamante imperial',
+  'diamante corona',
+  'embajador sifrah',
+  // Legacy inglés / admin
+  'star',
+  'master',
+  'silver',
+  'gold',
+  'sapphire',
+  'ruby',
   'diamante estrella',
 ])
+
+/** Misma clave que el motor usa para comparar (sin tildes, minúsculas). */
+function normalizeRankKey(rank) {
+  return String(rank || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
 
 function rankKey(rank) {
   return String(rank || '').trim().toLowerCase()
 }
 
 function isRankBronceOrAbove(rank) {
-  const k = rankKey(rank)
+  const k = normalizeRankKey(rank)
   return !!k && RANKS_BRONCE_ADELANTE.has(k)
 }
 
@@ -446,7 +467,7 @@ export default {
         0
       )
     },
-    /** Card: solo Bronce en adelante (`star`…). No cuenta `none` ni `active`/`activo`. */
+    /** Card: solo Bronce en adelante (BRONCE/PLATA/… del motor Go o legacy star/silver…). No cuenta `none` ni ACTIVO. */
     usersWithRank() {
       return (this.tree || []).filter((e) => isRankBronceOrAbove(e.rank)).length
     },
