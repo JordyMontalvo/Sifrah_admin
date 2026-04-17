@@ -102,7 +102,7 @@
       <div class="table-card" v-if="tree && tree.length">
         <div class="table-card__header">
           <h2 class="table-card__title">📊 Previsualización · Residual (Go) y bonos por rango</h2>
-          <span class="badge">{{ usersWithRank }} calificados</span>
+          <span class="badge">{{ filteredTree.length }} en vista · {{ usersWithRank }} con rango (Bronce+)</span>
         </div>
         <div class="table-search">
           <input v-model="search" class="search-input" placeholder="🔍 Buscar usuario..." />
@@ -354,6 +354,32 @@
 import Layout from '@/views/Layout'
 import api    from '@/api'
 
+/** BRONCE en admin = `star` (ver Users.vue). Desde aquí hacia arriba cuenta la card "Usuarios con Rango". */
+const RANKS_BRONCE_ADELANTE = new Set([
+  'star',
+  'master',
+  'silver',
+  'plata',
+  'gold',
+  'oro',
+  'sapphire',
+  'rubi',
+  'ruby',
+  'diamante',
+  'doble diamante',
+  'triple diamante',
+  'diamante estrella',
+])
+
+function rankKey(rank) {
+  return String(rank || '').trim().toLowerCase()
+}
+
+function isRankBronceOrAbove(rank) {
+  const k = rankKey(rank)
+  return !!k && RANKS_BRONCE_ADELANTE.has(k)
+}
+
 export default {
   components: { Layout },
   data() {
@@ -414,26 +440,20 @@ export default {
       )
     },
     usersWithRank() {
-      // Solo rangos reales (Bronce en adelante). Excluir "active/activo" y "none".
-      const excluded = new Set(['none', 'active', 'activo'])
-      return (this.tree || []).filter((e) => e.rank && !excluded.has(String(e.rank).toLowerCase())).length
+      return (this.tree || []).filter((e) => isRankBronceOrAbove(e.rank)).length
     },
     activosFull() {
       return (this.tree || []).filter(e => e.activated).length
     },
     filteredTree() {
       const q = this.search.toLowerCase()
-      return (this.tree || [])
-        .filter((e) => {
-          const r = e.rank ? String(e.rank).toLowerCase() : ''
-          return r && r !== 'none' && r !== 'active' && r !== 'activo'
-        })
-        .filter((e) => {
-          if (!q) return true
-          const name = (e.name || '').toLowerCase()
-          const dni = String(e.dni || '').toLowerCase()
-          return name.includes(q) || dni.includes(q)
-        })
+      // Toda la previsualización: incluye "activo" (active) y el resto; solo filtra por búsqueda.
+      return (this.tree || []).filter((e) => {
+        if (!q) return true
+        const name = (e.name || '').toLowerCase()
+        const dni = String(e.dni || '').toLowerCase()
+        return name.includes(q) || dni.includes(q)
+      })
     },
   },
   methods: {
