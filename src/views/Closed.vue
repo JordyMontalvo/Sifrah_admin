@@ -380,6 +380,13 @@ function isRankBronceOrAbove(rank) {
   return !!k && RANKS_BRONCE_ADELANTE.has(k)
 }
 
+/** Tabla de preview: desde `active`/`activo` (activado sin rango de carrera) hasta el máximo. Nunca `none`. */
+function isRankShownInPreviewTable(rank) {
+  const k = rankKey(rank)
+  if (!k) return false
+  return k !== 'none'
+}
+
 export default {
   components: { Layout },
   data() {
@@ -439,6 +446,7 @@ export default {
         0
       )
     },
+    /** Card: solo Bronce en adelante (`star`…). No cuenta `none` ni `active`/`activo`. */
     usersWithRank() {
       return (this.tree || []).filter((e) => isRankBronceOrAbove(e.rank)).length
     },
@@ -447,13 +455,14 @@ export default {
     },
     filteredTree() {
       const q = this.search.toLowerCase()
-      // Toda la previsualización: incluye "activo" (active) y el resto; solo filtra por búsqueda.
-      return (this.tree || []).filter((e) => {
-        if (!q) return true
-        const name = (e.name || '').toLowerCase()
-        const dni = String(e.dni || '').toLowerCase()
-        return name.includes(q) || dni.includes(q)
-      })
+      return (this.tree || [])
+        .filter((e) => isRankShownInPreviewTable(e.rank))
+        .filter((e) => {
+          if (!q) return true
+          const name = (e.name || '').toLowerCase()
+          const dni = String(e.dni || '').toLowerCase()
+          return name.includes(q) || dni.includes(q)
+        })
     },
   },
   methods: {
