@@ -60,18 +60,7 @@
               </div>
 
               <!-- Activations Menu -->
-              <div
-                class="navbar-item menu-trigger"
-                @click="toggleMenu('activations')"
-              >
-                <span class="icon">
-                  <i class="fas fa-power-off"></i>
-                </span>
-                <span>Activaciones</span>
-                <span class="icon is-small">
-                  <i class="fas fa-chevron-down"></i>
-                </span>
-              </div>
+              <!-- Activaciones se navega desde los tabs dentro de Afiliaciones -->
 
               <!-- Products -->
               <a class="navbar-item" href="/products">
@@ -393,21 +382,6 @@
           </a>
         </div>
 
-        <div v-if="activeMenu === 'activations'" class="menu-items">
-          <a class="menu-item" href="/activations/all" @click="closeMenu">
-            <span class="icon">
-              <i class="fas fa-list"></i>
-            </span>
-            <span>Todas las Activaciones</span>
-          </a>
-          <a class="menu-item" href="/activations/pending" @click="closeMenu">
-            <span class="icon">
-              <i class="fas fa-clock"></i>
-            </span>
-            <span>Activaciones Pendientes</span>
-          </a>
-        </div>
-
         <div v-if="activeMenu === 'collects'" class="menu-items">
           <a class="menu-item" href="/collects/all" @click="closeMenu">
             <span class="icon">
@@ -553,8 +527,6 @@ export default {
           return "Usuarios";
         case "affiliations":
           return "Afiliaciones";
-        case "activations":
-          return "Activaciones";
         case "collects":
           return "Retiros";
         case "payments":
