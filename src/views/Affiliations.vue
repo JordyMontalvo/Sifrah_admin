@@ -1549,8 +1549,16 @@ export default {
         return true;
       }
       const split = this.paymentSplitDisplay(aff);
-      if (!split.legacyMissing && Number(split.paid_balance || 0) > 0) {
-        return true;
+      if (!split.legacyMissing) {
+        if (
+          Number(split.paid_virtual || 0) > 0 ||
+          Number(split.paid_balance || 0) > 0
+        ) {
+          return true;
+        }
+        if (split.mode === "balance_only" || split.mode === "mixed") {
+          return true;
+        }
       }
       if (aff.use_balance === true || aff.check === true) {
         return true;

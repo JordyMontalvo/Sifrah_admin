@@ -1609,10 +1609,18 @@ export default {
       ) {
         return true;
       }
-      // Saldo disponible / mixto: misma columna de estado (Pendiente, Confirmado…) que banco/efectivo
+      // Cualquier abono interno (virtual / disponible) o modo saldo: misma UI que banco/transferencia/efectivo
       const split = this.paymentSplitDisplay(activation);
-      if (!split.legacyMissing && Number(split.paid_balance || 0) > 0) {
-        return true;
+      if (!split.legacyMissing) {
+        if (
+          Number(split.paid_virtual || 0) > 0 ||
+          Number(split.paid_balance || 0) > 0
+        ) {
+          return true;
+        }
+        if (split.mode === "balance_only" || split.mode === "mixed") {
+          return true;
+        }
       }
       if (activation.use_balance === true || activation.check === true) {
         return true;
