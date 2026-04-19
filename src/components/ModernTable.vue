@@ -405,13 +405,19 @@ export default {
       }
       let data = [...this.data];
 
-      // Apply search
+      // Apply search (incluye objetos anidados p. ej. `user: { name, dni }` sin depender de toString)
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
+        const valueMatches = (value) => {
+          if (value == null || value === "") return false;
+          if (typeof value === "object" && !Array.isArray(value)) {
+            return Object.values(value).some((v) => valueMatches(v));
+          }
+          return String(value).toLowerCase().includes(query);
+        };
         data = data.filter((item) => {
           return this.visibleColumns.some((column) => {
-            const value = item[column.key];
-            return value && value.toString().toLowerCase().includes(query);
+            return valueMatches(item[column.key]);
           });
         });
       }
