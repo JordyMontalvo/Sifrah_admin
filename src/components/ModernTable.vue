@@ -249,8 +249,8 @@
       <div class="pagination-controls">
         <button
           class="pagination-btn"
-          :disabled="currentPage === 1"
-          @click="goToPage(currentPage - 1)"
+          :disabled="activePage === 1"
+          @click="goToPage(activePage - 1)"
         >
           <span class="icon">
             <i class="fas fa-chevron-left"></i>
@@ -262,7 +262,7 @@
             v-for="page in visiblePages"
             :key="page"
             class="page-btn"
-            :class="{ active: page === currentPage }"
+            :class="{ active: page === activePage }"
             @click="goToPage(page)"
           >
             {{ page }}
@@ -271,8 +271,8 @@
 
         <button
           class="pagination-btn"
-          :disabled="currentPage === effectiveTotalPages"
-          @click="goToPage(currentPage + 1)"
+          :disabled="activePage === effectiveTotalPages"
+          @click="goToPage(activePage + 1)"
         >
           <span class="icon">
             <i class="fas fa-chevron-right"></i>
@@ -389,6 +389,10 @@ export default {
   created() {
     this.searchQuery = this.initialSearch;
     this.filterValues = { ...this.initialFilters };
+    if (!this.serverPagination) {
+      const n = Number(this.currentPage);
+      if (n >= 1) this.internalPage = n;
+    }
   },
   data() {
     return {
@@ -397,9 +401,30 @@ export default {
       sortColumn: "",
       sortOrder: "asc",
       selectedItems: [],
+      /** Paginación local (`!serverPagination`): la página activa vive aquí si el padre no enlaza `current-page`. */
+      internalPage: 1,
     };
   },
+  watch: {
+    currentPage(val) {
+      if (this.serverPagination) return;
+      const n = Number(val);
+      if (n >= 1 && n !== this.internalPage) {
+        this.internalPage = n;
+      }
+    },
+    effectiveTotalPages(val) {
+      if (this.serverPagination) return;
+      if (this.internalPage > val) {
+        this.internalPage = Math.max(1, val);
+      }
+    },
+  },
   computed: {
+    /** Página activa: en servidor viene del padre; en cliente usa estado interno sincronizado con el prop. */
+    activePage() {
+      return this.serverPagination ? this.currentPage : this.internalPage;
+    },
     visibleColumns() {
       return this.columns.filter((col) => !col.hidden);
     },
@@ -489,7 +514,7 @@ export default {
           pages.push(i);
         }
       } else {
-        const start = Math.max(1, this.currentPage - 2);
+        const start = Math.max(1, this.activePage - 2);
         const end = Math.min(
           this.effectiveTotalPages,
           start + maxVisible - 1
@@ -503,11 +528,7 @@ export default {
       return pages;
     },
     startIndex() {
-      if (this.serverPagination) {
-        return (this.currentPage - 1) * this.itemsPerPage;
-      } else {
-        return (this.currentPage - 1) * this.itemsPerPage;
-      }
+      return (this.activePage - 1) * this.itemsPerPage;
     },
     endIndex() {
       if (this.serverPagination) {
@@ -526,11 +547,11 @@ export default {
       return filter.options.some((o) => String(o && o.value) === "");
     },
     handleSearch() {
-      this.currentPage = 1;
+      if (!this.serverPagination) this.internalPage = 1;
       this.$emit("search", this.searchQuery);
     },
     handleFilter() {
-      this.currentPage = 1;
+      if (!this.serverPagination) this.internalPage = 1;
       this.$emit("filter", this.filterValues);
     },
     handleSort(column) {
@@ -568,11 +589,15 @@ export default {
     },
     goToPage(page) {
       if (page >= 1 && page <= this.effectiveTotalPages) {
+        if (!this.serverPagination) {
+          this.internalPage = page;
+        }
         this.$emit("page-change", page);
       }
     },
     handlePageSizeChange() {
-      this.$emit("page-size-change", parseInt(this.itemsPerPage));
+      if (!this.serverPagination) this.internalPage = 1;
+      this.$emit("page-size-change", parseInt(this.itemsPerPage, 10));
     },
     getCellClass(column, item) {
       const classes = [];
