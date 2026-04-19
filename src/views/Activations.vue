@@ -1171,6 +1171,16 @@ export default {
         paid_virtual = Number(activation.amounts[0] || 0);
         paid_balance = Number(activation.amounts[1] || 0);
         due = Number(activation.amounts[2] || 0);
+        const usedBalance =
+          activation.use_balance === true ||
+          activation.check === true ||
+          paid_virtual > 0 ||
+          paid_balance > 0;
+        if (usedBalance) {
+          mode = due <= 0.0001 ? "balance_only" : "mixed";
+        } else {
+          mode = "external_only";
+        }
       } else {
         // Fallback: si no hay breakdown, intenta derivar desde price vs paid (si existe)
         due = 0;
@@ -1590,13 +1600,24 @@ export default {
       const method = (activation.pay_method || "").toLowerCase();
       const bank = (activation.bank || "").toLowerCase();
       const hasVoucher = !!(activation.voucher || activation.voucher2);
-      return (
+      if (
         method.includes("bank") ||
         method.includes("banco") ||
         bank.includes("transferencia") ||
         bank.includes("efectivo") ||
         hasVoucher
-      );
+      ) {
+        return true;
+      }
+      // Saldo disponible / mixto: misma columna de estado (Pendiente, Confirmado…) que banco/efectivo
+      const split = this.paymentSplitDisplay(activation);
+      if (!split.legacyMissing && Number(split.paid_balance || 0) > 0) {
+        return true;
+      }
+      if (activation.use_balance === true || activation.check === true) {
+        return true;
+      }
+      return false;
     },
 
     async download() {

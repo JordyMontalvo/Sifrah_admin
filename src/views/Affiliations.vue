@@ -1237,6 +1237,16 @@ export default {
         paid_virtual = Number(affiliation.amounts[0] || 0);
         paid_balance = Number(affiliation.amounts[1] || 0);
         due = Number(affiliation.amounts[2] || 0);
+        const usedBalance =
+          affiliation.use_balance === true ||
+          affiliation.check === true ||
+          paid_virtual > 0 ||
+          paid_balance > 0;
+        if (usedBalance) {
+          mode = due <= 0.0001 ? "balance_only" : "mixed";
+        } else {
+          mode = "external_only";
+        }
       }
       const modeLabel =
         mode === "balance_only"
@@ -1529,13 +1539,23 @@ export default {
       const method = (aff.pay_method || "").toLowerCase();
       const bank = (aff.bank || "").toLowerCase();
       const hasVoucher = !!(aff.voucher || aff.voucher2);
-      return (
+      if (
         method.includes("bank") ||
         method.includes("banco") ||
         bank.includes("transferencia") ||
         bank.includes("efectivo") ||
         hasVoucher
-      );
+      ) {
+        return true;
+      }
+      const split = this.paymentSplitDisplay(aff);
+      if (!split.legacyMissing && Number(split.paid_balance || 0) > 0) {
+        return true;
+      }
+      if (aff.use_balance === true || aff.check === true) {
+        return true;
+      }
+      return false;
     },
 
     formatBalanceObj(balance) {
