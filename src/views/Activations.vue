@@ -195,8 +195,9 @@
                       v-if="purchaseStatus(row) === 'pending'"
                       class="delivery-badge delivery-pending status-main-badge"
                       style="cursor:pointer;"
-                      @click="handleItemAction({ action: 'validate_voucher', item: row })"
-                      title="Validar comprobante"
+                      :style="{ opacity: row.raw && row.raw.savingComprobante ? 0.65 : 1 }"
+                      :title="comprobanteBadgeTitle(row)"
+                      @click="handleComprobanteBadgeClick(row)"
                     >
                       <i class="fas fa-clock"></i>
                       Pendiente
@@ -1105,6 +1106,43 @@ export default {
       if (!this.isDeliveryEnabled(row)) return "La entrega se habilita al aprobar el comprobante";
       if (row && row.products_delivered) return "Entregado";
       return "Click para marcar como entregado";
+    },
+    comprobanteBadgeTitle(row) {
+      if (!this.checkIsBank(row.raw)) return "";
+      if (this.purchaseStatus(row) !== "pending") return "";
+      return "Click para confirmar comprobante";
+    },
+    async handleComprobanteBadgeClick(row) {
+      if (this.purchaseStatus(row) !== "pending") return;
+      if (!this.checkIsBank(row.raw)) return;
+      const activation = row && row.raw ? row.raw : row;
+      if (!activation || !activation.id) return;
+      if (activation.savingComprobante) return;
+      activation.savingComprobante = true;
+      try {
+        const { data } = await api.Activations.POST({ action: "approve", id: activation.id });
+        if (data && data.error) {
+          this.$toast.error(data.msg || "No se pudo confirmar el comprobante");
+          return;
+        }
+        activation.status = "approved";
+        const itemInList = this.activations.find((a) => a.id === activation.id);
+        if (itemInList) itemInList.status = "approved";
+        if (this.selectedActivation && this.selectedActivation.id === activation.id) {
+          this.selectedActivation.status = "approved";
+        }
+        await this.fetchStatusTotals();
+        this.$toast.success("Comprobante confirmado");
+      } catch (error) {
+        console.error("Error confirmando comprobante:", error);
+        const msg =
+          (error && error.response && error.response.data && (error.response.data.msg || error.response.data.error)) ||
+          (error && error.message) ||
+          "No se pudo confirmar el comprobante";
+        this.$toast.error(msg);
+      } finally {
+        activation.savingComprobante = false;
+      }
     },
     async handleDeliveryBadgeClick(row) {
       // Reglas UX:

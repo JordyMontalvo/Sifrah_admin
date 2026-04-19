@@ -206,8 +206,9 @@
                       v-if="purchaseStatus(row) === 'pending'"
                       class="delivery-badge delivery-pending status-main-badge"
                       style="cursor:pointer;"
-                      @click="handleItemAction({ action: 'validate_voucher', item: row })"
-                      title="Validar comprobante"
+                      :style="{ opacity: row.raw && row.raw.savingComprobante ? 0.65 : 1 }"
+                      :title="comprobanteBadgeTitle(row)"
+                      @click="handleComprobanteBadgeClick(row)"
                     >
                       <i class="fas fa-clock"></i>
                       Pendiente
@@ -1146,6 +1147,46 @@ export default {
       if (!this.isDeliveryEnabled(row)) return "La entrega se habilita al aprobar el comprobante";
       if (row && row.products_delivered) return "Entregado";
       return "Click para marcar como entregado";
+    },
+    comprobanteBadgeTitle(row) {
+      if (!this.checkIsBank(row.raw)) return "";
+      if (this.purchaseStatus(row) !== "pending") return "";
+      return "Click para confirmar comprobante";
+    },
+    async handleComprobanteBadgeClick(row) {
+      if (this.purchaseStatus(row) !== "pending") return;
+      if (!this.checkIsBank(row.raw)) return;
+      const affiliation = row && row.raw ? row.raw : row;
+      if (!affiliation || !affiliation.id) return;
+      if (affiliation.savingComprobante) return;
+      affiliation.savingComprobante = true;
+      try {
+        const { data } = await api.Affiliations.POST({
+          action: "approve",
+          id: affiliation.id,
+        });
+        if (data && data.error && data.msg !== "already approved") {
+          const msg = data.msg || "No se pudo confirmar el comprobante";
+          this.$toast.error(msg);
+          return;
+        }
+        affiliation.status = "approved";
+        const itemInList = this.affiliations.find((a) => a.id === affiliation.id);
+        if (itemInList) itemInList.status = "approved";
+        if (this.selectedAffiliation && this.selectedAffiliation.id === affiliation.id) {
+          this.selectedAffiliation.status = "approved";
+        }
+        this.$toast.success("Comprobante confirmado");
+      } catch (error) {
+        console.error("Error confirmando comprobante:", error);
+        const msg =
+          (error && error.response && error.response.data && (error.response.data.msg || error.response.data.error)) ||
+          (error && error.message) ||
+          "No se pudo confirmar el comprobante";
+        this.$toast.error(msg);
+      } finally {
+        affiliation.savingComprobante = false;
+      }
     },
     async handleDeliveryBadgeClick(row) {
       if (!this.isDeliveryEnabled(row)) return;
