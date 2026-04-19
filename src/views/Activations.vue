@@ -28,6 +28,37 @@
               </router-link>
             </div>
           </div>
+
+          <!-- Tabs: Afiliaciones / Activaciones / Vouchers -->
+          <div class="section-tabs" role="tablist" aria-label="Navegación Afiliaciones">
+            <router-link
+              to="/affiliations/all"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/affiliations') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/affiliations')"
+            >
+              Afiliaciones
+            </router-link>
+            <router-link
+              to="/activations/all"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/activations') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/activations')"
+            >
+              Activaciones
+            </router-link>
+            <router-link
+              to="/validacion-vouchers"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/validacion-vouchers') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/validacion-vouchers')"
+            >
+              Vouchers
+            </router-link>
+          </div>
         </div>
       </div>
 
@@ -81,13 +112,14 @@
           :item-actions="itemActions"
           :show-filters="true"
           :show-pagination="true"
-          :server-pagination="true"
+          :server-pagination="false"
           :current-page="currentPage"
           :total-pages="totalPages"
           :total-items="totalItems"
           :items-per-page="itemsPerPage"
           search-placeholder="Buscar por nombre, DNI o oficina..."
           :filters="tableFilters"
+          :initial-filters="initialTableFilters"
           @action="handleTableAction"
           @item-action="handleItemAction"
           @search="handleSearch"
@@ -193,6 +225,9 @@
                 Faltante: S/ {{ paymentSplitDisplay(row.raw).due.toFixed(2) }}
               </small>
             </div>
+          </template>
+          <template #cell-pay_method="{ row }">
+            {{ formatPayMethod(row.raw) }}
           </template>
           <template #cell-comprobante="{ row }">
             <div class="payment-step-stack">
@@ -625,6 +660,7 @@ export default {
       selectedActivation: null,
       officesList: [], // Lista de oficinas cargadas
       periodsByKey: {}, // { [key]: periodDoc }
+      initialTableFilters: { status: "", pay_method: "" },
 
       // Table configuration
       tableColumns: [
@@ -769,6 +805,7 @@ export default {
           key: "status",
           label: "Estado",
           type: "select",
+          placeholder: "Todos",
           options: [
             { value: "", label: "Todos" },
             { value: "pending", label: "Pendiente" },
@@ -781,6 +818,7 @@ export default {
           key: "pay_method",
           label: "Medio de Pago",
           type: "select",
+          placeholder: "Todos",
           options: [
             { value: "", label: "Todos" },
             { value: "cash", label: "Efectivo" },
@@ -1073,7 +1111,7 @@ export default {
           products,
           price,
           points,
-          pay_method: this.formatPayMethod(activation) || "-",
+          pay_method: activation.pay_method || "",
           voucher,
           voucher2,
           comprobante: true,
@@ -1099,9 +1137,30 @@ export default {
   async created() {
     const account = JSON.parse(localStorage.getItem("session"));
     this.$store.commit("SET_ACCOUNT", account);
+
+    // Primera vez: filtros en "Todos". Luego recordar lo elegido por el admin.
+    try {
+      const STORAGE_KEY = "activations_table_filters_v1";
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          this.initialTableFilters = {
+            status: parsed.status != null ? parsed.status : "",
+            pay_method: parsed.pay_method != null ? parsed.pay_method : "",
+          };
+        }
+      } else {
+        this.initialTableFilters = { status: "", pay_method: "" };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.initialTableFilters));
+      }
+    } catch (e) {
+      this.initialTableFilters = { status: "", pay_method: "" };
+    }
+
     await this.loadOffices();
     await this.loadPeriods();
-    await this.GET(this.$route.params.filter);
+    await this.GET("all");
     await this.fetchStatusTotals();
   },
   methods: {
@@ -1345,32 +1404,15 @@ export default {
       this.loading = true;
 
       try {
-        console.log("Loading activations with params:", {
-          filter,
-          account: this.account.id,
-          page: this.currentPage,
-          limit: this.itemsPerPage,
-          search: this.search,
-        });
-
-        const { data } = await api.Activations.GET({
-          filter,
-          account: this.account.id,
-          page: this.currentPage,
-          limit: this.itemsPerPage,
-          search: this.search,
-        });
-
-        // Obtener todas las activaciones para los totales
         const { data: allData } = await api.Activations.GET({
-          filter: "all",
+          filter: filter || "all",
           page: 1,
           limit: 10000,
         });
         this.allActivations = allData.activations || [];
-        this.activations = data.activations || [];
-        this.totalItems = data.totalItems || 0;
-        this.totalPages = data.totalPages || 0;
+        this.activations = this.allActivations;
+        this.totalItems = this.allActivations.length;
+        this.totalPages = Math.max(1, Math.ceil(this.totalItems / (Number(this.itemsPerPage) || 20)));
 
         console.log("Processed activations:", {
           count: this.activations.length,
@@ -1529,26 +1571,33 @@ export default {
     handleSearch: debounce(function (search) {
       this.search = search;
       this.currentPage = 1;
-      this.GET(this.$route.params.filter);
     }, 300),
 
     handleFilter(filters) {
       console.log("Filters applied:", filters);
       this.currentPage = 1;
-      this.GET(this.$route.params.filter);
+
+      // Persistir elección del admin
+      try {
+        const STORAGE_KEY = "activations_table_filters_v1";
+        const next = {
+          status: filters && filters.status != null ? filters.status : "",
+          pay_method: filters && filters.pay_method != null ? filters.pay_method : "",
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch (e) {}
     },
 
     async handlePageChange(page) {
       console.log("Page changed to:", page);
       this.currentPage = page;
-      await this.GET(this.$route.params.filter);
     },
 
     async handlePageSizeChange(pageSize) {
       console.log("Page size changed to:", pageSize);
       this.itemsPerPage = pageSize;
       this.currentPage = 1;
-      await this.GET(this.$route.params.filter);
+      this.totalPages = Math.max(1, Math.ceil(this.totalItems / (Number(this.itemsPerPage) || 20)));
     },
 
     async approve(activation) {
@@ -2023,6 +2072,43 @@ export default {
   color: white;
   padding: 2rem 0;
   margin-bottom: 2rem;
+}
+
+.section-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-bottom: 6px;
+}
+
+.section-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.section-tab:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.section-tab.is-active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #3b2b5a;
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
 }
 
 .header-content {

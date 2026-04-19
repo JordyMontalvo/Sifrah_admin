@@ -15,6 +15,37 @@
               </button>
             </div>
           </div>
+
+          <!-- Tabs: Afiliaciones / Activaciones / Vouchers -->
+          <div class="section-tabs" role="tablist" aria-label="Navegación Afiliaciones">
+            <router-link
+              to="/affiliations/all"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/affiliations') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/affiliations')"
+            >
+              Afiliaciones
+            </router-link>
+            <router-link
+              to="/activations/all"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/activations') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/activations')"
+            >
+              Activaciones
+            </router-link>
+            <router-link
+              to="/validacion-vouchers"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/validacion-vouchers') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/validacion-vouchers')"
+            >
+              Vouchers
+            </router-link>
+          </div>
         </div>
       </div>
 
@@ -22,6 +53,7 @@
         <ModernTable
           :data="tableData"
           :columns="tableColumns"
+          :row-class="tableRowClass"
           title="Vouchers por Validar"
           subtitle="Afiliaciones y activaciones con pago por banco"
           :item-actions="itemActions"
@@ -246,9 +278,38 @@ export default {
     if (search || voucher_number) {
       this.search = search || voucher_number;
     }
+
+    // Primera vez: Estado=Todos, Tipo=Todos. Luego recordar lo último elegido por el admin.
+    try {
+      const STORAGE_KEY = "payment_validations_filters_v1";
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          if (parsed.filter) this.filter = parsed.filter;
+          if (parsed.kind) this.kind = parsed.kind;
+        }
+      } else {
+        this.filter = "all";
+        this.kind = "all";
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ filter: this.filter, kind: this.kind }));
+      }
+    } catch (e) {
+      // Si localStorage falla, no bloquear la vista.
+      this.filter = this.filter || "all";
+      this.kind = this.kind || "all";
+    }
+
     await this.refresh();
   },
   methods: {
+    tableRowClass(item) {
+      if (!item || item._rowType === "separator") return null;
+      if (String(item.status || "").toLowerCase() === "cancelled") {
+        return "table-row--cancelled";
+      }
+      return null;
+    },
     isImage(url) {
       if (!url) return false;
       const s = String(url);
@@ -323,6 +384,16 @@ export default {
     handleFilter(filters) {
       if (filters && filters.filter) this.filter = filters.filter;
       if (filters && filters.kind) this.kind = filters.kind;
+
+      // Persistir elección del admin
+      try {
+        const STORAGE_KEY = "payment_validations_filters_v1";
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ filter: this.filter, kind: this.kind })
+        );
+      } catch (e) {}
+
       this.refresh();
     },
     async handleItemAction({ action, item }) {
@@ -372,6 +443,39 @@ export default {
   color: white;
   padding: 2rem 0;
   margin-bottom: 2rem;
+}
+.section-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-bottom: 6px;
+}
+.section-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+.section-tab:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+}
+.section-tab.is-active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #3b2b5a;
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
 }
 .header-content {
   display: flex;

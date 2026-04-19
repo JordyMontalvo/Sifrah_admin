@@ -26,6 +26,37 @@
               </router-link>
             </div>
           </div>
+
+          <!-- Tabs: Afiliaciones / Activaciones / Vouchers -->
+          <div class="section-tabs" role="tablist" aria-label="Navegación Afiliaciones">
+            <router-link
+              to="/affiliations/all"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/affiliations') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/affiliations')"
+            >
+              Afiliaciones
+            </router-link>
+            <router-link
+              to="/activations/all"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/activations') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/activations')"
+            >
+              Activaciones
+            </router-link>
+            <router-link
+              to="/validacion-vouchers"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/validacion-vouchers') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/validacion-vouchers')"
+            >
+              Vouchers
+            </router-link>
+          </div>
         </div>
       </div>
 
@@ -79,13 +110,14 @@
           :item-actions="itemActions"
           :show-filters="true"
           :show-pagination="true"
-          :server-pagination="true"
+          :server-pagination="false"
           :current-page="currentPage"
           :total-pages="totalPages"
           :total-items="totalItems"
           :items-per-page="itemsPerPage"
           search-placeholder="Buscar por nombre, DNI o oficina..."
           :filters="tableFilters"
+          :initial-filters="initialTableFilters"
           @action="handleTableAction"
           @item-action="handleItemAction"
           @search="handleSearch"
@@ -163,6 +195,9 @@
                 Faltante: S/ {{ paymentSplitDisplay(row.raw).due.toFixed(2) }}
               </small>
             </div>
+          </template>
+          <template #cell-pay_method="{ row }">
+            {{ formatPayMethod(row.raw) }}
           </template>
           <template #cell-office="{ row }">
             {{ row.raw.officeName || getOfficeName(row.raw.officeId || row.raw.office) }}
@@ -664,6 +699,7 @@ export default {
       selectedAffiliation: null,
       officesList: [], // Lista de oficinas cargadas
       periodsByKey: {}, // { [key]: periodDoc }
+      initialTableFilters: { status: "", pay_method: "" },
 
       // Table configuration
       tableColumns: [
@@ -807,6 +843,7 @@ export default {
           key: "status",
           label: "Estado",
           type: "select",
+          placeholder: "Todos",
           options: [
             { value: "", label: "Todos" },
             { value: "pending", label: "Pendiente" },
@@ -819,6 +856,7 @@ export default {
           key: "pay_method",
           label: "Medio de Pago",
           type: "select",
+          placeholder: "Todos",
           options: [
             { value: "", label: "Todos" },
             { value: "cash", label: "Efectivo" },
@@ -1096,7 +1134,7 @@ export default {
               ? (affiliation.difference && affiliation.difference.amount) || 0
               : (affiliation.plan && affiliation.plan.amount) || 0,
           products: this.formatProducts(affiliation),
-          pay_method: this.formatPayMethod(affiliation),
+          pay_method: affiliation.pay_method || "",
           voucher: this.formatVoucher(affiliation).voucher,
           voucher2: this.formatVoucher(affiliation).voucher2,
           status: affiliation.status,
@@ -1156,9 +1194,30 @@ export default {
   async created() {
     const account = JSON.parse(localStorage.getItem("session"));
     this.$store.commit("SET_ACCOUNT", account);
+
+    // Primera vez: filtros en "Todos". Luego recordar lo elegido por el admin.
+    try {
+      const STORAGE_KEY = "affiliations_table_filters_v1";
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          this.initialTableFilters = {
+            status: parsed.status != null ? parsed.status : "",
+            pay_method: parsed.pay_method != null ? parsed.pay_method : "",
+          };
+        }
+      } else {
+        this.initialTableFilters = { status: "", pay_method: "" };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.initialTableFilters));
+      }
+    } catch (e) {
+      this.initialTableFilters = { status: "", pay_method: "" };
+    }
+
     await this.loadOffices();
     await this.loadPeriods();
-    await this.GET(this.$route.params.filter);
+    await this.GET("all");
   },
   methods: {
     isDeliveryEnabled(row) {
@@ -1402,33 +1461,17 @@ export default {
       this.loading = true;
 
       try {
-        console.log("Loading affiliations with params:", {
-          filter,
-          account: "admin",
-          page: this.currentPage,
-          limit: this.itemsPerPage,
-          search: this.search,
-        });
-
-        const { data } = await api.Affiliations.GET({
-          filter,
-          account: "admin",
-          page: this.currentPage,
-          limit: this.itemsPerPage,
-          search: this.search,
-        });
-
-        // Obtener todas las afiliaciones para los totales
+        // Cargar TODO para que filtros/search funcionen al 100% en frontend
         const { data: allData } = await api.Affiliations.GET({
-          filter: "all",
+          filter: filter || "all",
           account: "admin",
           page: 1,
           limit: 10000,
         });
         this.allAffiliations = allData.affiliations || [];
-        this.affiliations = data.affiliations || [];
-        this.totalItems = data.totalItems || 0;
-        this.totalPages = data.totalPages || 0;
+        this.affiliations = this.allAffiliations;
+        this.totalItems = this.allAffiliations.length;
+        this.totalPages = Math.max(1, Math.ceil(this.totalItems / (Number(this.itemsPerPage) || 20)));
 
         console.log("Processed affiliations:", {
           count: this.affiliations.length,
@@ -1640,28 +1683,36 @@ export default {
     },
 
     handleSearch: debounce(function (search) {
+      // En modo local, ModernTable ya filtra; guardamos para export si se necesita.
       this.search = search;
       this.currentPage = 1;
-      this.GET(this.$route.params.filter);
     }, 300),
 
     handleFilter(filters) {
       console.log("Filters applied:", filters);
       this.currentPage = 1;
-      this.GET(this.$route.params.filter);
+
+      // Persistir elección del admin
+      try {
+        const STORAGE_KEY = "affiliations_table_filters_v1";
+        const next = {
+          status: filters && filters.status != null ? filters.status : "",
+          pay_method: filters && filters.pay_method != null ? filters.pay_method : "",
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch (e) {}
     },
 
     async handlePageChange(page) {
       console.log("Page changed to:", page);
       this.currentPage = page;
-      await this.GET(this.$route.params.filter);
     },
 
     async handlePageSizeChange(pageSize) {
       console.log("Page size changed to:", pageSize);
       this.itemsPerPage = pageSize;
       this.currentPage = 1;
-      await this.GET(this.$route.params.filter);
+      this.totalPages = Math.max(1, Math.ceil(this.totalItems / (Number(this.itemsPerPage) || 20)));
     },
 
     async approve(affiliation) {
@@ -2264,6 +2315,43 @@ function parseDate(dateStr) {
   color: white;
   padding: 2rem 0;
   margin-bottom: 2rem;
+}
+
+.section-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-bottom: 6px;
+}
+
+.section-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.section-tab:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.section-tab.is-active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #3b2b5a;
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
 }
 
 .header-content {

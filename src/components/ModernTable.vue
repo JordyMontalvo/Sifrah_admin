@@ -49,7 +49,12 @@
               v-model="filterValues[filter.key]"
               @change="handleFilter"
             >
-              <option value="">{{ filter.placeholder }}</option>
+              <option
+                v-if="filter.placeholder && !filterHasEmptyOption(filter)"
+                value=""
+              >
+                {{ filter.placeholder }}
+              </option>
               <option
                 v-for="option in filter.options"
                 :key="option.value"
@@ -429,7 +434,15 @@ export default {
         const normalized =
           value == null ? "" : String(value).trim().toLowerCase();
         if (normalized && normalized !== "all" && normalized !== "todos") {
-          data = data.filter((item) => item[key] === value);
+          data = data.filter((item) => {
+            const itemVal = item ? item[key] : undefined;
+            if (itemVal == null) return false;
+            // Comparación flexible (normaliza strings)
+            if (typeof itemVal === "string") {
+              return itemVal.trim().toLowerCase() === normalized;
+            }
+            return itemVal === value;
+          });
         }
       });
 
@@ -508,6 +521,10 @@ export default {
     },
   },
   methods: {
+    filterHasEmptyOption(filter) {
+      if (!filter || !Array.isArray(filter.options)) return false;
+      return filter.options.some((o) => String(o && o.value) === "");
+    },
     handleSearch() {
       this.currentPage = 1;
       this.$emit("search", this.searchQuery);
@@ -577,6 +594,8 @@ export default {
         inactive: "status-inactive",
         pending: "status-pending",
         completed: "status-completed",
+        approved: "status-approved",
+        rejected: "status-rejected",
         cancelled: "status-cancelled",
       };
       return statusClasses[status] || "status-default";
@@ -734,11 +753,22 @@ export default {
 }
 
 .filter-select {
-  padding: 8px 12px;
+  padding: 8px 34px 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.875rem;
-  background: white;
+  background-color: white;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M6 8l4 4 4-4' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 12px) 50%;
+  background-size: 18px 18px;
+}
+
+.filter-select::-ms-expand {
+  display: none;
 }
 
 /* Table */
@@ -886,9 +916,19 @@ export default {
   color: #1e40af;
 }
 
+.status-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .status-cancelled {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: #e5e7eb;
+  color: #4b5563;
 }
 
 /* Alineado con Lista de Afiliaciones: aprobado/rechazado/anulado sin chip de color */
