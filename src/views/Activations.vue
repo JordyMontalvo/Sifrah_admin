@@ -174,13 +174,21 @@
                   'is-dark': paymentSplitDisplay(row.raw).mode === 'external_only',
                 }"
               >{{ paymentSplitDisplay(row.raw).modeLabel }}</span>
-              <small
-                v-if="paymentSplitDisplay(row.raw).paid_virtual > 0"
-                style="color:#6b7280;"
-              >No disp.: S/ {{ paymentSplitDisplay(row.raw).paid_virtual.toFixed(2) }}</small>
-              <small style="color:#374151; font-weight:700;">
-                Saldo disp.: S/ {{ paymentSplitDisplay(row.raw).paid_balance.toFixed(2) }}
-              </small>
+              <template v-if="paymentSplitDisplay(row.raw).aggregateBalanceDisplay">
+                <small style="color:#374151; font-weight:700;">
+                  Saldo disp.: S/
+                  {{ paymentSplitDisplay(row.raw).totalInternalPaid.toFixed(2) }}
+                </small>
+              </template>
+              <template v-else>
+                <small
+                  v-if="paymentSplitDisplay(row.raw).paid_virtual > 0"
+                  style="color:#6b7280;"
+                >No disp.: S/ {{ paymentSplitDisplay(row.raw).paid_virtual.toFixed(2) }}</small>
+                <small style="color:#374151; font-weight:700;">
+                  Saldo disp.: S/ {{ paymentSplitDisplay(row.raw).paid_balance.toFixed(2) }}
+                </small>
+              </template>
               <small style="color:#6b7280;">
                 Faltante: S/ {{ paymentSplitDisplay(row.raw).due.toFixed(2) }}
               </small>
@@ -1191,6 +1199,10 @@ export default {
           : mode === "mixed"
           ? "Mixto (saldo + voucher)"
           : "Sin saldo (solo voucher/banco)";
+      const totalInternal = paid_virtual + paid_balance;
+      // Vista única cuando todo el pedido quedó cubierto con saldo interno (evita "No disp 85 / Saldo disp 0")
+      const aggregateBalanceDisplay =
+        mode === "balance_only" && due <= 0.0001 && totalInternal > 0;
       return {
         legacyMissing: false,
         paid_virtual,
@@ -1198,6 +1210,8 @@ export default {
         due,
         mode,
         modeLabel,
+        aggregateBalanceDisplay,
+        totalInternalPaid: totalInternal,
       };
     },
     recordTabLabel(status) {

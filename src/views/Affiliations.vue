@@ -144,13 +144,21 @@
                   'is-dark': paymentSplitDisplay(row.raw).mode === 'external_only',
                 }"
               >{{ paymentSplitDisplay(row.raw).modeLabel }}</span>
-              <small
-                v-if="paymentSplitDisplay(row.raw).paid_virtual > 0"
-                style="color:#6b7280;"
-              >No disp.: S/ {{ paymentSplitDisplay(row.raw).paid_virtual.toFixed(2) }}</small>
-              <small style="color:#374151; font-weight:700;">
-                Saldo disp.: S/ {{ paymentSplitDisplay(row.raw).paid_balance.toFixed(2) }}
-              </small>
+              <template v-if="paymentSplitDisplay(row.raw).aggregateBalanceDisplay">
+                <small style="color:#374151; font-weight:700;">
+                  Saldo disp.: S/
+                  {{ paymentSplitDisplay(row.raw).totalInternalPaid.toFixed(2) }}
+                </small>
+              </template>
+              <template v-else>
+                <small
+                  v-if="paymentSplitDisplay(row.raw).paid_virtual > 0"
+                  style="color:#6b7280;"
+                >No disp.: S/ {{ paymentSplitDisplay(row.raw).paid_virtual.toFixed(2) }}</small>
+                <small style="color:#374151; font-weight:700;">
+                  Saldo disp.: S/ {{ paymentSplitDisplay(row.raw).paid_balance.toFixed(2) }}
+                </small>
+              </template>
               <small style="color:#6b7280;">
                 Faltante: S/ {{ paymentSplitDisplay(row.raw).due.toFixed(2) }}
               </small>
@@ -379,22 +387,39 @@
                   >
                   <span class="detail-value">{{ paymentSplitDisplay(selectedAffiliation).modeLabel }}</span>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label"
-                    ><i class="fas fa-wallet"></i> Abono con saldo disponible:</span
-                  >
-                  <span class="detail-value">
-                    S/ {{ paymentSplitDisplay(selectedAffiliation).paid_balance.toFixed(2) }}
-                  </span>
-                </div>
-                <div class="detail-item" v-if="paymentSplitDisplay(selectedAffiliation).paid_virtual > 0">
-                  <span class="detail-label"
-                    ><i class="fas fa-coins"></i> Abono saldo no disponible:</span
-                  >
-                  <span class="detail-value">
-                    S/ {{ paymentSplitDisplay(selectedAffiliation).paid_virtual.toFixed(2) }}
-                  </span>
-                </div>
+                <template v-if="paymentSplitDisplay(selectedAffiliation).aggregateBalanceDisplay">
+                  <div class="detail-item">
+                    <span class="detail-label"
+                      ><i class="fas fa-wallet"></i> Saldo disp. (total abonado):</span
+                    >
+                    <span class="detail-value" style="font-weight: 800;">
+                      S/
+                      {{
+                        paymentSplitDisplay(
+                          selectedAffiliation
+                        ).totalInternalPaid.toFixed(2)
+                      }}
+                    </span>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="detail-item">
+                    <span class="detail-label"
+                      ><i class="fas fa-wallet"></i> Abono con saldo disponible:</span
+                    >
+                    <span class="detail-value">
+                      S/ {{ paymentSplitDisplay(selectedAffiliation).paid_balance.toFixed(2) }}
+                    </span>
+                  </div>
+                  <div class="detail-item" v-if="paymentSplitDisplay(selectedAffiliation).paid_virtual > 0">
+                    <span class="detail-label"
+                      ><i class="fas fa-coins"></i> Abono saldo no disponible:</span
+                    >
+                    <span class="detail-value">
+                      S/ {{ paymentSplitDisplay(selectedAffiliation).paid_virtual.toFixed(2) }}
+                    </span>
+                  </div>
+                </template>
                 <div class="detail-item">
                   <span class="detail-label"
                     ><i class="fas fa-file-invoice-dollar"></i> Faltante (voucher/efectivo):</span
@@ -1254,6 +1279,9 @@ export default {
           : mode === "mixed"
           ? "Mixto (saldo + voucher)"
           : "Sin saldo (solo voucher/banco)";
+      const totalInternal = paid_virtual + paid_balance;
+      const aggregateBalanceDisplay =
+        mode === "balance_only" && due <= 0.0001 && totalInternal > 0;
       return {
         legacyMissing: false,
         paid_virtual,
@@ -1261,6 +1289,8 @@ export default {
         due,
         mode,
         modeLabel,
+        aggregateBalanceDisplay,
+        totalInternalPaid: totalInternal,
       };
     },
     getPaidBalance(affiliation) {
