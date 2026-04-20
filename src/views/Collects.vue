@@ -152,6 +152,11 @@ export default {
           sortable: true,
         },
         {
+          key: "desc",
+          label: "Descripción",
+          sortable: false,
+        },
+        {
           key: "account",
           label: "Cuenta",
           sortable: false,
@@ -241,6 +246,7 @@ export default {
           id: index + 1,
           date: collect.date, // Pasar el valor original, ModernTable lo formateará
           user: `${collect.name} ${collect.lastName} (${collect.phone})`,
+          desc: collect.desc || "",
           account: this.formatAccount(collect),
           amount: parseFloat(collect.amount).toFixed(2),
           office: collect.office,
