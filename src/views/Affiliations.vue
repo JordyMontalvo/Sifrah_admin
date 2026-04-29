@@ -1716,9 +1716,29 @@ export default {
     },
 
     async approve(affiliation) {
-      if (!confirm("¿Desea aprobar esta afiliación?")) return;
+      const result = await Swal.fire({
+        title: "¿Desea aprobar esta afiliación?",
+        text: "Se procesará el alta y se pagarán las comisiones correspondientes.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Sí, aprobar",
+        cancelButtonText: "Cancelar"
+      });
+
+      if (!result.isConfirmed) return;
 
       affiliation.sending = true;
+
+      Swal.fire({
+        title: "Procesando solicitud...",
+        text: "Por favor espere, no cierre la ventana.",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
       try {
         const { data } = await api.Affiliations.POST({
@@ -1726,22 +1746,48 @@ export default {
           id: affiliation.id,
         });
 
-        if (data.error && data.msg == "already approved") {
-          affiliation.status = "approved";
+        if (data && data.error) {
+          const errMsg = data.msg || data.error;
+          if (errMsg === "already approved") {
+            affiliation.status = "approved";
+            Swal.fire("Información", "La afiliación ya había sido aprobada.", "info");
+          } else {
+            Swal.fire("Aviso", errMsg, "warning");
+          }
         } else {
           affiliation.status = "approved";
+          Swal.fire("¡Aprobada!", "La afiliación se procesó exitosamente.", "success");
         }
       } catch (error) {
         console.error("Error approving affiliation:", error);
+        Swal.fire("Error", "Ocurrió un problema de red al aprobar.", "error");
       } finally {
         affiliation.sending = false;
       }
     },
 
     async reject(affiliation) {
-      if (!confirm("¿Desea rechazar esta afiliación?")) return;
+      const result = await Swal.fire({
+        title: "¿Desea rechazar esta afiliación?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Sí, rechazar",
+        cancelButtonText: "Cancelar"
+      });
+
+      if (!result.isConfirmed) return;
 
       affiliation.sending = true;
+
+      Swal.fire({
+        title: "Procesando...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
       try {
         const { data } = await api.Affiliations.POST({
@@ -1749,9 +1795,15 @@ export default {
           id: affiliation.id,
         });
 
-        affiliation.status = "rejected";
+        if (data && data.error) {
+          Swal.fire("Aviso", data.msg || data.error, "warning");
+        } else {
+          affiliation.status = "rejected";
+          Swal.fire("Rechazada", "La afiliación ha sido rechazada.", "success");
+        }
       } catch (error) {
         console.error("Error rejecting affiliation:", error);
+        Swal.fire("Error", "Ocurrió un problema al rechazar.", "error");
       } finally {
         affiliation.sending = false;
       }
