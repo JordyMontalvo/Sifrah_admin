@@ -26,6 +26,13 @@
           </div>
         </div>
         <div class="summary-card">
+          <span class="summary-card__icon">🌟</span>
+          <div>
+            <span class="summary-card__label">Total Bono Gen. VIP</span>
+            <strong class="summary-card__value">S/ {{ totalGenerationalBonus.toFixed(2) }}</strong>
+          </div>
+        </div>
+        <div class="summary-card">
           <span class="summary-card__icon">💎</span>
           <div>
             <span class="summary-card__label">Usuarios con Rango</span>
@@ -117,6 +124,7 @@
                 <th>Pts. Grupales</th>
                 <th>Rango Alcanzado</th>
                 <th>Bono Residual</th>
+                <th>Bono Generacional VIP</th>
                 <th>Bono rango (logro / mant.)</th>
               </tr>
             </thead>
@@ -156,6 +164,25 @@
                     >
                       <li v-for="(ln, ri) in node.residual_lines" :key="`${node.id}-res-${ri}`">
                         <span class="residual-lines__lvl">Nivel {{ ln.level }}</span>
+                        {{ ln.name || '—' }}
+                        <span class="residual-lines__meta">· DNI {{ ln.dni || '—' }}</span>
+                        <span class="residual-lines__meta">· PR {{ Number(ln.pr || 0).toFixed(0) }}</span>
+                        <span class="residual-lines__meta">· {{ formatResidualPct(ln.percentage) }}</span>
+                        <span class="residual-lines__amt">→ S/ {{ Number(ln.amount || 0).toFixed(2) }}</span>
+                      </li>
+                    </ul>
+                  </template>
+                  <span v-else class="td-zero">—</span>
+                </td>
+                <td class="td-bonus td-bonus--detail">
+                  <template v-if="node.generational_bonus > 0">
+                    <strong>S/ {{ node.generational_bonus.toFixed(2) }}</strong>
+                    <ul
+                      v-if="node.generational_lines && node.generational_lines.length"
+                      class="residual-lines"
+                    >
+                      <li v-for="(ln, ri) in node.generational_lines" :key="`${node.id}-gen-${ri}`">
+                        <span class="residual-lines__lvl">Gen VIP {{ ln.generation || ln.level }}</span>
                         {{ ln.name || '—' }}
                         <span class="residual-lines__meta">· DNI {{ ln.dni || '—' }}</span>
                         <span class="residual-lines__meta">· PR {{ Number(ln.pr || 0).toFixed(0) }}</span>
@@ -244,6 +271,7 @@
                   <th>Pts. Grupales</th>
                   <th>Rango Cerrado</th>
                   <th>Bono Residual</th>
+                  <th>Bono Generacional VIP</th>
                   <th>Bono rango (logro / mant.)</th>
                 </tr>
               </thead>
@@ -284,6 +312,24 @@
                       >
                         <li v-for="(ln, ri) in user.residual_lines" :key="`hist-${ci}-${i}-res-${ri}`">
                           <span class="residual-lines__lvl">Nv.{{ ln.level }}</span>
+                          {{ ln.name || '—' }}
+                          <span class="residual-lines__meta">· PR {{ Number(ln.pr || 0).toFixed(0) }}</span>
+                          <span class="residual-lines__meta">· {{ formatResidualPct(ln.percentage) }}</span>
+                          <span class="residual-lines__amt">→ S/ {{ Number(ln.amount || 0).toFixed(2) }}</span>
+                        </li>
+                      </ul>
+                    </template>
+                    <span v-else class="td-zero">—</span>
+                  </td>
+                  <td class="td-bonus td-bonus--detail">
+                    <template v-if="user.generational_bonus > 0">
+                      <strong>S/ {{ user.generational_bonus.toFixed(2) }}</strong>
+                      <ul
+                        v-if="user.generational_lines && user.generational_lines.length"
+                        class="residual-lines residual-lines--compact"
+                      >
+                        <li v-for="(ln, ri) in user.generational_lines" :key="`hist-${ci}-${i}-gen-${ri}`">
+                          <span class="residual-lines__lvl">Gen.{{ ln.generation || ln.level }}</span>
                           {{ ln.name || '—' }}
                           <span class="residual-lines__meta">· PR {{ Number(ln.pr || 0).toFixed(0) }}</span>
                           <span class="residual-lines__meta">· {{ formatResidualPct(ln.percentage) }}</span>
@@ -437,6 +483,9 @@ export default {
     totalResidual() {
       return (this.tree || []).reduce((sum, n) => sum + (n.residual_bonus || 0), 0)
     },
+    totalGenerationalBonus() {
+      return (this.tree || []).reduce((sum, n) => sum + (n.generational_bonus || 0), 0)
+    },
     totalRankBonus() {
       return (this.tree || []).reduce((sum, n) => sum + (Number(n.rank_bonus_total) || 0), 0)
     },
@@ -453,7 +502,7 @@ export default {
       }, 0)
     },
     totalPreviewCierre() {
-      return this.totalResidual + this.totalRankBonus
+      return this.totalResidual + this.totalGenerationalBonus + this.totalRankBonus
     },
     hasPreviewData() {
       return (
