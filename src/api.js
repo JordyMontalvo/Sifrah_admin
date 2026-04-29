@@ -13,6 +13,12 @@ const getBaseURL = () => {
 
 axios.defaults.baseURL = getBaseURL();
 
+/** Evita `account=undefined` en la query (rompe filtros en algunos endpoints). */
+function adminAccountQuery(account) {
+    if (account === undefined || account === null || account === "") return "";
+    return `&account=${encodeURIComponent(account)}`;
+}
+
 class API {
     constructor({
         users,
@@ -50,6 +56,7 @@ class API {
         books,
         bookCategories,
         rankHistory,
+        generalPassword,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -86,6 +93,7 @@ class API {
         this.books = books;
         this.bookCategories = bookCategories;
         this.rankHistory = rankHistory;
+        this.generalPassword = generalPassword;
     }
 }
 
@@ -112,7 +120,7 @@ class Affiliations {
     GET({ filter, account, page = 1, limit = 20, search }) {
         const searchParam = search ? `&search=${search}` : "";
         return axios.get(
-            `/admin/affiliations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
+            `/admin/affiliations?filter=${filter}&page=${page}&limit=${limit}${adminAccountQuery(account)}${searchParam}`
         );
     }
     POST({ action, id }) {
@@ -123,7 +131,7 @@ class Affiliations {
 class Collects {
     GET({ filter, account, page = 1, limit = 20 }) {
         return axios.get(
-            `/admin/collects?filter=${filter}&&account=${account}&page=${page}&limit=${limit}`
+            `/admin/collects?filter=${filter}&page=${page}&limit=${limit}${adminAccountQuery(account)}`
         );
     }
     POST({ action, id }) {
@@ -134,7 +142,7 @@ class Collects {
 class OfficeCollects {
     GET({ filter, account }) {
         return axios.get(
-            `/admin/office-collects?filter=${filter}&&account=${account}`
+            `/admin/office-collects?filter=${filter}${adminAccountQuery(account)}`
         );
     }
     POST({ action, id }) {
@@ -146,7 +154,7 @@ class Activations {
     GET({ filter, account, page = 1, limit = 20, search }) {
         const searchParam = search ? `&search=${search}` : "";
         return axios.get(
-            `/admin/activations?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
+            `/admin/activations?filter=${filter}&page=${page}&limit=${limit}${adminAccountQuery(account)}${searchParam}`
         );
     }
     POST({ action, id, points }) {
@@ -282,7 +290,7 @@ class Transaction {
     GET(filter, account, page = 1, limit = 20, search) {
         const searchParam = search ? `&search=${search}` : "";
         return axios.get(
-            `/admin/trans?filter=${filter}&account=${account}&page=${page}&limit=${limit}${searchParam}`
+            `/admin/trans?filter=${filter}&page=${page}&limit=${limit}${adminAccountQuery(account)}${searchParam}`
         );
     }
     POST({ action, id, data }) {
@@ -498,6 +506,15 @@ class RankHistory {
     }
 }
 
+class GeneralPassword {
+    GET() {
+        return axios.get(`/admin/general-password`);
+    }
+    POST({ newPassword }) {
+        return axios.post(`/admin/general-password`, { newPassword });
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -534,4 +551,5 @@ export default new API({
     books: new Books(),
     bookCategories: new BookCategories(),
     rankHistory: new RankHistory(),
+    generalPassword: new GeneralPassword(),
 });

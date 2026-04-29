@@ -437,9 +437,22 @@ export default {
   methods: {
     async loadDashboardData() {
       try {
-        // Load today's stats
-        const todayResponse = await api.reports.GET({ filter: "day" });
-        const todayData = todayResponse.data;
+        const [
+          todayResponse,
+          allResponse,
+          productsResponse,
+          plansResponse,
+        ] = await Promise.all([
+          api.reports.GET({ filter: "day" }),
+          api.reports.GET({ filter: "all" }),
+          api.products.GET(),
+          api.Plans.GET(),
+        ]);
+
+        const todayData = todayResponse.data || {};
+        const allData = allResponse.data || {};
+        const products = (productsResponse.data && productsResponse.data.products) || [];
+        const plans = (plansResponse.data && plansResponse.data.plans) || [];
 
         this.todayStats = {
           total:
@@ -449,32 +462,39 @@ export default {
           users: todayData.affiliations_count || 0,
         };
 
-        // Load overview stats
-        const allResponse = await api.reports.GET({ filter: "all" });
-        const allData = allResponse.data;
+        const types = new Set(
+          products
+            .map((p) => p._type || p.type)
+            .filter(Boolean)
+        );
+
+        const newUsersThisMonth =
+          (allData.monthActivations || 0) + (allData.monthAffiliations || 0);
 
         this.overviewStats = {
           totalUsers: allData.totalUsers || 0,
           affiliatedUsers: allData.affiliatedUsers || 0,
           userGrowth: 5.2,
-          newUsers: 45,
+          newUsers: newUsersThisMonth,
           totalIncome: allData.monthlyIncome || 0,
           incomeGrowth: 12.5,
           monthlyIncome: allData.monthlyIncome || 0,
-          totalProducts: 85,
-          categories: 12,
-          totalPlans: 8,
-          activePlans: 6,
+          totalProducts: products.length,
+          categories: types.size,
+          totalPlans: plans.length,
+          activePlans: plans.length,
         };
 
         // Load recent activity
         this.loadRecentActivity();
-        
+
         // Load leadership stats
         this.loadLeadershipStats();
       } catch (error) {
         console.error("Error loading dashboard data:", error);
-        this.$toast.error("Error al cargar datos del dashboard");
+        this.$toast.error(
+          "Error al cargar datos del dashboard. ¿Está corriendo el servidor API (p. ej. puerto 3000) y reiniciaste npm run serve tras agregar el proxy?"
+        );
       }
     },
 
@@ -483,6 +503,7 @@ export default {
         // Load recent affiliations
         const affiliationsResponse = await api.Affiliations.GET({
           filter: "all",
+          account: "admin",
           limit: 5,
         });
         this.recentAffiliations = affiliationsResponse.data.affiliations || [];
@@ -490,6 +511,7 @@ export default {
         // Load recent activations
         const activationsResponse = await api.Activations.GET({
           filter: "all",
+          account: "admin",
           limit: 5,
         });
         this.recentActivations = activationsResponse.data.activations || [];

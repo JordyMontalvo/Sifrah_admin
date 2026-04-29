@@ -31,6 +31,7 @@ import AIQualityPredictions from "./views/AIQualityPredictions.vue";
 import DeliveryManagement from "./views/DeliveryManagement.vue";
 import PaymentMethods from "./views/PaymentMethods.vue";
 import DashboardConfig from "./views/DashboardConfig.vue";
+import GeneralPassword from "./views/GeneralPassword.vue";
 import Flyers from "./views/Flyers.vue";
 import Periods from "./views/Periods.vue";
 import Materials from "./views/Materials.vue";
@@ -209,6 +210,11 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/general-password",
+    component: GeneralPassword,
+    meta: { requiresAuth: true, title: "CLAVE MAESTRA" },
+  },
+  {
     path: "/flyers",
     component: Flyers,
     meta: { requiresAuth: true },
@@ -246,6 +252,8 @@ const router = new Router({
   routes,
 });
 
+const DEFAULT_DOCUMENT_TITLE = "Sifrah Admin";
+
 router.beforeEach((to, from, next) => {
   const requiresNoAuth = to.matched.some(
     (record) => record.meta.requiresNoAuth
@@ -262,6 +270,15 @@ router.beforeEach((to, from, next) => {
   }
 
   next();
+});
+
+router.afterEach((to) => {
+  const leaf = to.matched[to.matched.length - 1];
+  if (leaf && leaf.meta && leaf.meta.title) {
+    document.title = leaf.meta.title;
+  } else {
+    document.title = DEFAULT_DOCUMENT_TITLE;
+  }
 });
 
 export default router;
