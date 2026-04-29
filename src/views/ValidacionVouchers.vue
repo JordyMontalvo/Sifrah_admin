@@ -174,6 +174,7 @@ import Layout from "@/views/Layout";
 import ModernTable from "@/components/ModernTable";
 import api from "@/api";
 import { debounce } from "lodash";
+import Swal from "sweetalert2";
 
 export default {
   components: { Layout, ModernTable },
@@ -403,8 +404,28 @@ export default {
         return;
       }
       if (action === "approve" || action === "reject") {
-        const ok = confirm(`¿Deseas ${action === "approve" ? "aprobar" : "rechazar"} este pago?`);
-        if (!ok) return;
+        const actionLabel = action === "approve" ? "aprobar" : "rechazar";
+        const result = await Swal.fire({
+          title: `¿Deseas ${actionLabel} este pago?`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: action === "approve" ? "#3085d6" : "#d33",
+          cancelButtonColor: action === "approve" ? "#d33" : "#3085d6",
+          confirmButtonText: `Sí, ${actionLabel}`,
+          cancelButtonText: "Cancelar"
+        });
+
+        if (!result.isConfirmed) return;
+
+        Swal.fire({
+          title: "Procesando...",
+          text: "Por favor espere.",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
         try {
           const { data } = await api.paymentValidations.POST({
             action,
@@ -412,12 +433,13 @@ export default {
             kind: raw.kind,
           });
           // El backend a veces responde 200 con `{ error:true, msg }`.
-          // Si pasa eso, mostrar el motivo (p.ej. voucher duplicado) en lugar de fallar silenciosamente.
           if (data && data.error) {
             const msg = data.msg || "No se pudo ejecutar la acción";
-            if (this.$toast) this.$toast.error(msg);
+            Swal.fire("Aviso", msg, "warning");
             return;
           }
+          
+          Swal.fire("¡Éxito!", `El pago fue ${action === "approve" ? "aprobado" : "rechazado"} correctamente.`, "success");
           await this.refresh();
         } catch (e) {
           console.error("Error acción validación:", e);
@@ -425,7 +447,7 @@ export default {
             (e.response && e.response.data && (e.response.data.msg || e.response.data.error)) ||
             e.message ||
             "No se pudo ejecutar la acción";
-          if (this.$toast) this.$toast.error(msg);
+          Swal.fire("Error", msg, "error");
         }
       }
     },
