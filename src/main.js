@@ -7,6 +7,16 @@ import "bulma-switch/dist/css/bulma-switch.min.css";
 
 Vue.config.productionTip = false;
 
+// Deshabilitar todos los logs en producción
+if (process.env.NODE_ENV === 'production') {
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+  console.info = () => {};
+  console.debug = () => {};
+}
+
+
 // Inyectar $toast globalmente en todos los componentes
 Vue.mixin({
   mounted() {
