@@ -33,7 +33,7 @@
 
     <div class="field is-grouped">
       <div class="control">
-        <button class="button is-link" @click="submit">Login</button>
+        <button class="button is-link" :class="{'is-loading': loading}" @click="submit" :disabled="loading">Login</button>
       </div>
     </div>
   </main>
@@ -54,14 +54,17 @@ export default {
         password: false,
       },
       alert:   null,
+      loading: false,
     }
   },
   filters: {
     alert(msg) {
+      if (!msg) return ''
       if (msg == 'missing credentials') return 'Completa tus credenciales'
       if (msg == 'invalid account') return 'Cuenta inválida'
       if (msg == 'invalid password') return 'Contraseña incorrecta'
       if (msg == 'missing session') return 'Sesión inválida'
+      return msg // Mostrar cualquier otro mensaje (como "Error de conexión")
     },
   },
   async mounted() {
@@ -81,6 +84,9 @@ export default {
   },
   methods: {
     async submit() {
+      if (this.loading) return
+      this.loading = true
+      this.alert = null
 
       const { email, password } = this
 
@@ -101,6 +107,8 @@ export default {
         console.error('[Login Error]', e);
         const msg = (e && e.response && e.response.data && e.response.data.msg) || 'Error de conexión / Servidor';
         this.alert = msg;
+      } finally {
+        this.loading = false
       }
 
     },
