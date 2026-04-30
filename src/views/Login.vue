@@ -98,8 +98,9 @@ export default {
         this.$store.commit('SET_ACCOUNT', data.account)
         this.$router.push('/dashboard')
       } catch (e) {
-        const msg = (e && e.response && e.response.data && e.response.data.msg) || 'invalid account'
-        this.alert = msg
+        console.error('[Login Error]', e);
+        const msg = (e && e.response && e.response.data && e.response.data.msg) || 'Error de conexión / Servidor';
+        this.alert = msg;
       }
 
     },
