@@ -90,6 +90,7 @@ class API {
         bookCategories,
         rankHistory,
         generalPassword,
+        adminAuth,
         agenda,
     }) {
         this.users = users;
@@ -128,6 +129,7 @@ class API {
         this.bookCategories = bookCategories;
         this.rankHistory = rankHistory;
         this.generalPassword = generalPassword;
+        this.adminAuth = adminAuth;
         this.agenda = agenda;
     }
 }
