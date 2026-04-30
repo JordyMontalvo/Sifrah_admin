@@ -2,14 +2,14 @@
   <main class="section" style="max-width: 500px; margin: auto">
 
     <div class="field">
-      <label class="label">Email</label>
+      <label class="label">Email o DNI</label>
       <div class="control has-icons-left">
-        <input class="input" type="email" placeholder="Email"
+        <input class="input" type="text" placeholder="Email o DNI"
           v-model="email"
           :class="{'is-danger': error.email}"
           @keydown="reset('email')">
         <span class="icon is-small is-left">
-          <i class="fas fa-envelope"></i>
+          <i class="fas fa-user"></i>
         </span>
       </div>
       <!-- <p class="help is-danger">This email is invalid</p> -->
