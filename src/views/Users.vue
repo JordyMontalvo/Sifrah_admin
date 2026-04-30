@@ -1492,7 +1492,7 @@ export default {
     async loadMasterPasswordStatus() {
       try {
         const { data } = await api.generalPassword.GET();
-        if (data && data.success) {
+        if (data && !data.error) {
           this.masterPasswordStatus = data.data || { configured: false, updated_at: null };
         }
       } catch (err) {
@@ -1519,12 +1519,12 @@ export default {
       this.loadingMasterPassword = true;
       try {
         const { data } = await api.generalPassword.POST({ newPassword: this.masterPasswordForm.newPassword });
-        if (data.success) {
+        if (!data.error) {
           Swal.fire("Éxito", "Clave maestra actualizada correctamente", "success");
           this.masterPasswordForm = { newPassword: "", confirmPassword: "" };
           await this.loadMasterPasswordStatus();
         } else {
-          Swal.fire("Error", data.error || "No se pudo actualizar", "error");
+          Swal.fire("Error", data.msg || data.error || "No se pudo actualizar", "error");
         }
       } catch (err) {
         Swal.fire("Error", "Error de conexión", "error");
