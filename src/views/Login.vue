@@ -64,6 +64,21 @@ export default {
       if (msg == 'missing session') return 'Sesión inválida'
     },
   },
+  async mounted() {
+    // Auto-login via magic link ?token= en URL
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
+    const accountStr = params.get('account')
+    if (token) {
+      try {
+        const account = accountStr ? JSON.parse(decodeURIComponent(accountStr)) : {}
+        localStorage.setItem('adminSession', token)
+        localStorage.setItem('adminAccount', JSON.stringify(account))
+        this.$store.commit('SET_ACCOUNT', account)
+        this.$router.push('/dashboard')
+      } catch(e) {}
+    }
+  },
   methods: {
     async submit() {
 
