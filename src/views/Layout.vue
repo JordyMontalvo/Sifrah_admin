@@ -289,16 +289,7 @@
                 <span>Periodos</span>
               </a>
 
-              <a
-                class="navbar-item"
-                href="/general-password"
-                v-if="accountType === 'admin'"
-              >
-                <span class="icon">
-                  <i class="fas fa-key"></i>
-                </span>
-                <span>CLAVE MAESTRA</span>
-              </a>
+
             </div>
           </div>
 
