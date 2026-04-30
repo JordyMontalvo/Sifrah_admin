@@ -57,6 +57,7 @@ class API {
         bookCategories,
         rankHistory,
         generalPassword,
+        agenda,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -94,6 +95,7 @@ class API {
         this.bookCategories = bookCategories;
         this.rankHistory = rankHistory;
         this.generalPassword = generalPassword;
+        this.agenda = agenda;
     }
 }
 
@@ -515,6 +517,15 @@ class GeneralPassword {
     }
 }
 
+class Agenda {
+    GET() {
+        return axios.get(`/admin/agenda`);
+    }
+    POST({ action, event, id }) {
+        return axios.post(`/admin/agenda`, { action, event, id });
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -552,4 +563,5 @@ export default new API({
     bookCategories: new BookCategories(),
     rankHistory: new RankHistory(),
     generalPassword: new GeneralPassword(),
+    agenda: new Agenda(),
 });

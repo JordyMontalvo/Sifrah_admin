@@ -78,8 +78,14 @@
                 <span>Transacciones</span>
               </a>
 
-              <!-- Reports -->
-              
+              <!-- Agenda -->
+              <a class="navbar-item" href="/agenda">
+                <span class="icon">
+                  <i class="fas fa-calendar-check"></i>
+                </span>
+                <span>Agenda</span>
+              </a>
+
               <!-- Leadership Predictions -->
               <a class="navbar-item" href="/leadership-predictions">
                 <span class="icon">

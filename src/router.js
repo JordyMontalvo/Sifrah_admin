@@ -39,6 +39,7 @@ import Audios from "./views/Audios.vue";
 import Books from "./views/Books.vue";
 import RankHistorySummary from "./views/RankHistorySummary.vue";
 import ValidacionVouchers from "./views/ValidacionVouchers.vue";
+import Agenda from "./views/Agenda.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -242,6 +243,11 @@ const routes = [
   {
     path: "/validacion-vouchers",
     component: ValidacionVouchers,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/agenda",
+    component: Agenda,
     meta: { requiresAuth: true },
   },
 ];
