@@ -13,6 +13,13 @@
             </div>
 
             <div class="header-actions">
+              <button class="button" @click="openMasterPasswordModal" style="color: #6e62cc; background-color: #f1f2f6; border-color: transparent; font-weight: 600;">
+                <span class="icon">
+                  <i class="fas fa-key"></i>
+                </span>
+                <span>Clave Maestra</span>
+              </button>
+
               <router-link to="/reports" class="button is-primary">
                 <span class="icon">
                   <i class="fas fa-chart-line"></i>
@@ -484,6 +491,71 @@
         </div>
       </div>
 
+      <!-- Master Password Modal -->
+      <div class="modal" :class="{ 'is-active': showMasterPasswordModal }">
+        <div class="modal-background" @click="closeMasterPasswordModal"></div>
+        <div class="modal-card" style="max-width: 600px; width: 100%;">
+          <header class="modal-card-head" style="background: #f8f9fa; border-bottom: none; padding-bottom: 0;">
+            <div>
+              <p class="modal-card-title" style="font-weight: 700; color: #2c3e50; font-size: 1.5rem; margin-bottom: 0;">Clave maestra</p>
+              <p style="color: #7f8c8d; font-size: 0.9rem;">Cambia la clave maestra que permite ingresar a cualquier cuenta (uso administrativo).</p>
+            </div>
+          </header>
+          <section class="modal-card-body" style="background-color: #f8f9fa;">
+            
+            <div class="box" style="box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; padding-bottom: 15px; border-bottom: 1px solid #eee; margin-bottom: 15px;">
+                <span style="font-weight: 600; color: #34495e;">Estado</span>
+                <span v-if="!masterPasswordStatus.configured" class="tag is-warning" style="font-weight: 600; background-color: #fbd341; color: #8a6d3b;">No configurada (usa la clave legacy)</span>
+                <span v-else class="tag is-success" style="font-weight: 600;">Configurada</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="font-weight: 600; color: #34495e;">Última actualización</span>
+                <span style="color: #7f8c8d; font-weight: 500;">{{ masterPasswordStatus.updated_at ? new Date(masterPasswordStatus.updated_at).toLocaleString() : '—' }}</span>
+              </div>
+            </div>
+
+            <div class="box" style="padding: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+              <div style="background: #6e62cc; color: white; padding: 20px; display: flex; align-items: center; gap: 15px;">
+                <i class="fas fa-key" style="font-size: 1.5rem; transform: rotate(-45deg);"></i>
+                <div>
+                  <div style="font-weight: 700; font-size: 1.2rem; margin-bottom: 5px;">Rotar clave maestra</div>
+                  <div style="font-size: 0.85rem; opacity: 0.9;">Recomendación: usa una clave larga y única. Al guardarla, la clave anterior dejará de funcionar.</div>
+                </div>
+              </div>
+              
+              <div style="padding: 20px;">
+                <div class="field">
+                  <label class="label" style="font-size: 0.9rem; color: #2c3e50;">Nueva clave</label>
+                  <div class="control">
+                    <input class="input" type="password" v-model="masterPasswordForm.newPassword" placeholder="Ingresa la nueva clave" />
+                  </div>
+                </div>
+                
+                <div class="field">
+                  <label class="label" style="font-size: 0.9rem; color: #2c3e50;">Confirmar nueva clave</label>
+                  <div class="control">
+                    <input class="input" type="password" v-model="masterPasswordForm.confirmPassword" placeholder="Repite la nueva clave" />
+                  </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                  <button class="button" style="background: #a9b5f5; color: white; border: none; font-weight: 600; padding-left: 20px; padding-right: 20px;" @click="saveMasterPassword" :class="{ 'is-loading': loadingMasterPassword }">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                    <span>Guardar</span>
+                  </button>
+                  <button class="button" style="background: #f1f2f6; color: #2c3e50; border: none; font-weight: 600;" @click="closeMasterPasswordModal">
+                    <span class="icon"><i class="fas fa-undo"></i></span>
+                    <span>Limpiar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </section>
+        </div>
+      </div>
+
       <!-- Loading Overlay -->
       <div class="loading-overlay" v-if="loading">
         <div class="loading-content">
@@ -674,6 +746,16 @@ export default {
       ],
       showEditModal: false,
       showViewModal: false,
+      showMasterPasswordModal: false,
+      loadingMasterPassword: false,
+      masterPasswordStatus: {
+        configured: false,
+        updated_at: null
+      },
+      masterPasswordForm: {
+        newPassword: "",
+        confirmPassword: ""
+      },
       viewTab: "profile",
       editingUser: {
         name: "",
@@ -1407,6 +1489,49 @@ export default {
         });
       }
     },
+    async loadMasterPasswordStatus() {
+      try {
+        const { data } = await api.generalPassword.GET();
+        if (data && data.success) {
+          this.masterPasswordStatus = data.data || { configured: false, updated_at: null };
+        }
+      } catch (err) {
+        console.error("Error cargando status de master password", err);
+      }
+    },
+    async openMasterPasswordModal() {
+      this.masterPasswordForm = { newPassword: "", confirmPassword: "" };
+      await this.loadMasterPasswordStatus();
+      this.showMasterPasswordModal = true;
+    },
+    closeMasterPasswordModal() {
+      this.masterPasswordForm = { newPassword: "", confirmPassword: "" };
+      this.showMasterPasswordModal = false;
+    },
+    async saveMasterPassword() {
+      if (!this.masterPasswordForm.newPassword) {
+        return Swal.fire("Error", "Debes ingresar una contraseña", "error");
+      }
+      if (this.masterPasswordForm.newPassword !== this.masterPasswordForm.confirmPassword) {
+        return Swal.fire("Error", "Las contraseñas no coinciden", "error");
+      }
+      
+      this.loadingMasterPassword = true;
+      try {
+        const { data } = await api.generalPassword.POST({ newPassword: this.masterPasswordForm.newPassword });
+        if (data.success) {
+          Swal.fire("Éxito", "Clave maestra actualizada correctamente", "success");
+          this.masterPasswordForm = { newPassword: "", confirmPassword: "" };
+          await this.loadMasterPasswordStatus();
+        } else {
+          Swal.fire("Error", data.error || "No se pudo actualizar", "error");
+        }
+      } catch (err) {
+        Swal.fire("Error", "Error de conexión", "error");
+      } finally {
+        this.loadingMasterPassword = false;
+      }
+    }
   },
   watch: {
     showEditModal(val) {
