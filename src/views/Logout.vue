@@ -4,12 +4,13 @@
 
 export default {
   created() {
-    const account = JSON.parse(localStorage.getItem('session'))
+    try { localStorage.removeItem('adminSession') } catch (_) {}
+    try { localStorage.removeItem('adminAccount') } catch (_) {}
+    try { localStorage.removeItem('session') } catch (_) {}
+    try { localStorage.removeItem('token') } catch (_) {}
 
-    localStorage.removeItem('session')
-
-    if(account.type == 'admin')  this.$router.push('/login')
-    if(account.type == 'office') this.$router.push('/sucursal')
+    this.$store.commit('SET_ACCOUNT', null)
+    this.$router.push('/login')
   },
 };
 </script>

@@ -295,6 +295,18 @@
 
           <!-- Right side menu -->
           <div class="navbar-end">
+            <a class="navbar-item" href="/sessions" v-if="accountType === 'admin'">
+              <span class="icon">
+                <i class="fas fa-user-shield"></i>
+              </span>
+              <span>Sesiones</span>
+            </a>
+            <a class="navbar-item" href="/change-password" v-if="accountType === 'admin'">
+              <span class="icon">
+                <i class="fas fa-key"></i>
+              </span>
+              <span>Contraseña</span>
+            </a>
             <!-- Logout Button -->
             <a class="navbar-item" href="/logout">
               <span class="icon">

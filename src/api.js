@@ -13,6 +13,39 @@ const getBaseURL = () => {
 
 axios.defaults.baseURL = getBaseURL();
 
+// --- Admin auth session handling ---
+function getAdminSessionValue() {
+    return localStorage.getItem("adminSession") || localStorage.getItem("sessionToken") || null;
+}
+
+axios.interceptors.request.use((config) => {
+    const s = getAdminSessionValue();
+    if (s) {
+        config.headers = config.headers || {};
+        // Estandar: Authorization Bearer
+        config.headers.Authorization = `Bearer ${s}`;
+    }
+    return config;
+});
+
+axios.interceptors.response.use(
+    (r) => r,
+    (err) => {
+        const status = err && err.response && err.response.status;
+        if (status === 401 || status === 403) {
+            // Limpia sesión local para forzar re-login
+            try {
+                localStorage.removeItem("adminSession");
+                localStorage.removeItem("adminAccount");
+            } catch (_) {}
+            if (window && window.location && window.location.pathname !== "/login") {
+                window.location.href = "/login";
+            }
+        }
+        return Promise.reject(err);
+    }
+);
+
 /** Evita `account=undefined` en la query (rompe filtros en algunos endpoints). */
 function adminAccountQuery(account) {
     if (account === undefined || account === null || account === "") return "";
@@ -517,6 +550,25 @@ class GeneralPassword {
     }
 }
 
+class AdminAuth {
+    login({ emailOrDni, password }) {
+        return axios.post(`/admin/auth/login`, { emailOrDni, password });
+    }
+    me() {
+        return axios.get(`/admin/auth/me`);
+    }
+    logout() {
+        return axios.post(`/admin/auth/logout`, {});
+    }
+    changePassword({ oldPassword, newPassword, revokeOthers = true }) {
+        return axios.post(`/admin/auth/change-password`, { oldPassword, newPassword, revokeOthers });
+    }
+    sessions({ limit = 200, kind } = {}) {
+        const kindParam = kind ? `&kind=${encodeURIComponent(kind)}` : "";
+        return axios.get(`/admin/sessions?limit=${encodeURIComponent(limit)}${kindParam}`);
+    }
+}
+
 class Agenda {
     GET() {
         return axios.get(`/admin/agenda`);
@@ -563,5 +615,6 @@ export default new API({
     bookCategories: new BookCategories(),
     rankHistory: new RankHistory(),
     generalPassword: new GeneralPassword(),
+    adminAuth: new AdminAuth(),
     agenda: new Agenda(),
 });

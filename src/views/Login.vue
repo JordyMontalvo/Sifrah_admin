@@ -56,14 +56,12 @@ export default {
       alert:   null,
     }
   },
-  computed: {
-    accounts() { return this.$store.state.accounts },
-  },
   filters: {
     alert(msg) {
-      if (msg == 'invalid email')   return 'Email incorrecto'
+      if (msg == 'missing credentials') return 'Completa tus credenciales'
+      if (msg == 'invalid account') return 'Cuenta inválida'
       if (msg == 'invalid password') return 'Contraseña incorrecta'
-      if (msg == 'invalid account') return 'Cuenta incorrecta'
+      if (msg == 'missing session') return 'Sesión inválida'
     },
   },
   methods: {
@@ -75,19 +73,19 @@ export default {
       if(!email)    { return this.error.email    = true }
       if(!password) { return this.error.password = true }
 
-      const account = this.accounts.find(x => x.email == email && x.password == password)
+      try {
+        const { data } = await api.adminAuth.login({ emailOrDni: email, password })
+        if (data && data.error) return this.alert = data.msg
 
-      // error
-      if(!account) return this.alert = 'invalid account'
+        localStorage.setItem('adminSession', data.session)
+        localStorage.setItem('adminAccount', JSON.stringify(data.account))
 
-      // login
-      localStorage.setItem('session', JSON.stringify(account))
-
-      // token
-      localStorage.setItem('token', 'otdxDIds3wtui3enxb')
-
-      // routing
-      this.$router.push('/affiliations/all')
+        this.$store.commit('SET_ACCOUNT', data.account)
+        this.$router.push('/dashboard')
+      } catch (e) {
+        const msg = (e && e.response && e.response.data && e.response.data.msg) || 'invalid account'
+        this.alert = msg
+      }
 
     },
     reset(name) {

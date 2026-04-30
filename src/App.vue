@@ -23,14 +23,11 @@ export default {
     const path = this.$router.history.current.path;
     console.log({ path });
 
-    if (path != "/login" && path != "/sucursal" && path != "/logout") {
-
-      const token = localStorage.getItem("token");
-
-      if (token != "otdxDIds3wtui3enxb") {
-        this.$router.push("/logout");
-      }
-    }
+    // Si hay sesión persistida, hidratar store para el Layout
+    try {
+      const account = JSON.parse(localStorage.getItem("adminAccount") || "null");
+      if (account) this.$store.commit("SET_ACCOUNT", account);
+    } catch (_) {}
 
     // Load dark mode preference
     this.isDarkMode = localStorage.getItem("darkMode") === "true";

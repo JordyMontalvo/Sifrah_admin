@@ -40,6 +40,8 @@ import Books from "./views/Books.vue";
 import RankHistorySummary from "./views/RankHistorySummary.vue";
 import ValidacionVouchers from "./views/ValidacionVouchers.vue";
 import Agenda from "./views/Agenda.vue";
+import ChangePassword from "./views/ChangePassword.vue";
+import Sessions from "./views/Sessions.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -77,6 +79,16 @@ const routes = [
   {
     path: "/logout",
     component: Logout,
+  },
+  {
+    path: "/change-password",
+    component: ChangePassword,
+    meta: { requiresAuth: true, title: "Cambiar contraseña" },
+  },
+  {
+    path: "/sessions",
+    component: Sessions,
+    meta: { requiresAuth: true, title: "Sesiones" },
   },
   {
     path: "/users/:filter",
@@ -266,7 +278,7 @@ router.beforeEach((to, from, next) => {
   );
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
 
-  const session = localStorage.getItem("session");
+  const session = localStorage.getItem("adminSession");
 
   if (requiresNoAuth && session) {
     next({ path: "/dashboard" });

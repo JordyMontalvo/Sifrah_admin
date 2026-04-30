@@ -5,15 +5,7 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    accounts: [{
-      type:      'admin',
-      email:     'SIFRAH',
-      password:  'sifrah2024',
-      id:        'admin',
-      name:      'Administrador',
-    },
-    ],
-
+    accounts: [],
     account: null,
   },
   mutations: {
