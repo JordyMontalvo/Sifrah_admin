@@ -295,25 +295,61 @@
 
           <!-- Right side menu -->
           <div class="navbar-end">
-            <a class="navbar-item" href="/sessions" v-if="accountType === 'admin'">
-              <span class="icon">
-                <i class="fas fa-user-shield"></i>
-              </span>
-              <span>Sesiones</span>
-            </a>
-            <a class="navbar-item" href="/change-password" v-if="accountType === 'admin'">
-              <span class="icon">
-                <i class="fas fa-key"></i>
-              </span>
-              <span>Contraseña</span>
-            </a>
-            <!-- Logout Button -->
-            <a class="navbar-item" href="/logout">
-              <span class="icon">
-                <i class="fas fa-sign-out-alt"></i>
-              </span>
-              <span>Cerrar sesión</span>
-            </a>
+            <div
+              class="navbar-item has-dropdown settings-item"
+              :class="{ 'is-active': settingsOpen }"
+            >
+              <a
+                class="navbar-link settings-link menu-trigger"
+                href="#"
+                aria-label="Configuración"
+                @click.prevent.stop="toggleSettings"
+              >
+                <span class="icon">
+                  <i class="fas fa-cog"></i>
+                </span>
+              </a>
+
+              <div
+                class="navbar-dropdown is-right settings-dropdown"
+                :style="{
+                  opacity: settingsOpen ? 1 : 0,
+                  visibility: settingsOpen ? 'visible' : 'hidden',
+                  transform: settingsOpen ? 'translateY(0)' : 'translateY(-10px)'
+                }"
+                @click.stop
+              >
+                <a
+                  class="navbar-item"
+                  href="/sessions"
+                  v-if="accountType === 'admin'"
+                  @click="closeSettings"
+                >
+                  <span class="icon">
+                    <i class="fas fa-user-shield"></i>
+                  </span>
+                  <span>Sesiones</span>
+                </a>
+                <a
+                  class="navbar-item"
+                  href="/change-password"
+                  v-if="accountType === 'admin'"
+                  @click="closeSettings"
+                >
+                  <span class="icon">
+                    <i class="fas fa-key"></i>
+                  </span>
+                  <span>Contraseña</span>
+                </a>
+                <hr class="navbar-divider" />
+                <a class="navbar-item" href="/logout" @click="closeSettings">
+                  <span class="icon">
+                    <i class="fas fa-sign-out-alt"></i>
+                  </span>
+                  <span>Cerrar sesión</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -506,6 +542,7 @@ export default {
       open: false,
       showFAB: false,
       activeMenu: null,
+      settingsOpen: false,
     };
   },
   computed: {
@@ -540,6 +577,12 @@ export default {
     },
     closeMenu() {
       this.activeMenu = null;
+    },
+    toggleSettings() {
+      this.settingsOpen = !this.settingsOpen;
+    },
+    closeSettings() {
+      this.settingsOpen = false;
     },
     getMenuTitle() {
       switch (this.activeMenu) {
@@ -617,13 +660,39 @@ export default {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   margin-top: 8px;
   min-width: 200px;
+  z-index: 2000;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
   transition: all 0.3s ease;
 }
 
+/* Dropdown de configuración: siempre anclado a la tuerquita */
+.settings-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+}
+
+/* Asegurar contraste dentro del dropdown (el navbar fuerza texto blanco) */
+.modern-navbar .settings-dropdown .navbar-item {
+  color: #1f2937 !important;
+}
+
+.modern-navbar .settings-dropdown .navbar-item .icon {
+  color: #6b7280 !important;
+}
+
+.modern-navbar .settings-dropdown .navbar-item:hover {
+  color: #111827 !important;
+}
+
+.modern-navbar .settings-dropdown .navbar-item:hover .icon {
+  color: #111827 !important;
+}
+
 .modern-navbar .has-dropdown.is-active .navbar-dropdown {
+  display: block;
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -689,6 +758,20 @@ export default {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 8px 16px;
+}
+
+/* Configuración: mismo look que items tipo "Compras" */
+.settings-link {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 10px;
+  padding: 0.45rem 0.6rem !important;
+}
+
+/* Quitar la flechita automática de dropdown en este botón */
+.settings-link::after {
+  display: none !important;
 }
 
 /* Main Content */
@@ -826,6 +909,11 @@ export default {
   overflow: hidden;
 }
 
+/* Permitir que los dropdowns salgan fuera del item */
+.navbar-item.has-dropdown {
+  overflow: visible;
+}
+
 .navbar-item::before {
   content: "";
   position: absolute;
@@ -844,6 +932,29 @@ export default {
 
 .navbar-item:hover::before {
   left: 100%;
+}
+
+/* Quitar el efecto "shine" solo en la tuerquita */
+.settings-item::before {
+  display: none;
+}
+
+/* Evitar doble fondo: en la tuerquita no pintes el contenedor, solo el botón */
+.settings-item:hover {
+  background-color: transparent !important;
+}
+
+/* Al desplegar (is-active) deja un solo fondo en el botón */
+.settings-item.is-active {
+  background-color: transparent !important;
+}
+.settings-item.is-active .settings-link {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+.settings-link:focus,
+.settings-link:active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none !important;
 }
 
 /* Loading animation for navbar */

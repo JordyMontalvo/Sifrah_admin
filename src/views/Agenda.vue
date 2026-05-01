@@ -28,10 +28,13 @@
               <select v-model="filterType">
                 <option value="all">Todos los tipos</option>
                 <option value="Presentación">Presentación</option>
-                <option value="Taller">Taller</option>
                 <option value="Capacitación">Capacitación</option>
+                <option value="Taller">Taller</option>
                 <option value="Reunión">Reunión</option>
                 <option value="Lanzamiento">Lanzamiento</option>
+                <option value="Entrenamiento">Entrenamiento</option>
+                <option value="Evento de Salud">Evento de Salud</option>
+                <option value="Testimonio">Testimonio</option>
               </select>
             </div>
             <div class="select">
@@ -66,7 +69,7 @@
                   <td>
                     <div class="event-info-cell">
                       <div class="event-icon" :style="{ backgroundColor: getTypeColor(event.type) + '20', color: getTypeColor(event.type) }">
-                        <i :class="getTypeIcon(event.type)"></i>
+                        <i :class="getModalityIcon(event.modality)"></i>
                       </div>
                       <div>
                         <div class="event-title">{{ event.title }}</div>
@@ -179,10 +182,13 @@
                       <div class="select is-fullwidth">
                         <select v-model="form.type" required>
                           <option value="Presentación">Presentación</option>
-                          <option value="Taller">Taller</option>
                           <option value="Capacitación">Capacitación</option>
+                          <option value="Taller">Taller</option>
                           <option value="Reunión">Reunión</option>
                           <option value="Lanzamiento">Lanzamiento</option>
+                          <option value="Entrenamiento">Entrenamiento</option>
+                          <option value="Evento de Salud">Evento de Salud</option>
+                          <option value="Testimonio">Testimonio</option>
                         </select>
                       </div>
                       <span class="icon is-small is-left"><i class="fas fa-tag"></i></span>
@@ -198,7 +204,7 @@
                         <select v-model="form.modality" required>
                           <option value="Virtual">Virtual</option>
                           <option value="Presencial">Presencial</option>
-                          <option value="Mixta">Mixta</option>
+                          <option value="Mixto">Mixto</option>
                         </select>
                       </div>
                       <span class="icon is-small is-left"><i class="fas fa-globe"></i></span>
@@ -302,6 +308,13 @@ export default {
     this.fetchEvents();
   },
   methods: {
+    getModalityIcon(modality) {
+      const m = (modality || "").toString().toLowerCase();
+      if (m === "virtual") return "fas fa-video";
+      if (m === "presencial") return "fas fa-users";
+      if (m === "mixto" || m === "mixta") return "fas fa-camera";
+      return "fas fa-video";
+    },
     getEmptyForm() {
       return {
         id: null,
@@ -389,20 +402,26 @@ export default {
     getTypeColor(type) {
       const colors = {
         "Presentación": "#6b46c1",
-        "Taller": "#3182ce",
         "Capacitación": "#38a169",
+        "Taller": "#3182ce",
         "Reunión": "#dd6b20",
-        "Lanzamiento": "#e53e3e"
+        "Lanzamiento": "#e53e3e",
+        "Entrenamiento": "#0ea5e9",
+        "Evento de Salud": "#16a34a",
+        "Testimonio": "#a855f7"
       };
       return colors[type] || "#718096";
     },
     getTypeIcon(type) {
       const icons = {
         "Presentación": "fas fa-video",
-        "Taller": "fas fa-graduation-cap",
         "Capacitación": "fas fa-users",
+        "Taller": "fas fa-graduation-cap",
         "Reunión": "fas fa-handshake",
-        "Lanzamiento": "fas fa-rocket"
+        "Lanzamiento": "fas fa-rocket",
+        "Entrenamiento": "fas fa-dumbbell",
+        "Evento de Salud": "fas fa-heartbeat",
+        "Testimonio": "fas fa-quote-left"
       };
       return icons[type] || "fas fa-calendar";
     },
