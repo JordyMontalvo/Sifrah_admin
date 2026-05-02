@@ -34,6 +34,7 @@
                 <th>Fecha</th>
                 <th>Tipo</th>
                 <th>Estado</th>
+                <th>ID disp.</th>
                 <th>Usuario</th>
                 <th>DNI</th>
                 <th>IP</th>
@@ -43,13 +44,24 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="s in sessions" :key="s.session">
-                <td>{{ formatDate(s.createdAt) }}</td>
+              <tr
+                v-for="s in sessions"
+                :key="s._groupKey || s.session"
+                :class="{ 'is-current-session': s.isCurrent }"
+              >
+                <td>
+                  {{ formatDate(s.createdAt) }}
+                  <span v-if="s.mergedCount > 1" class="merged-hint">({{ s.mergedCount }} inicios)</span>
+                </td>
                 <td>{{ s.kind }}</td>
                 <td>
                   <span class="tag" :class="statusTagClass(s)">
                     {{ statusLabel(s) }}
                   </span>
+                </td>
+                <td>
+                  <code class="device-id">{{ s.deviceShortId || "—" }}</code>
+                  <span v-if="s.isCurrent" class="tag is-info is-light your-badge">Tú</span>
                 </td>
                 <td>{{ s.user ? (s.user.name + ' ' + (s.user.lastName || '')) : '-' }}</td>
                 <td>{{ s.user ? s.user.dni : '-' }}</td>
@@ -64,7 +76,7 @@
                   <button
                     v-if="canRevoke(s)"
                     class="button is-small is-danger is-light"
-                    :disabled="loading || revoking === s.session"
+                    :disabled="loading || revoking === (s._groupKey || s.session)"
                     @click="revoke(s)"
                   >
                     Cerrar
@@ -72,7 +84,7 @@
                 </td>
               </tr>
               <tr v-if="!loading && sessions.length === 0">
-                <td colspan="9" style="text-align: center; padding: 24px;">Sin sesiones</td>
+                <td colspan="10" style="text-align: center; padding: 24px;">Sin sesiones</td>
               </tr>
             </tbody>
           </table>
@@ -107,7 +119,7 @@ export default {
       if (!v) return "-";
       const d = new Date(v);
       if (isNaN(d.getTime())) return String(v);
-      return d.toLocaleString();
+      return d.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "medium" });
     },
     statusLabel(s) {
       const closed = !!(s && (s.closedAt || s.revokedAt));
@@ -138,12 +150,29 @@ export default {
       // Por seguridad: permitir cerrar solo sesiones admin desde el panel admin.
       return String(s.kind || "") === "admin";
     },
+    tokensToRevoke(s) {
+      if (!s) return [];
+      const list = Array.isArray(s.activeSessionValues) ? s.activeSessionValues.filter(Boolean) : [];
+      if (list.length) return list;
+      return s.session ? [s.session] : [];
+    },
     async revoke(s) {
-      if (!s || !s.session) return;
-      if (!confirm("¿Cerrar esta sesión?")) return;
-      this.revoking = s.session;
+      const tokens = this.tokensToRevoke(s);
+      if (!tokens.length) return;
+      const n = tokens.length;
+      const msg =
+        n > 1
+          ? `¿Cerrar ${n} sesiones activas en este dispositivo? (quedará cerrado todo acceso duplicado)`
+          : "¿Cerrar esta sesión?";
+      if (!confirm(msg)) return;
+      this.revoking = s._groupKey || s.session;
       try {
-        const { data } = await api.adminAuth.revokeSession({ session: s.session });
+        let data;
+        if (n > 1) {
+          ({ data } = await api.adminAuth.revokeSessions({ sessions: tokens }));
+        } else {
+          ({ data } = await api.adminAuth.revokeSession({ session: tokens[0] }));
+        }
         if (data && data.error) {
           this.alert = data.msg || "No se pudo cerrar la sesión.";
           return;
@@ -161,7 +190,7 @@ export default {
       this.loading = true;
       this.alert = null;
       try {
-        const { data } = await api.adminAuth.sessions({ kind: this.kind || undefined, limit: 200 });
+        const { data } = await api.adminAuth.sessions({ kind: this.kind || undefined, limit: 800 });
         if (data && data.error) {
           this.alert = data.msg;
           this.sessions = [];
@@ -184,5 +213,25 @@ export default {
 .tag.is-light {
   background: #f5f5f5;
   color: #555;
+}
+.merged-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: #888;
+  margin-top: 2px;
+}
+.is-current-session {
+  box-shadow: inset 3px 0 0 0 #209cee;
+  background: rgba(32, 156, 238, 0.06);
+}
+.device-id {
+  font-size: 0.8rem;
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.your-badge {
+  margin-left: 6px;
+  vertical-align: middle;
 }
 </style>

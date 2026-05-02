@@ -565,10 +565,13 @@ class AdminAuth {
     revokeSession({ session }) {
         return axios.post(`/admin/sessions`, { action: "revoke", session });
     }
+    revokeSessions({ sessions }) {
+        return axios.post(`/admin/sessions`, { action: "revoke_many", sessions });
+    }
     changePassword({ oldPassword, newPassword, revokeOthers = true }) {
         return axios.post(`/admin/auth/change-password`, { oldPassword, newPassword, revokeOthers });
     }
-    sessions({ limit = 200, kind } = {}) {
+    sessions({ limit = 800, kind } = {}) {
         const kindParam = kind ? `&kind=${encodeURIComponent(kind)}` : "";
         return axios.get(`/admin/sessions?limit=${encodeURIComponent(limit)}${kindParam}`);
     }
