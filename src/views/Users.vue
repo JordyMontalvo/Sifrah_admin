@@ -67,6 +67,15 @@
           />
 
           <DashboardCard
+            :value="totalSifrahBalance"
+            label="Saldo Sifrah"
+            icon="fas fa-gift"
+            color="success"
+            :show-currency="true"
+            :description="`Saldo de Bono Ahorro`"
+          />
+
+          <DashboardCard
             :value="totalItems"
             label="Total Usuarios"
             icon="fas fa-users"
@@ -391,7 +400,11 @@
                 <div class="field">
                   <b>Saldo No Disponible:</b> S/.
                   {{ Number(viewingUser.virtualbalance).toFixed(2) }}
+                  <div class="user-cell__balance-row">
+                  <b>Saldo Sifrah:</b> S/.
+                  {{ Number(viewingUser.sifrahbalance).toFixed(2) }}
                 </div>
+              </div>
                 <div class="field">
                   <b>Plan:</b> {{ getPlanLabel(viewingUser.plan) }}
                 </div>
@@ -595,6 +608,7 @@ export default {
       totalPages: 0,
       totalBalance: 0,
       totalVirtualBalance: 0,
+      totalSifrahBalance: 0,
       affiliatedTotal: 0,
       selectedStatus: null,
       selectedBalance: null,
@@ -644,6 +658,12 @@ export default {
         {
           key: "virtualbalance",
           label: "No Disponible",
+          sortable: true,
+          type: "currency",
+        },
+        {
+          key: "sifrahbalance",
+          label: "Saldo Sifrah",
           sortable: true,
           type: "currency",
         },
@@ -815,6 +835,12 @@ export default {
             : "S/. 0.00",
         virtualbalanceRaw:
           user.virtualbalance != null ? Number(user.virtualbalance) : 0,
+        sifrahbalance:
+          user.sifrahbalance != null
+            ? `S/. ${Number(user.sifrahbalance).toFixed(2)}`
+            : "S/. 0.00",
+        sifrahbalanceRaw:
+          user.sifrahbalance != null ? Number(user.sifrahbalance) : 0,
         rankLabel: this.getEffectiveRankLabel(user),
         plan: user.plan || "",
         planLabel: this.getPlanLabel(user.plan),
@@ -862,6 +888,7 @@ export default {
         let totalPages = 0;
         let totalBalance = 0;
         let totalVirtualBalance = 0;
+        let totalSifrahBalance = 0;
         let showAvailable = undefined;
         let showVirtualBalance = undefined;
         if (this.selectedBalance === "available") showAvailable = true;
@@ -899,6 +926,7 @@ export default {
           users = users.slice(skip, skip + this.itemsPerPage);
           totalBalance = data.totalBalance || 0;
           totalVirtualBalance = data.totalVirtualBalance || 0;
+          totalSifrahBalance = data.totalSifrahBalance || 0;
         } else {
           const { data } = await api.users.GET({
             filter: backendFilter,
@@ -918,6 +946,7 @@ export default {
           totalPages = data.totalPages || 0;
           totalBalance = data.totalBalance || 0;
           totalVirtualBalance = data.totalVirtualBalance || 0;
+          totalSifrahBalance = data.totalSifrahBalance || 0;
         }
         // Obtener todos los usuarios para los totales (limit alto)
         const { data: allData } = await api.users.GET({
@@ -930,6 +959,7 @@ export default {
         this.totalPages = totalPages;
         this.totalBalance = totalBalance;
         this.totalVirtualBalance = totalVirtualBalance;
+        this.totalSifrahBalance = totalSifrahBalance;
         if (filter == "all") this.title = "Todos los usuarios";
         if (filter == "affiliated") this.title = "Usuarios Afiliados";
         if (filter == "activated") this.title = "Usuarios Activados";

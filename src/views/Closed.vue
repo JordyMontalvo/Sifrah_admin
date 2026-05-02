@@ -33,6 +33,13 @@
           </div>
         </div>
         <div class="summary-card">
+          <span class="summary-card__icon">🎁</span>
+          <div>
+            <span class="summary-card__label">Total Bono Ahorro Sifrah</span>
+            <strong class="summary-card__value">S/ {{ totalSavingsBonus.toFixed(2) }}</strong>
+          </div>
+        </div>
+        <div class="summary-card">
           <span class="summary-card__icon">💎</span>
           <div>
             <span class="summary-card__label">Usuarios con Rango</span>
@@ -60,7 +67,7 @@
         <div class="summary-card summary-card--accent2">
           <span class="summary-card__icon">📌</span>
           <div>
-            <span class="summary-card__label">Total preview (residual + rango)</span>
+            <span class="summary-card__label">Total preview (residual + gen + ahorro + rango)</span>
             <strong class="summary-card__value">S/ {{ totalPreviewCierre.toFixed(2) }}</strong>
           </div>
         </div>
@@ -125,6 +132,7 @@
                 <th>Rango Alcanzado</th>
                 <th>Bono Residual</th>
                 <th>Bono Generacional VIP</th>
+                <th>Bono Ahorro Sifrah</th>
                 <th>Bono rango (logro / mant.)</th>
               </tr>
             </thead>
@@ -190,6 +198,12 @@
                         <span class="residual-lines__amt">→ S/ {{ Number(ln.amount || 0).toFixed(2) }}</span>
                       </li>
                     </ul>
+                  </template>
+                  <span v-else class="td-zero">—</span>
+                </td>
+                <td class="td-bonus td-bonus--detail">
+                  <template v-if="node.savings_bonus > 0">
+                    <strong>S/ {{ node.savings_bonus.toFixed(2) }}</strong>
                   </template>
                   <span v-else class="td-zero">—</span>
                 </td>
@@ -272,6 +286,7 @@
                   <th>Rango Cerrado</th>
                   <th>Bono Residual</th>
                   <th>Bono Generacional VIP</th>
+                  <th>Bono Ahorro Sifrah</th>
                   <th>Bono rango (logro / mant.)</th>
                 </tr>
               </thead>
@@ -336,6 +351,12 @@
                           <span class="residual-lines__amt">→ S/ {{ Number(ln.amount || 0).toFixed(2) }}</span>
                         </li>
                       </ul>
+                    </template>
+                    <span v-else class="td-zero">—</span>
+                  </td>
+                  <td class="td-bonus td-bonus--detail">
+                    <template v-if="user.savings_bonus > 0">
+                      <strong>S/ {{ user.savings_bonus.toFixed(2) }}</strong>
                     </template>
                     <span v-else class="td-zero">—</span>
                   </td>
@@ -489,6 +510,9 @@ export default {
     totalRankBonus() {
       return (this.tree || []).reduce((sum, n) => sum + (Number(n.rank_bonus_total) || 0), 0)
     },
+    totalSavingsBonus() {
+      return (this.tree || []).reduce((sum, n) => sum + (n.savings_bonus || 0), 0)
+    },
     previewRankBonusLogroCount() {
       return (this.tree || []).reduce((acc, node) => {
         const lines = node.rank_bonus_lines || []
@@ -502,7 +526,7 @@ export default {
       }, 0)
     },
     totalPreviewCierre() {
-      return this.totalResidual + this.totalGenerationalBonus + this.totalRankBonus
+      return this.totalResidual + this.totalGenerationalBonus + this.totalSavingsBonus + this.totalRankBonus
     },
     hasPreviewData() {
       return (
