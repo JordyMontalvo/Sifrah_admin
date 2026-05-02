@@ -562,6 +562,9 @@ class AdminAuth {
     logout() {
         return axios.post(`/admin/auth/logout`, {});
     }
+    revokeSession({ session }) {
+        return axios.post(`/admin/sessions`, { action: "revoke", session });
+    }
     changePassword({ oldPassword, newPassword, revokeOthers = true }) {
         return axios.post(`/admin/auth/change-password`, { oldPassword, newPassword, revokeOthers });
     }
