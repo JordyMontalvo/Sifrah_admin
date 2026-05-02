@@ -65,7 +65,16 @@
                 </td>
                 <td>{{ s.user ? (s.user.name + ' ' + (s.user.lastName || '')) : '-' }}</td>
                 <td>{{ s.user ? s.user.dni : '-' }}</td>
-                <td>{{ s.ip || '-' }}</td>
+                <td>
+                  <span>{{ s.ip || '-' }}</span>
+                  <span
+                    v-if="s.mergedIpCount > 1"
+                    class="merged-hint ip-hint"
+                    :title="(s.mergedIps || []).join(', ')"
+                  >
+                    · {{ s.mergedIpCount }} IPs
+                  </span>
+                </td>
                 <td style="max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   {{ deviceLabel(s) }}
                 </td>
