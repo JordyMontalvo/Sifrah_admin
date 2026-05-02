@@ -573,7 +573,13 @@ class AdminAuth {
     }
     sessions({ limit = 800, kind } = {}) {
         const kindParam = kind ? `&kind=${encodeURIComponent(kind)}` : "";
-        return axios.get(`/admin/sessions?limit=${encodeURIComponent(limit)}${kindParam}`);
+        const ts = Date.now();
+        return axios.get(`/admin/sessions?limit=${encodeURIComponent(limit)}${kindParam}&_ts=${ts}`, {
+            headers: {
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache",
+            },
+        });
     }
 }
 
