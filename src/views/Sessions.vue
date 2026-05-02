@@ -34,6 +34,9 @@
                 <th>Fecha</th>
                 <th>Tipo</th>
                 <th>Estado</th>
+                <th title="Inicios de sesión válidos a la vez en esta fila (mismo dispositivo). Si es mayor que 1, hay varias sesiones abiertas y puedes cerrarlas.">
+                  Sesiones activas
+                </th>
                 <th>ID disp.</th>
                 <th>Usuario</th>
                 <th>DNI</th>
@@ -59,22 +62,16 @@
                     {{ statusLabel(s) }}
                   </span>
                 </td>
+                <td class="has-text-centered">
+                  <strong>{{ activeSessionsOnDevice(s) }}</strong>
+                </td>
                 <td>
                   <code class="device-id">{{ s.deviceShortId || "—" }}</code>
                   <span v-if="s.isCurrent" class="tag is-info is-light your-badge">Tú</span>
                 </td>
                 <td>{{ s.user ? (s.user.name + ' ' + (s.user.lastName || '')) : '-' }}</td>
                 <td>{{ s.user ? s.user.dni : '-' }}</td>
-                <td>
-                  <span>{{ s.ip || '-' }}</span>
-                  <span
-                    v-if="s.mergedIpCount > 1"
-                    class="merged-hint ip-hint"
-                    :title="(s.mergedIps || []).join(', ')"
-                  >
-                    · {{ s.mergedIpCount }} IPs
-                  </span>
-                </td>
+                <td>{{ s.ip || '-' }}</td>
                 <td style="max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   {{ deviceLabel(s) }}
                 </td>
@@ -93,7 +90,7 @@
                 </td>
               </tr>
               <tr v-if="!loading && sessions.length === 0">
-                <td colspan="10" style="text-align: center; padding: 24px;">Sin sesiones</td>
+                <td colspan="11" style="text-align: center; padding: 24px;">Sin sesiones</td>
               </tr>
             </tbody>
           </table>
@@ -151,6 +148,14 @@ export default {
       const b = (s && (s.browser || "")) || "";
       if (b) return b;
       return "-";
+    },
+    /** Tokens de sesión aún válidos en esta fila (mismo dispositivo agrupado). */
+    activeSessionsOnDevice(s) {
+      if (!s) return 0;
+      if (typeof s.activeSessionCount === "number") return s.activeSessionCount;
+      const list = Array.isArray(s.activeSessionValues) ? s.activeSessionValues.filter(Boolean) : [];
+      if (list.length) return list.length;
+      return s.status === "active" ? 1 : 0;
     },
     canRevoke(s) {
       if (!s) return false;
