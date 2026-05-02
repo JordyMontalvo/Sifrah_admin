@@ -573,13 +573,9 @@ class AdminAuth {
     }
     sessions({ limit = 800, kind } = {}) {
         const kindParam = kind ? `&kind=${encodeURIComponent(kind)}` : "";
+        // Solo query _ts: evita preflight CORS por cabeceras Cache-Control/Pragma en GET cross-origin.
         const ts = Date.now();
-        return axios.get(`/admin/sessions?limit=${encodeURIComponent(limit)}${kindParam}&_ts=${ts}`, {
-            headers: {
-                "Cache-Control": "no-cache",
-                Pragma: "no-cache",
-            },
-        });
+        return axios.get(`/admin/sessions?limit=${encodeURIComponent(limit)}${kindParam}&_ts=${ts}`);
     }
 }
 
