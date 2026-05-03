@@ -603,7 +603,14 @@ export default {
     async closed() {
       this.calculating = true
       try {
-        const { data } = await api.closeds.POST({ action: 'new' })
+        const response = await api.closeds.POST({ action: 'new' })
+        const data = response.data
+
+        // LOG INMEDIATO - ver estructura RAW antes de cualquier proceso
+        console.warn('🔴 RAW RESPONSE:', JSON.stringify(response).substring(0, 500))
+        console.warn('🔴 RAW DATA keys:', data ? Object.keys(data) : 'DATA ES NULL/UNDEFINED')
+        console.warn('🔴 data.tree length:', data && data.tree ? data.tree.length : 'NO HAY TREE')
+        console.warn('🔴 Primer nodo RAW:', data && data.tree && data.tree[0] ? JSON.stringify(data.tree[0]).substring(0, 400) : 'SIN NODOS')
 
         // ─── DEBUG BONO AHORRO ───────────────────────────────────────────
         console.group('%c🐷 DEBUG BONO AHORRO', 'color:#e91e63;font-weight:bold;font-size:14px')
