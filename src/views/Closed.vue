@@ -511,7 +511,9 @@ export default {
       return (this.tree || []).reduce((sum, n) => sum + (Number(n.rank_bonus_total) || 0), 0)
     },
     totalSavingsBonus() {
-      return (this.tree || []).reduce((sum, n) => sum + (n.savings_bonus || 0), 0)
+      const total = (this.tree || []).reduce((sum, n) => sum + (n.savings_bonus || 0), 0)
+      console.log('%c🐷 totalSavingsBonus computed =', 'color:#e91e63;font-weight:bold', total)
+      return total
     },
     previewRankBonusLogroCount() {
       return (this.tree || []).reduce((acc, node) => {
@@ -602,7 +604,28 @@ export default {
       this.calculating = true
       try {
         const { data } = await api.closeds.POST({ action: 'new' })
-        this.tree         = data.tree         || []
+
+        // ─── DEBUG BONO AHORRO ───────────────────────────────────────────
+        console.group('%c🐷 DEBUG BONO AHORRO', 'color:#e91e63;font-weight:bold;font-size:14px')
+        console.log('📦 Respuesta completa del motor:', data)
+        const treeRaw = data.tree || []
+        console.log(`🌳 Nodos en tree: ${treeRaw.length}`)
+        if (treeRaw.length > 0) {
+          console.log('🔍 Primer nodo (estructura completa):', JSON.parse(JSON.stringify(treeRaw[0])))
+          console.log('📋 Campos del primer nodo:', Object.keys(treeRaw[0]))
+        }
+        const nodesWithBonus = treeRaw.filter(n => n.savings_bonus > 0)
+        console.log(`✅ Nodos con savings_bonus > 0: ${nodesWithBonus.length}`)
+        if (nodesWithBonus.length > 0) {
+          nodesWithBonus.forEach(n => console.log(`  → ${n.name || n.id}: savings_bonus = ${n.savings_bonus}`))
+        } else {
+          console.warn('⚠️  Ningún nodo tiene savings_bonus. Revisando top 5 nodos:')
+          treeRaw.slice(0, 5).forEach(n => console.log(`  • ${n.name || n.id}: savings_bonus=${n.savings_bonus}, plan=${n.plan}, points=${n.points}`))
+        }
+        console.groupEnd()
+        // ─────────────────────────────────────────────────────────────────
+
+        this.tree         = treeRaw
         this.virtualResets = data.virtual_resets || []
         this.affiliations = data.affiliations  || []
         this.activations  = data.activations   || []
