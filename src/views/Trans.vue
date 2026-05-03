@@ -413,8 +413,14 @@ export default {
     },
   },
   created() {
-    const account = JSON.parse(localStorage.getItem("session"));
-    this.$store.commit("SET_ACCOUNT", account);
+    // Mismo origen que Login.vue y App.vue (`adminAccount`). `session` deja account en null y rompe GET().
+    try {
+      const raw = localStorage.getItem("adminAccount");
+      if (raw) {
+        const account = JSON.parse(raw);
+        if (account) this.$store.commit("SET_ACCOUNT", account);
+      }
+    } catch (_) {}
     this.GET();
   },
   methods: {
@@ -459,7 +465,7 @@ export default {
       try {
         console.log("Loading transactions with params:", {
           filter: "all",
-          account: this.account.id,
+          account: this.account && this.account.id,
           page: this.currentPage,
           limit: this.itemsPerPage,
           search: this.search,
@@ -467,7 +473,7 @@ export default {
 
         const { data } = await api.transaction.GET(
           "all", // filter
-          this.account.id, // account
+          this.account && this.account.id, // account (query opcional)
           this.currentPage, // page
           this.itemsPerPage, // limit
           this.search // search
@@ -484,12 +490,16 @@ export default {
           totalPages: this.totalPages,
         });
       } catch (error) {
-        console.error("Error loading transactions:", error);
+        const serverMsg =
+          error.response &&
+          error.response.data &&
+          (error.response.data.msg || error.response.data.message);
+        console.error("Error loading transactions:", serverMsg || error.message, error);
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Error al cargar las transacciones",
-          timer: 2000,
+          text: serverMsg || error.message || "Error al cargar las transacciones",
+          timer: 3500,
           showConfirmButton: false,
         });
       } finally {
