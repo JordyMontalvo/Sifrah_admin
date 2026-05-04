@@ -248,6 +248,95 @@
               </tbody>
             </table>
           </div>
+
+          <!-- 6. Reglas y Lógica -->
+          <div v-if="activeTab === 'logic'" class="tab-content logic-tab">
+            <div class="logic-grid">
+              
+              <!-- Bono Ahorro Rules -->
+              <div class="logic-card">
+                <h3><i class="fas fa-piggy-bank"></i> Bono Ahorro Sifrah</h3>
+                <p class="logic-desc">Se calcula sobre los puntos excedentes (PR > 160) o puntos totales si hay afiliación.</p>
+                <table class="mini-table">
+                  <thead>
+                    <tr><th>Plan / Paquete</th><th>Porcentaje</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Empresario (Master)</td><td class="has-text-weight-bold">40%</td></tr>
+                    <tr><td>Distribuidor (Standard)</td><td class="has-text-weight-bold">30%</td></tr>
+                    <tr><td>Ejecutivo (Basic)</td><td class="has-text-weight-bold">21%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Bono Logro Rules -->
+              <div class="logic-card">
+                <h3><i class="fas fa-award"></i> Bono por Logro de Rango</h3>
+                <p class="logic-desc">Premio único al alcanzar un nuevo rango por primera vez.</p>
+                <div class="award-list">
+                  <div class="award-item"><span>Bronce</span><strong>S/ 60</strong></div>
+                  <div class="award-item"><span>Plata</span><strong>S/ 300</strong></div>
+                  <div class="award-item"><span>Oro</span><strong>S/ 600</strong></div>
+                  <div class="award-item"><span>Rubí</span><strong>S/ 1,200</strong></div>
+                  <div class="award-item"><span>Esmeralda</span><strong>S/ 2,500</strong></div>
+                  <div class="award-item"><span>Diamante</span><strong>S/ 5,000</strong></div>
+                </div>
+              </div>
+
+              <!-- Residual Rules -->
+              <div class="logic-card wide">
+                <h3><i class="fas fa-chart-pie"></i> Tabla de Porcentajes Residuales</h3>
+                <p class="logic-desc">Porcentajes pagados por nivel según el rango cerrado. Compresión dinámica aplicada.</p>
+                <div class="table-scroll">
+                  <table class="mini-table compact">
+                    <thead>
+                      <tr>
+                        <th>Rango</th>
+                        <th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N5</th><th>N6</th><th>N7</th><th>N8</th><th>N9</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(pcts, rank) in residualLogic" :key="rank">
+                        <td><span :class="['rank-tag', rankClass(rank)]">{{ rank }}</span></td>
+                        <td v-for="(p, idx) in pcts" :key="idx" :class="{ 'zero-pct': p === 0 }">
+                          {{ p > 0 ? (p*100).toFixed(0) + '%' : '-' }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Rank Requirements -->
+              <div class="logic-card wide">
+                <h3><i class="fas fa-tasks"></i> Requisitos de Calificación de Rango</h3>
+                <p class="logic-desc">Criterios necesarios para cerrar cada rango en el motor Go.</p>
+                <div class="table-scroll">
+                  <table class="mini-table">
+                    <thead>
+                      <tr>
+                        <th>Rango</th>
+                        <th>Pts. Umbral</th>
+                        <th>Frontales Mín.</th>
+                        <th>VMP (Pierna Mayor)</th>
+                        <th>Reconsumo Mín.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="r in rankRequirements" :key="r.rank">
+                        <td><strong>{{ r.rank }}</strong></td>
+                        <td>{{ r.threshold }} pts</td>
+                        <td>{{ r.frontals }}</td>
+                        <td>{{ r.vmp }} pts</td>
+                        <td>{{ r.reconsumo }} pts</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
       </template>
 
@@ -322,24 +411,6 @@ import api    from '@/api'
 
 export default {
   components: { Layout },
-  data() {
-    return {
-      loading: true,
-      closeds: [],
-      selectedClosedId: null,
-      selectedClosure: null,
-      activeTab: 'savings',
-      search: '',
-      userInModal: null,
-      tabs: [
-        { id: 'savings', label: 'Bono Ahorro', icon: 'fas fa-piggy-bank' },
-        { id: 'generational', label: 'Bono Generacional', icon: 'fas fa-users-rays' },
-        { id: 'ranks', label: 'Bonos de Rango', icon: 'fas fa-trophy' },
-        { id: 'residual', label: 'Bono Residual', icon: 'fas fa-chart-pie' },
-        { id: 'rank-summary', label: 'Resumen Rangos', icon: 'fas fa-medal' },
-      ]
-    }
-  },
   filters: {
     date(val) {
       if (!val) return ''
@@ -421,6 +492,44 @@ export default {
   },
   async created() {
     await this.fetchClosures()
+  },
+  data() {
+    return {
+      loading: true,
+      closeds: [],
+      selectedClosedId: null,
+      selectedClosure: null,
+      activeTab: 'savings',
+      search: '',
+      userInModal: null,
+      tabs: [
+        { id: 'savings', label: 'Bono Ahorro', icon: 'fas fa-piggy-bank' },
+        { id: 'generational', label: 'Bono Generacional', icon: 'fas fa-users-rays' },
+        { id: 'ranks', label: 'Bonos de Rango', icon: 'fas fa-trophy' },
+        { id: 'residual', label: 'Bono Residual', icon: 'fas fa-chart-pie' },
+        { id: 'rank-summary', label: 'Resumen Rangos', icon: 'fas fa-medal' },
+        { id: 'logic', label: 'Reglas y Lógica', icon: 'fas fa-book' },
+      ],
+      residualLogic: {
+        "ACTIVO": [0.15, 0.15, 0, 0, 0, 0, 0, 0, 0],
+        "BRONCE": [0.15, 0.15, 0.15, 0.05, 0, 0, 0, 0, 0],
+        "PLATA": [0.15, 0.15, 0.15, 0.10, 0.05, 0, 0, 0, 0],
+        "ORO": [0.15, 0.15, 0.15, 0.15, 0.05, 0.05, 0, 0, 0],
+        "RUBÍ": [0.15, 0.15, 0.15, 0.15, 0.10, 0.05, 0.025, 0, 0],
+        "ESMERALDA": [0.15, 0.15, 0.15, 0.15, 0.10, 0.05, 0.025, 0.025, 0.01],
+        "DIAMANTE": [0.15, 0.15, 0.15, 0.15, 0.10, 0.075, 0.025, 0.025, 0.01],
+        "EMBAJADOR SIFRAH": [0.15, 0.15, 0.15, 0.15, 0.10, 0.075, 0.05, 0.05, 0.05],
+      },
+      rankRequirements: [
+        { rank: 'BRONCE', threshold: 500, frontals: 2, vmp: 300, reconsumo: 160 },
+        { rank: 'PLATA', threshold: 1500, frontals: 3, vmp: 600, reconsumo: 160 },
+        { rank: 'ORO', threshold: 3500, frontals: 3, vmp: 1350, reconsumo: 160 },
+        { rank: 'RUBÍ', threshold: 7500, frontals: 4, vmp: 2100, reconsumo: 160 },
+        { rank: 'ESMERALDA', threshold: 20000, frontals: 4, vmp: 5500, reconsumo: 160 },
+        { rank: 'DIAMANTE', threshold: 45000, frontals: 4, vmp: 12000, reconsumo: 160 },
+        { rank: 'D. DIAMANTE', threshold: 85000, frontals: 5, vmp: 19000, reconsumo: 160 },
+      ]
+    }
   },
   methods: {
     async fetchClosures() {
@@ -741,4 +850,58 @@ export default {
   .bonus-tabs { overflow-x: auto; padding-bottom: 1rem; }
   .tab-btn { white-space: nowrap; }
 }
+
+/* Logic Tab Styles */
+.logic-tab { padding: 1.5rem; }
+.logic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+.logic-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+}
+.logic-card.wide { grid-column: 1 / -1; }
+.logic-card h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #1e293b;
+}
+.logic-card h3 i { color: #6366f1; }
+.logic-desc { font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem; }
+
+.mini-table {
+  width: 100%;
+  font-size: 0.85rem;
+  border-collapse: collapse;
+}
+.mini-table th { text-align: left; padding: 0.5rem; border-bottom: 2px solid #e2e8f0; color: #475569; }
+.mini-table td { padding: 0.6rem 0.5rem; border-bottom: 1px solid #e2e8f0; }
+.mini-table.compact td { padding: 0.4rem 0.5rem; font-size: 0.8rem; }
+.zero-pct { color: #cbd5e1; font-weight: 300; }
+
+.award-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.award-item {
+  display: flex;
+  justify-content: space-between;
+  background: white;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 1px solid #f1f5f9;
+}
+.award-item strong { color: #059669; }
+
+.table-scroll { overflow-x: auto; }
 </style>
