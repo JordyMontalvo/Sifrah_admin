@@ -57,19 +57,35 @@
             </table>
           </div>
 
-          <!-- 3. Bono Logro de Rango -->
-          <div class="logic-card">
-            <h3><i class="fas fa-award"></i> Bono por Logro de Rango</h3>
-            <p class="logic-desc">Premio único al alcanzar un nuevo rango por primera vez.</p>
-            <div class="award-list">
-              <div class="award-item"><span>Bronce</span><strong>S/ 60</strong></div>
-              <div class="award-item"><span>Plata</span><strong>S/ 300</strong></div>
-              <div class="award-item"><span>Oro</span><strong>S/ 600</strong></div>
-              <div class="award-item"><span>Rubí</span><strong>S/ 1,200</strong></div>
-              <div class="award-item"><span>Esmeralda</span><strong>S/ 2,500</strong></div>
-              <div class="award-item"><span>Diamante</span><strong>S/ 5,000</strong></div>
-              <div class="award-item"><span>D. Diamante</span><strong>S/ 10,000</strong></div>
-              <div class="award-item"><span>T. Diamante</span><strong>S/ 20,000</strong></div>
+          <!-- 3. Bonos de Rango (Logro y Mantenimiento) -->
+          <div class="logic-card wide">
+            <h3><i class="fas fa-award"></i> Bonos de Rango Oficiales</h3>
+            <p class="logic-desc">Premios por alcanzar un rango (Logro) y por mantenerlo en periodos posteriores (Mantenimiento).</p>
+            <div class="table-scroll">
+              <table class="mini-table">
+                <thead>
+                  <tr>
+                    <th>Rango</th>
+                    <th>Bono Logro (Único)</th>
+                    <th>Bono Mantenimiento (Mensual)</th>
+                    <th>Tope Máximo (Cap)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(v, rank) in rankBonusTable" :key="rank">
+                    <td><span :class="['rank-tag', rankClass(rank)]">{{ rank }}</span></td>
+                    <td class="amount-val">S/ {{ v.logro }}</td>
+                    <td :class="{ 'zero-pct': v.maintenance === 0 }">
+                      {{ v.maintenance > 0 ? 'S/ ' + v.maintenance : '-' }}
+                    </td>
+                    <td>S/ {{ v.cap }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="logic-note">
+              <i class="fas fa-lightbulb"></i>
+              <span>El <strong>Tope Máximo</strong> es el acumulado total que un socio puede cobrar en ese rango entre Logro y Mantenimientos antes de necesitar subir al siguiente rango.</span>
             </div>
           </div>
 
@@ -142,6 +158,17 @@ export default {
         basic: [90, 15, 10, 5, 5, 1, 1, 1, 1],
         standard: [300, 60, 20, 10, 10, 5, 5, 5, 5],
         master: [500, 100, 100, 50, 50, 10, 10, 10, 10]
+      },
+      rankBonusTable: {
+        "PLATA": { cap: 200, logro: 200, maintenance: 0 },
+        "ORO": { cap: 300, logro: 300, maintenance: 0 },
+        "RUBÍ": { cap: 1000, logro: 1000, maintenance: 0 },
+        "ESMERALDA": { cap: 2000, logro: 1500, maintenance: 250 },
+        "DIAMANTE": { cap: 5000, logro: 3000, maintenance: 500 },
+        "DOBLE DIAMANTE": { cap: 10000, logro: 4000, maintenance: 1000 },
+        "TRIPLE DIAMANTE": { cap: 25000, logro: 6250, maintenance: 1250 },
+        "DIAMANTE IMPERIAL": { cap: 50000, logro: 12500, maintenance: 2500 },
+        "EMBAJADOR SIFRAH": { cap: 100000, logro: 25000, maintenance: 5000 },
       },
       residualLogic: {
         "ACTIVO": [0.15, 0.15, 0, 0, 0, 0, 0, 0, 0],
