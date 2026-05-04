@@ -268,6 +268,17 @@
 
               <a
                 class="navbar-item"
+                href="/bonus-reports"
+                v-if="accountType === 'admin'"
+              >
+                <span class="icon">
+                  <i class="fas fa-hand-holding-usd"></i>
+                </span>
+                <span>Bonos</span>
+              </a>
+
+              <a
+                class="navbar-item"
                 href="/rank-history-summary"
                 v-if="accountType === 'admin'"
               >

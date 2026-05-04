@@ -42,6 +42,7 @@ import ValidacionVouchers from "./views/ValidacionVouchers.vue";
 import Agenda from "./views/Agenda.vue";
 import ChangePassword from "./views/ChangePassword.vue";
 import Sessions from "./views/Sessions.vue";
+import BonusReports from "./views/BonusReports.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -185,6 +186,11 @@ const routes = [
   {
     path: "/reports",
     component: Reports,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/bonus-reports",
+    component: BonusReports,
     meta: { requiresAuth: true },
   },
   {
