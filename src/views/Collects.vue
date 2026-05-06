@@ -288,8 +288,15 @@ export default {
     next();
   },
   created() {
-    const account = JSON.parse(localStorage.getItem("session"));
-    this.$store.commit("SET_ACCOUNT", account);
+    const accountStr = localStorage.getItem("adminAccount");
+    if (accountStr) {
+      try {
+        const account = JSON.parse(accountStr);
+        this.$store.commit("SET_ACCOUNT", account);
+      } catch (e) {
+        console.error("Error parsing adminAccount:", e);
+      }
+    }
     this.GET(this.$route.params.filter);
   },
   methods: {

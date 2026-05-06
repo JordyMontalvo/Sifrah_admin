@@ -1321,7 +1321,7 @@ export default {
     },
   },
   async created() {
-    const account = JSON.parse(localStorage.getItem("session"));
+    const account = JSON.parse(localStorage.getItem("adminAccount") || "{}");
     this.$store.commit("SET_ACCOUNT", account);
     this.loading = true;
 

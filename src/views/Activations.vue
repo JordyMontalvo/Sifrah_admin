@@ -1135,7 +1135,7 @@ export default {
     next();
   },
   async created() {
-    const account = JSON.parse(localStorage.getItem("session"));
+    const account = JSON.parse(localStorage.getItem("adminAccount") || "{}");
     this.$store.commit("SET_ACCOUNT", account);
 
     // Primera vez: filtros en "Todos". Luego recordar lo elegido por el admin.

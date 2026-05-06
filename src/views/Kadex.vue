@@ -464,7 +464,7 @@ export default {
   methods: {
     initializeSession() {
       try {
-        const account = JSON.parse(localStorage.getItem("session"));
+        const account = JSON.parse(localStorage.getItem("adminAccount") || "{}");
         this.$store.commit("SET_ACCOUNT", account);
       } catch (error) {
         console.error("Error parsing session:", error);
