@@ -111,6 +111,7 @@
           :item-actions="itemActions"
           :show-filters="true"
           :show-pagination="false"
+          :server-pagination="true"
           search-placeholder="Buscar por nombre, código o categoría..."
           :filters="tableFilters"
           @action="handleTableAction"
@@ -118,14 +119,25 @@
           @search="handleSearch"
           @filter="handleFilter"
         >
-          <template #cell-name="{ value, item }">
+          <template #cell-name="{ value, row }">
             <div style="display: flex; flex-direction: column;">
               <span class="has-text-weight-bold">{{ value }}</span>
               <div class="tags" style="margin-top: 4px;">
-                <span v-if="item.raw.catalog_type === 'savings' || (item.raw.is_savings_bonus && !item.raw.points)" class="tag is-warning is-light is-small">Externo / Canje</span>
-                <span v-if="item.raw.catalog_type === 'sifrah' || item.raw.points" class="tag is-info is-light is-small">SIFRAH</span>
-                <span v-if="item.raw.is_savings_bonus" class="tag is-danger is-light is-small">Bono Ahorro</span>
+                <span v-if="row.catalog_type === 'savings' || (row.is_savings_bonus && !row.points)" class="tag is-warning is-light is-small">Externo / Canje</span>
+                <span v-if="row.catalog_type === 'sifrah' || row.points" class="tag is-info is-light is-small">SIFRAH</span>
+                <span v-if="row.is_savings_bonus" class="tag is-danger is-light is-small">Bono Ahorro</span>
               </div>
+            </div>
+          </template>
+          <template #cell-is_savings_bonus="{ value, row }">
+            <div class="field">
+              <input
+                type="checkbox"
+                class="switch is-rounded is-success"
+                v-model="row.raw.is_savings_bonus"
+                @change="toggleSavingsBonus(row.raw)"
+              />
+              <label></label>
             </div>
           </template>
           <template #cell-img="{ value }">
@@ -146,12 +158,6 @@
               />
             </span>
             <span v-else style="color: #aaa">Sin imagen</span>
-          </template>
-          <template #cell-is_savings_bonus="{ value }">
-            <span v-if="value" class="tag is-success is-light">
-              <i class="fas fa-piggy-bank" style="margin-right: 5px;"></i> Habilitado
-            </span>
-            <span v-else class="tag is-light">No</span>
           </template>
         </ModernTable>
       </div>
@@ -862,6 +868,8 @@ export default {
       ],
       showSavingsManager: false,
       activeTab: "sifrah",
+      searchQuery: "",
+      activeFilters: null,
     };
   },
   computed: {
@@ -1027,11 +1035,49 @@ export default {
     },
 
     handleSearch(query) {
-      // Implement search logic
+      this.searchQuery = query;
+      this.applyFilters();
     },
 
     handleFilter(filters) {
-      // Implement filter logic
+      this.activeFilters = filters;
+      this.applyFilters();
+    },
+
+    applyFilters() {
+      let filtered = [...this.allProducts];
+
+      // Search
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(p => 
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.code && p.code.toLowerCase().includes(q)) ||
+          (p.type && p.type.toLowerCase().includes(q))
+        );
+      }
+
+      // Filters
+      if (this.activeFilters) {
+        if (this.activeFilters.type) {
+          filtered = filtered.filter(p => p.type === this.activeFilters.type);
+        }
+        
+        if (this.activeFilters.is_savings_bonus !== undefined && this.activeFilters.is_savings_bonus !== "") {
+          const val = this.activeFilters.is_savings_bonus === "true" || this.activeFilters.is_savings_bonus === true;
+          filtered = filtered.filter(p => p.is_savings_bonus === val);
+        }
+
+        if (this.activeFilters.hasPlans !== undefined && this.activeFilters.hasPlans !== "") {
+          const val = this.activeFilters.hasPlans === "true" || this.activeFilters.hasPlans === true;
+          filtered = filtered.filter(p => {
+            const has = p.plans && Object.values(p.plans).some(Boolean);
+            return val ? has : !has;
+          });
+        }
+      }
+
+      this.products = filtered;
     },
 
     editProduct(product) {
