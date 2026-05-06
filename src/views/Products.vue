@@ -162,6 +162,64 @@
         </ModernTable>
       </div>
 
+      <!-- Add Savings Product Modal (Exclusive for Bono Ahorro) -->
+      <div class="modal" :class="{ 'is-active': showAddSavingsModal }">
+        <div class="modal-background" @click="showAddSavingsModal = false"></div>
+        <div class="modal-card">
+          <header class="modal-card-head" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+            <p class="modal-card-title" style="color: white;">Nuevo Producto Bono Ahorro</p>
+            <button class="delete" @click="showAddSavingsModal = false"></button>
+          </header>
+          <section class="modal-card-body">
+            <div class="field">
+              <label class="label">Nombre del Producto <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" v-model="newSavingsProduct.name" placeholder="Ej: Licuadora, Herramientas, etc." />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Categoría <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" v-model="newSavingsProduct.type" placeholder="Ej: Electrodomésticos, Herramientas" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Descripción</label>
+              <div class="control">
+                <textarea class="textarea" v-model="newSavingsProduct.description" placeholder="Descripción para el catálogo de canje"></textarea>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Precio en Soles (para el canje) <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" type="number" v-model.number="newSavingsProduct.savings_price" placeholder="0.00" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Imagen URL</label>
+              <div class="control">
+                <input class="input" v-model="newSavingsProduct.savings_img" placeholder="https://..." />
+              </div>
+            </div>
+
+            <div v-if="newSavingsProduct.savings_img" class="field">
+              <label class="label">Previsualización</label>
+              <div class="has-text-centered">
+                <img :src="newSavingsProduct.savings_img" style="max-height: 150px; border-radius: 8px;" />
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-warning" @click="saveSavingsProduct" :class="{ 'is-loading': loading }">Guardar Producto de Canje</button>
+            <button class="button" @click="showAddSavingsModal = false">Cancelar</button>
+          </footer>
+        </div>
+      </div>
+
       <!-- Add Product Modal -->
       <div class="modal" :class="{ 'is-active': showAddModal }">
         <div class="modal-background" @click="showAddModal = false"></div>
@@ -867,9 +925,21 @@ export default {
         },
       ],
       showSavingsManager: false,
+      showAddSavingsModal: false,
       activeTab: "sifrah",
       searchQuery: "",
       activeFilters: null,
+      newSavingsProduct: {
+        name: "",
+        type: "",
+        description: "",
+        savings_price: 0,
+        savings_img: "",
+        is_savings_bonus: true,
+        catalog_type: 'savings',
+        price: 0, // precio regular (opcional en este caso)
+        points: 0
+      },
     };
   },
   computed: {
@@ -971,8 +1041,60 @@ export default {
           this.load();
           break;
         case "add":
-          this.showAddModal = true;
+          if (this.activeTab === 'savings') {
+            this.showAddSavingsModal = true;
+          } else {
+            this.showAddModal = true;
+          }
           break;
+      }
+    },
+
+    async saveSavingsProduct() {
+      if (!this.newSavingsProduct.name || !this.newSavingsProduct.type || !this.newSavingsProduct.savings_price) {
+        return Swal.fire("Error", "Por favor completa los campos obligatorios", "error");
+      }
+
+      this.loading = true;
+      try {
+        await api.products.POST({
+          action: "add",
+          data: {
+            ...this.newSavingsProduct,
+            // Sincronizar precio base con el de ahorro para que aparezca bien en listas
+            price: this.newSavingsProduct.savings_price,
+            img: this.newSavingsProduct.savings_img,
+            description: this.newSavingsProduct.description
+          },
+        });
+
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Producto de canje añadido correctamente",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        this.showAddSavingsModal = false;
+        // Reset form
+        this.newSavingsProduct = {
+          name: "",
+          type: "",
+          description: "",
+          savings_price: 0,
+          savings_img: "",
+          is_savings_bonus: true,
+          catalog_type: 'savings',
+          price: 0,
+          points: 0
+        };
+        this.load();
+      } catch (error) {
+        console.error("Error saving savings product:", error);
+        Swal.fire("Error", "No se pudo guardar el producto", "error");
+      } finally {
+        this.loading = false;
       }
     },
 
