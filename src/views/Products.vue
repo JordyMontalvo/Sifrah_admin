@@ -35,13 +35,30 @@
               </button>
 
               <button class="button is-warning" @click="openSavingsBonusManager">
-                <span class="icon">
-                  <i class="fas fa-piggy-bank"></i>
-                </span>
                 <span>Gestionar Bono Ahorro</span>
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Tabs Section -->
+      <div class="container" style="margin-top: 20px; margin-bottom: 20px;">
+        <div class="tabs is-boxed is-centered is-toggle">
+          <ul>
+            <li :class="{ 'is-active': activeTab === 'sifrah' }">
+              <a @click="activeTab = 'sifrah'">
+                <span class="icon is-small" style="margin-right: 8px;"><i class="fas fa-leaf"></i></span>
+                <span>Catálogo SIFRAH</span>
+              </a>
+            </li>
+            <li :class="{ 'is-active': activeTab === 'savings' }">
+              <a @click="activeTab = 'savings'">
+                <span class="icon is-small" style="margin-right: 8px;"><i class="fas fa-piggy-bank"></i></span>
+                <span>Tienda Bono Ahorro</span>
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -86,10 +103,10 @@
       <!-- Modern Table -->
       <div class="container">
         <ModernTable
-          :data="tableData"
-          :columns="tableColumns"
-          title="Catálogo de Productos"
-          subtitle="Gestiona productos y sus asignaciones a planes"
+          :data="filteredTableData"
+          :columns="activeTab === 'sifrah' ? sifrahColumns : savingsColumns"
+          :title="activeTab === 'sifrah' ? 'Catálogo SIFRAH' : 'Catálogo Bono Ahorro'"
+          :subtitle="activeTab === 'sifrah' ? 'Gestiona productos, puntos y asignación a planes' : 'Gestiona productos de canje, electrodomésticos y premios'"
           :actions="tableActions"
           :item-actions="itemActions"
           :show-filters="true"
@@ -101,6 +118,16 @@
           @search="handleSearch"
           @filter="handleFilter"
         >
+          <template #cell-name="{ value, item }">
+            <div style="display: flex; flex-direction: column;">
+              <span class="has-text-weight-bold">{{ value }}</span>
+              <div class="tags" style="margin-top: 4px;">
+                <span v-if="item.raw.catalog_type === 'savings' || (item.raw.is_savings_bonus && !item.raw.points)" class="tag is-warning is-light is-small">Externo / Canje</span>
+                <span v-if="item.raw.catalog_type === 'sifrah' || item.raw.points" class="tag is-info is-light is-small">SIFRAH</span>
+                <span v-if="item.raw.is_savings_bonus" class="tag is-danger is-light is-small">Bono Ahorro</span>
+              </div>
+            </div>
+          </template>
           <template #cell-img="{ value }">
             <span v-if="value">
               <img
@@ -148,6 +175,19 @@
                     v-model="newProduct.code"
                     placeholder="Código del producto"
                   />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Tipo de Catálogo</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select v-model="newProduct.catalog_type">
+                      <option value="both">Ambos (Sifrah + Bono Ahorro)</option>
+                      <option value="sifrah">Solo SIFRAH</option>
+                      <option value="savings">Solo Bono Ahorro (Canje Externo)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -217,7 +257,7 @@
                 </div>
               </div>
 
-              <div class="field">
+              <div v-if="newProduct.catalog_type !== 'savings'" class="field">
                 <label class="label">Puntos</label>
                 <div class="control">
                   <input
@@ -272,7 +312,7 @@
               </div>
             </div>
 
-            <div class="field">
+            <div v-if="newProduct.catalog_type !== 'savings'" class="field">
               <label class="label">Asignar a Planes</label>
               <div class="plans-grid">
                 <label
@@ -365,6 +405,19 @@
               </div>
 
               <div class="field">
+                <label class="label">Tipo de Catálogo</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select v-model="editingProduct.catalog_type">
+                      <option value="both">Ambos (Sifrah + Bono Ahorro)</option>
+                      <option value="sifrah">Solo SIFRAH</option>
+                      <option value="savings">Solo Bono Ahorro (Canje Externo)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
                 <label class="label">Nombre</label>
                 <div class="control">
                   <input
@@ -421,7 +474,7 @@
                 </div>
               </div>
 
-              <div class="field">
+              <div v-if="editingProduct.catalog_type !== 'savings'" class="field">
                 <label class="label">Puntos</label>
                 <div class="control">
                   <input
@@ -477,7 +530,7 @@
               </div>
             </div>
 
-            <div class="field">
+            <div v-if="editingProduct.catalog_type !== 'savings'" class="field">
               <label class="label">Asignar a Planes</label>
               <div class="plans-grid">
                 <label
@@ -665,6 +718,7 @@ export default {
         savings_price: 0,
         savings_description: "",
         savings_img: "",
+        catalog_type: "both",
       },
       editingProduct: {
         code: "",
@@ -682,6 +736,7 @@ export default {
         savings_price: 0,
         savings_description: "",
         savings_img: "",
+        catalog_type: "both",
       },
       validationErrors: {
         type: "",
@@ -806,6 +861,7 @@ export default {
         },
       ],
       showSavingsManager: false,
+      activeTab: "sifrah",
     };
   },
   computed: {
@@ -840,7 +896,31 @@ export default {
         savings_price: product.savings_price || 0,
         savings_description: product.savings_description || "",
         savings_img: product.savings_img || "",
+        catalog_type: product.catalog_type || (product.points ? 'both' : 'savings'),
+        raw: product,
       }));
+    },
+    filteredTableData() {
+      if (this.activeTab === 'savings') {
+        return this.tableData.filter(p => p.is_savings_bonus);
+      }
+      // For sifrah tab, we show products that ARE NOT only for savings bonus
+      // or simply show all for now but focused on regular fields
+      return this.tableData;
+    },
+    sifrahColumns() {
+      return this.tableColumns;
+    },
+    savingsColumns() {
+      return [
+        { key: "id", label: "#", sortable: true, type: "number" },
+        { key: "img", label: "Imagen", sortable: false },
+        { key: "name", label: "Producto", sortable: true },
+        { key: "type", label: "Categoría", sortable: true },
+        { key: "price", label: "Precio Regular", sortable: true, type: "currency" },
+        { key: "savings_price", label: "Precio Bono", sortable: true, type: "currency" },
+        { key: "is_savings_bonus", label: "Estado", sortable: true, type: "boolean" },
+      ];
     },
   },
   created() {
@@ -1076,10 +1156,11 @@ export default {
             plans: this.newProduct.plans,
             weight: this.newProduct.weight,
             prices: this.newProduct.prices,
-            is_savings_bonus: this.newProduct.is_savings_bonus,
+            is_savings_bonus: this.newProduct.catalog_type !== 'sifrah',
             savings_price: this.newProduct.savings_price,
             savings_description: this.newProduct.savings_description,
             savings_img: this.newProduct.savings_img,
+            catalog_type: this.newProduct.catalog_type,
           },
         });
         Swal.fire({
@@ -1177,10 +1258,11 @@ export default {
           _plans: this.editingProduct.plans,
           _weight: this.editingProduct.weight,
           _prices: this.editingProduct.prices,
-          is_savings_bonus: this.editingProduct.is_savings_bonus,
+          is_savings_bonus: this.editingProduct.catalog_type !== 'sifrah',
           savings_price: this.editingProduct.savings_price,
           savings_description: this.editingProduct.savings_description,
           savings_img: this.editingProduct.savings_img,
+          catalog_type: this.editingProduct.catalog_type,
         };
 
         await api.products.POST({
