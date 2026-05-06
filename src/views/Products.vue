@@ -33,6 +33,13 @@
                 </span>
                 <span>Nuevo Producto</span>
               </button>
+
+              <button class="button is-warning" @click="openSavingsBonusManager">
+                <span class="icon">
+                  <i class="fas fa-piggy-bank"></i>
+                </span>
+                <span>Gestionar Bono Ahorro</span>
+              </button>
             </div>
           </div>
         </div>
@@ -112,6 +119,12 @@
               />
             </span>
             <span v-else style="color: #aaa">Sin imagen</span>
+          </template>
+          <template #cell-is_savings_bonus="{ value }">
+            <span v-if="value" class="tag is-success is-light">
+              <i class="fas fa-piggy-bank" style="margin-right: 5px;"></i> Habilitado
+            </span>
+            <span v-else class="tag is-light">No</span>
           </template>
         </ModernTable>
       </div>
@@ -271,6 +284,43 @@
                   <span class="checkmark"></span>
                   <span class="plan-name">{{ plan.name }}</span>
                 </label>
+              </div>
+            </div>
+
+            <!-- Savings Bonus Configuration -->
+            <div class="savings-bonus-config-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed #eee;">
+              <h3 class="title is-5" style="color: #e91e63;">
+                <i class="fas fa-piggy-bank"></i> Configuración Bono Ahorro
+              </h3>
+              
+              <div class="field">
+                <label class="checkbox">
+                  <input type="checkbox" v-model="newProduct.is_savings_bonus">
+                  Habilitar para tienda Bono Ahorro
+                </label>
+              </div>
+
+              <div v-if="newProduct.is_savings_bonus" class="form-grid">
+                <div class="field">
+                  <label class="label">Precio Bono Ahorro (S/)</label>
+                  <div class="control">
+                    <input class="input" type="number" v-model.number="newProduct.savings_price" placeholder="Precio en el bono">
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label class="label">Imagen Exclusiva Bono (Opcional)</label>
+                  <div class="control">
+                    <input class="input" v-model="newProduct.savings_img" placeholder="URL imagen para bono">
+                  </div>
+                </div>
+
+                <div class="field is-full">
+                  <label class="label">Descripción Exclusiva Bono (Opcional)</label>
+                  <div class="control">
+                    <textarea class="textarea" v-model="newProduct.savings_description" placeholder="Descripción especial para el canje"></textarea>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -444,6 +494,43 @@
                 </label>
               </div>
             </div>
+
+            <!-- Savings Bonus Configuration -->
+            <div class="savings-bonus-config-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed #eee;">
+              <h3 class="title is-5" style="color: #e91e63;">
+                <i class="fas fa-piggy-bank"></i> Configuración Bono Ahorro
+              </h3>
+              
+              <div class="field">
+                <label class="checkbox">
+                  <input type="checkbox" v-model="editingProduct.is_savings_bonus">
+                  Habilitar para tienda Bono Ahorro
+                </label>
+              </div>
+
+              <div v-if="editingProduct.is_savings_bonus" class="form-grid">
+                <div class="field">
+                  <label class="label">Precio Bono Ahorro (S/)</label>
+                  <div class="control">
+                    <input class="input" type="number" v-model.number="editingProduct.savings_price" placeholder="Precio en el bono">
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label class="label">Imagen Exclusiva Bono (Opcional)</label>
+                  <div class="control">
+                    <input class="input" v-model="editingProduct.savings_img" placeholder="URL imagen para bono">
+                  </div>
+                </div>
+
+                <div class="field" style="grid-column: span 2;">
+                  <label class="label">Descripción Exclusiva Bono (Opcional)</label>
+                  <div class="control">
+                    <textarea class="textarea" v-model="editingProduct.savings_description" placeholder="Descripción especial para el canje"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
           <footer class="modal-card-foot">
             <button class="button is-success" @click="saveProduct">
@@ -477,6 +564,62 @@
         <div class="loading-content">
           <div class="spinner"></div>
           <p>Cargando productos...</p>
+        </div>
+      </div>
+
+      <!-- Savings Bonus Manager Modal -->
+      <div class="modal" :class="{ 'is-active': showSavingsManager }">
+        <div class="modal-background" @click="showSavingsManager = false"></div>
+        <div class="modal-card" style="width: 90%; max-width: 1000px;">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Gestionar Productos Bono Ahorro</p>
+            <button class="delete" @click="showSavingsManager = false"></button>
+          </header>
+          <section class="modal-card-body">
+            <p class="subtitle is-6">Selecciona qué productos aparecen en la tienda de Bono Ahorro y define su precio de canje.</p>
+            <table class="table is-fullwidth is-striped is-hoverable">
+              <thead>
+                <tr>
+                  <th>Habilitar</th>
+                  <th>Imagen</th>
+                  <th>Producto</th>
+                  <th>Precio Regular</th>
+                  <th>Precio Bono Ahorro</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="product in products" :key="product.id">
+                  <td style="text-align: center;">
+                    <input type="checkbox" v-model="product.is_savings_bonus">
+                  </td>
+                  <td>
+                    <img :src="product.img" style="width: 40px; border-radius: 4px;">
+                  </td>
+                  <td>
+                    <p class="has-text-weight-bold">{{ product.name }}</p>
+                    <p class="is-size-7">{{ product.code }}</p>
+                  </td>
+                  <td>S/ {{ product.price }}</td>
+                  <td>
+                    <div class="field has-addons">
+                      <p class="control">
+                        <a class="button is-static is-small">S/</a>
+                      </p>
+                      <p class="control">
+                        <input class="input is-small" type="number" v-model.number="product.savings_price" :disabled="!product.is_savings_bonus">
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-success" @click="saveSavingsBonusBulk">
+              Guardar Cambios Masivos
+            </button>
+            <button class="button" @click="showSavingsManager = false">Cerrar</button>
+          </footer>
         </div>
       </div>
     </section>
@@ -518,6 +661,10 @@ export default {
         img: "",
         plans: {},
         prices: {},
+        is_savings_bonus: false,
+        savings_price: 0,
+        savings_description: "",
+        savings_img: "",
       },
       editingProduct: {
         code: "",
@@ -531,6 +678,10 @@ export default {
         img: "",
         plans: {},
         prices: {},
+        is_savings_bonus: false,
+        savings_price: 0,
+        savings_description: "",
+        savings_img: "",
       },
       validationErrors: {
         type: "",
@@ -587,6 +738,12 @@ export default {
           label: "Imagen",
           sortable: false,
         },
+        {
+          key: "is_savings_bonus",
+          label: "Bono Ahorro",
+          sortable: true,
+          type: "boolean",
+        },
       ],
       tableActions: [
         {
@@ -638,7 +795,17 @@ export default {
             { value: false, label: "Sin asignar" },
           ],
         },
+        {
+          key: "is_savings_bonus",
+          label: "Bono Ahorro",
+          placeholder: "Filtrar Bono Ahorro",
+          options: [
+            { value: true, label: "Habilitados" },
+            { value: false, label: "Deshabilitados" },
+          ],
+        },
       ],
+      showSavingsManager: false,
     };
   },
   computed: {
@@ -669,7 +836,10 @@ export default {
         weight: product.weight || 0,
         img: product.img || "",
         plans: product.plans || {},
-        // Puedes agregar más campos si los necesitas
+        is_savings_bonus: product.is_savings_bonus || false,
+        savings_price: product.savings_price || 0,
+        savings_description: product.savings_description || "",
+        savings_img: product.savings_img || "",
       }));
     },
   },
@@ -718,6 +888,53 @@ export default {
       }
     },
 
+    openSavingsBonusManager() {
+      this.showSavingsManager = true;
+    },
+
+    async saveSavingsBonusBulk() {
+      this.loading = true;
+      try {
+        // Enviar cada producto actualizado (esto es ineficiente si hay muchos, 
+        // pero seguimos el patrón del API actual que es por producto)
+        // Alternativamente, si el backend soporta bulk, sería mejor.
+        // Por ahora, asumimos que Products.POST procesa un solo producto o acción.
+        
+        const updates = this.products.map(p => {
+          return api.products.POST({
+            action: 'update',
+            id: p.id,
+            data: {
+              ...p,
+              is_savings_bonus: p.is_savings_bonus,
+              savings_price: p.savings_price
+            }
+          });
+        });
+
+        await Promise.all(updates);
+
+        Swal.fire({
+          icon: "success",
+          title: "¡Éxito!",
+          text: "Configuración masiva guardada",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        this.showSavingsManager = false;
+        this.load();
+      } catch (error) {
+        console.error("Error bulk saving savings bonus:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al guardar cambios masivos",
+        });
+      } finally {
+        this.loading = false;
+      }
+    },
+
     handleItemAction({ action, item }) {
       console.log("handleItemAction", action, item);
       if (action === "edit") {
@@ -759,6 +976,10 @@ export default {
         id: prod.id || "",
         plans: prod.plans || {},
         prices: prod.prices || {},
+        is_savings_bonus: prod.is_savings_bonus || false,
+        savings_price: prod.savings_price || 0,
+        savings_description: prod.savings_description || "",
+        savings_img: prod.savings_img || "",
       };
       this.showEditModal = true;
     },
@@ -855,6 +1076,10 @@ export default {
             plans: this.newProduct.plans,
             weight: this.newProduct.weight,
             prices: this.newProduct.prices,
+            is_savings_bonus: this.newProduct.is_savings_bonus,
+            savings_price: this.newProduct.savings_price,
+            savings_description: this.newProduct.savings_description,
+            savings_img: this.newProduct.savings_img,
           },
         });
         Swal.fire({
@@ -892,6 +1117,10 @@ export default {
         img: "",
         plans: {},
         prices: {},
+        is_savings_bonus: false,
+        savings_price: 0,
+        savings_description: "",
+        savings_img: "",
       };
       this.validationErrors = {}; // Clear validation errors
     },
@@ -948,6 +1177,10 @@ export default {
           _plans: this.editingProduct.plans,
           _weight: this.editingProduct.weight,
           _prices: this.editingProduct.prices,
+          is_savings_bonus: this.editingProduct.is_savings_bonus,
+          savings_price: this.editingProduct.savings_price,
+          savings_description: this.editingProduct.savings_description,
+          savings_img: this.editingProduct.savings_img,
         };
 
         await api.products.POST({
