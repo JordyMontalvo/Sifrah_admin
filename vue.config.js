@@ -12,6 +12,7 @@ const apiTarget =
   "http://localhost:3000";
 
 module.exports = {
+  productionSourceMap: false,
   devServer: {
     port: 8081,
     host: "0.0.0.0",
