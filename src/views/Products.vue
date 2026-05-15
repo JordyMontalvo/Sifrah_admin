@@ -979,19 +979,18 @@ export default {
       }));
     },
     filteredTableData() {
+      let rows = this.tableData;
       if (this.activeTab === 'savings') {
-        return this.tableData.filter(p => p.is_savings_bonus);
+        rows = rows.filter(p => p.is_savings_bonus);
       }
-      // For sifrah tab, we show products that ARE NOT only for savings bonus
-      // or simply show all for now but focused on regular fields
-      return this.tableData;
+      return rows.map((row, index) => ({ ...row, rowNum: index + 1 }));
     },
     sifrahColumns() {
       return this.tableColumns;
     },
     savingsColumns() {
       return [
-        { key: "id", label: "#", sortable: true, type: "number" },
+        { key: "rowNum", label: "#", sortable: true, type: "number" },
         { key: "img", label: "Imagen", sortable: false },
         { key: "name", label: "Producto", sortable: true },
         { key: "type", label: "Categoría", sortable: true },
@@ -1100,6 +1099,64 @@ export default {
 
     openSavingsBonusManager() {
       this.showSavingsManager = true;
+    },
+
+    buildProductEditData(product) {
+      return {
+        _name: product.name,
+        _type: product.type,
+        _price: product.price,
+        _points: product.points || 0,
+        _img: product.img || "",
+        _code: product.code || "",
+        _description: product.description || "",
+        _subdescription: product.subdescription || "",
+        _plans: product.plans || {},
+        _weight: product.weight || 0,
+        _prices: product.prices || {},
+        is_savings_bonus: !!product.is_savings_bonus,
+        savings_price: product.savings_price || 0,
+        savings_description: product.savings_description || "",
+        savings_img: product.savings_img || "",
+      };
+    },
+
+    async toggleSavingsBonus(product) {
+      const enabled = !!product.is_savings_bonus;
+      try {
+        await api.products.POST({
+          action: "edit",
+          id: product.id,
+          data: this.buildProductEditData(product),
+        });
+
+        const syncList = (list) => {
+          const idx = list.findIndex((p) => p.id === product.id);
+          if (idx !== -1) {
+            this.$set(list[idx], "is_savings_bonus", enabled);
+          }
+        };
+        syncList(this.allProducts);
+        syncList(this.products);
+
+        if (!enabled && this.activeTab === "savings") {
+          Swal.fire({
+            icon: "success",
+            title: "Producto desactivado",
+            text: "Ya no aparecerá en la tienda Bono Ahorro",
+            timer: 1800,
+            showConfirmButton: false,
+          });
+        }
+      } catch (error) {
+        product.is_savings_bonus = !enabled;
+        console.error("Error toggling savings bonus:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo actualizar el estado del producto",
+        });
+      }
     },
 
     async saveSavingsBonusBulk() {
