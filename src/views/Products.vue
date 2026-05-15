@@ -1281,10 +1281,13 @@ export default {
         id: prod.id || "",
         plans: prod.plans || {},
         prices: prod.prices || {},
-        is_savings_bonus: prod.is_savings_bonus || false,
+        is_savings_bonus: !!prod.is_savings_bonus,
         savings_price: prod.savings_price || 0,
         savings_description: prod.savings_description || "",
         savings_img: prod.savings_img || "",
+        catalog_type:
+          prod.catalog_type ||
+          (prod.points ? (prod.is_savings_bonus ? "both" : "sifrah") : "savings"),
       };
       this.showEditModal = true;
     },
@@ -1381,7 +1384,7 @@ export default {
             plans: this.newProduct.plans,
             weight: this.newProduct.weight,
             prices: this.newProduct.prices,
-            is_savings_bonus: this.newProduct.catalog_type !== 'sifrah',
+            is_savings_bonus: !!this.newProduct.is_savings_bonus,
             savings_price: this.newProduct.savings_price,
             savings_description: this.newProduct.savings_description,
             savings_img: this.newProduct.savings_img,
@@ -1483,11 +1486,10 @@ export default {
           _plans: this.editingProduct.plans,
           _weight: this.editingProduct.weight,
           _prices: this.editingProduct.prices,
-          is_savings_bonus: this.editingProduct.catalog_type !== 'sifrah',
+          is_savings_bonus: !!this.editingProduct.is_savings_bonus,
           savings_price: this.editingProduct.savings_price,
           savings_description: this.editingProduct.savings_description,
           savings_img: this.editingProduct.savings_img,
-          catalog_type: this.editingProduct.catalog_type,
         };
 
         await api.products.POST({
