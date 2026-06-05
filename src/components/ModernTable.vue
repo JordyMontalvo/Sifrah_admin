@@ -622,6 +622,12 @@ export default {
         approved: "status-approved",
         rejected: "status-rejected",
         cancelled: "status-cancelled",
+        activated: "status-approved",
+        affiliated: "status-pending",
+        active_simple: "status-active",
+        registered: "status-inactive",
+        blocked: "status-blocked",
+        eliminated: "status-eliminated",
       };
       return statusClasses[status] || "status-default";
     },
