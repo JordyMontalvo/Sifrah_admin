@@ -43,6 +43,7 @@ import Agenda from "./views/Agenda.vue";
 import ChangePassword from "./views/ChangePassword.vue";
 import Sessions from "./views/Sessions.vue";
 import BonusReports from "./views/BonusReports.vue";
+import Reactivations from "./views/Reactivations.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -95,6 +96,11 @@ const routes = [
     path: "/users/:filter",
     component: Users,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/reactivations",
+    component: Reactivations,
+    meta: { requiresAuth: true, title: "Reactivaciones" },
   },
   {
     path: "/affiliations/:filter",

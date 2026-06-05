@@ -40,6 +40,13 @@
                 </span>
                 <span>Config. Dashboard</span>
               </router-link>
+              
+              <router-link to="/reactivations" class="button" style="color: #fff; background-color: #f39c12; border-color: transparent; font-weight: 600;">
+                <span class="icon">
+                  <i class="fas fa-user-clock"></i>
+                </span>
+                <span>Reactivaciones</span>
+              </router-link>
             </div>
           </div>
         </div>

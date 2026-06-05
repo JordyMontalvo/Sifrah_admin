@@ -92,6 +92,7 @@ class API {
         generalPassword,
         adminAuth,
         agenda,
+        reactivations,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -131,6 +132,7 @@ class API {
         this.generalPassword = generalPassword;
         this.adminAuth = adminAuth;
         this.agenda = agenda;
+        this.reactivations = reactivations;
     }
 }
 
@@ -588,6 +590,15 @@ class Agenda {
     }
 }
 
+class Reactivations {
+    GET({ page = 1, limit = 20, status = "pending" } = {}) {
+        return axios.get(`/admin/reactivations?page=${page}&limit=${limit}&status=${status}`);
+    }
+    POST({ action, request_id, admin_id, new_sponsor_code }) {
+        return axios.post(`/admin/reactivations`, { action, request_id, admin_id, new_sponsor_code });
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -627,4 +638,5 @@ export default new API({
     generalPassword: new GeneralPassword(),
     adminAuth: new AdminAuth(),
     agenda: new Agenda(),
+    reactivations: new Reactivations(),
 });
