@@ -740,6 +740,34 @@ export default {
           class: "is-danger",
           condition: (item) => item.raw && item.raw.activated,
         },
+        {
+          key: "block",
+          label: "Bloquear",
+          icon: "fas fa-ban",
+          class: "is-warning",
+          condition: (item) => !item.raw || (item.raw.status !== 'blocked' && item.raw.status !== 'eliminated'),
+        },
+        {
+          key: "unblock",
+          label: "Desbloquear",
+          icon: "fas fa-lock-open",
+          class: "is-success",
+          condition: (item) => item.raw && item.raw.status === 'blocked',
+        },
+        {
+          key: "eliminate",
+          label: "Eliminar Usuario",
+          icon: "fas fa-user-slash",
+          class: "is-danger",
+          condition: (item) => !item.raw || item.raw.status !== 'eliminated',
+        },
+        {
+          key: "reactivate",
+          label: "Reactivar",
+          icon: "fas fa-user-check",
+          class: "is-info",
+          condition: (item) => item.raw && (item.raw.status === 'blocked' || item.raw.status === 'eliminated'),
+        },
       ],
       tableFilters: [
         {
@@ -808,13 +836,17 @@ export default {
     tableData() {
       return this.sortedUsers.map((user, index) => ({
         ...user,
-        status: user.activated
-          ? "activated"
+        status: user.status === 'blocked'
+          ? 'blocked'
+          : user.status === 'eliminated'
+          ? 'eliminated'
+          : user.activated
+          ? 'activated'
           : user._activated
-          ? "active_simple"
+          ? 'active_simple'
           : user.affiliated
-          ? "affiliated"
-          : "registered",
+          ? 'affiliated'
+          : 'registered',
         parent: user.parent
           ? `${user.parent.name} ${user.parent.lastName} (DNI: ${
               user.parent.dni || ""
@@ -980,10 +1012,12 @@ export default {
 
     getUserStatus(user) {
       if (!user) return "-";
-      if (user.activated) return "Activado";
-      if (user._activated) return "Activo (simple)";
-      if (user.affiliated) return "Afiliado";
-      return "Registrado";
+      if (user.status === 'blocked')   return '🔒 Bloqueado';
+      if (user.status === 'eliminated') return '❌ Eliminado';
+      if (user.activated) return '✅ Activado';
+      if (user._activated) return 'Activo (simple)';
+      if (user.affiliated) return 'Afiliado';
+      return 'Registrado';
     },
 
     handleTableAction(action) {
@@ -1013,6 +1047,18 @@ export default {
           break;
         case "delete_activation":
           this.deleteActivation(item.raw || item);
+          break;
+        case "block":
+          this.blockUser(item.raw || item);
+          break;
+        case "unblock":
+          this.unblockUser(item.raw || item);
+          break;
+        case "eliminate":
+          this.eliminateUser(item.raw || item);
+          break;
+        case "reactivate":
+          this.reactivateUser(item.raw || item);
           break;
       }
     },
@@ -1114,6 +1160,93 @@ export default {
           timer: 3000,
           showConfirmButton: false,
         });
+      }
+    },
+
+    async blockUser(user) {
+      const result = await Swal.fire({
+        icon: "warning",
+        title: "Bloquear usuario",
+        html: `<b>${user.name} ${user.lastName}</b> (DNI: ${user.dni})<br><br>El usuario no podrá iniciar sesión y sus sesiones activas se cerrarán.`,
+        showCancelButton: true,
+        confirmButtonText: "Sí, bloquear",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#e67e22",
+      });
+      if (!result.isConfirmed) return;
+      try {
+        await api.users.POST({ action: "block", id: user.id });
+        Swal.fire({ icon: "success", title: "Usuario bloqueado", timer: 1800, showConfirmButton: false });
+        await this.GET();
+      } catch (e) {
+        Swal.fire({ icon: "error", title: "Error", text: e.message });
+      }
+    },
+
+    async unblockUser(user) {
+      const result = await Swal.fire({
+        icon: "question",
+        title: "Desbloquear usuario",
+        html: `¿Deseas desbloquear a <b>${user.name} ${user.lastName}</b>?`,
+        showCancelButton: true,
+        confirmButtonText: "Sí, desbloquear",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#27ae60",
+      });
+      if (!result.isConfirmed) return;
+      try {
+        await api.users.POST({ action: "unblock", id: user.id });
+        Swal.fire({ icon: "success", title: "Usuario desbloqueado", timer: 1800, showConfirmButton: false });
+        await this.GET();
+      } catch (e) {
+        Swal.fire({ icon: "error", title: "Error", text: e.message });
+      }
+    },
+
+    async eliminateUser(user) {
+      const result = await Swal.fire({
+        icon: "error",
+        title: "Eliminar usuario de la red",
+        html: `<b>${user.name} ${user.lastName}</b> (DNI: ${user.dni})<br><br>⚠️ <b>Esta acción comprime el árbol</b>: sus afiliados directos pasarán a su patrocinador.<br>El historial del usuario se conserva para auditoría.`,
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#c0392b",
+        input: "text",
+        inputPlaceholder: 'Escribe "ELIMINAR" para confirmar',
+        preConfirm: (val) => {
+          if (val !== "ELIMINAR") {
+            Swal.showValidationMessage('Debes escribir "ELIMINAR" para continuar');
+          }
+        },
+      });
+      if (!result.isConfirmed) return;
+      try {
+        await api.users.POST({ action: "eliminate", id: user.id });
+        Swal.fire({ icon: "success", title: "Usuario eliminado de la red", timer: 2000, showConfirmButton: false });
+        await this.GET();
+      } catch (e) {
+        Swal.fire({ icon: "error", title: "Error", text: e.message });
+      }
+    },
+
+    async reactivateUser(user) {
+      const result = await Swal.fire({
+        icon: "info",
+        title: "Reactivar usuario",
+        html: `¿Deseas reactivar a <b>${user.name} ${user.lastName}</b>?`,
+        showCancelButton: true,
+        confirmButtonText: "Sí, reactivar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#2980b9",
+      });
+      if (!result.isConfirmed) return;
+      try {
+        await api.users.POST({ action: "reactivate", id: user.id });
+        Swal.fire({ icon: "success", title: "Usuario reactivado", timer: 1800, showConfirmButton: false });
+        await this.GET();
+      } catch (e) {
+        Swal.fire({ icon: "error", title: "Error", text: e.message });
       }
     },
 
