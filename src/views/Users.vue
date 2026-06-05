@@ -111,6 +111,7 @@
           :items-per-page="itemsPerPage"
           search-placeholder="Buscar por nombre, DNI o email..."
           :filters="tableFilters"
+          :row-class="getUserRowClass"
           @action="handleTableAction"
           @item-action="handleItemAction"
           @search="handleSearch"
@@ -1018,6 +1019,13 @@ export default {
       if (user._activated) return 'Activo (simple)';
       if (user.affiliated) return 'Afiliado';
       return 'Registrado';
+    },
+
+    getUserRowClass(item) {
+      const status = item.raw?.status || item.status;
+      if (status === 'blocked')   return 'table-row--blocked';
+      if (status === 'eliminated') return 'table-row--eliminated';
+      return null;
     },
 
     handleTableAction(action) {

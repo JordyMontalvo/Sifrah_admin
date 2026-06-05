@@ -632,9 +632,13 @@ export default {
         case "affiliated":
           return "Afiliado";
         case "active_simple":
-          return "Activo (simple)";
+          return "Activo";
         case "registered":
           return "Registrado";
+        case "blocked":
+          return "🔒 Bloqueado";
+        case "eliminated":
+          return "✕ Eliminado";
         case "pending":
           return "Pendiente";
         case "approved":
@@ -873,6 +877,36 @@ export default {
   background-color: #dbeafe;
 }
 
+/* Blocked users — naranja tenue */
+.table-row--blocked {
+  background: #fff7ed;
+}
+.table-row--blocked .table-cell {
+  background-color: #fff7ed;
+}
+.table-row--blocked:hover {
+  background: #ffedd5;
+}
+.table-row--blocked:hover .table-cell {
+  background-color: #ffedd5;
+}
+
+/* Eliminated users — rojo tenue */
+.table-row--eliminated {
+  background: #fff1f2;
+  opacity: 0.82;
+}
+.table-row--eliminated .table-cell {
+  background-color: #fff1f2;
+}
+.table-row--eliminated:hover {
+  background: #ffe4e6;
+  opacity: 1;
+}
+.table-row--eliminated:hover .table-cell {
+  background-color: #ffe4e6;
+}
+
 .table-cell {
   padding: 16px 12px;
   font-size: 0.875rem;
@@ -954,6 +988,21 @@ export default {
 .status-cancelled {
   background: #e5e7eb;
   color: #4b5563;
+}
+
+/* Bloqueado — naranja */
+.status-blocked {
+  background: #fed7aa;
+  color: #9a3412;
+  font-weight: 700;
+}
+
+/* Eliminado — rojo */
+.status-eliminated {
+  background: #fecdd3;
+  color: #9f1239;
+  font-weight: 700;
+  text-decoration: line-through;
 }
 
 /* Alineado con Lista de Afiliaciones: aprobado/rechazado/anulado sin chip de color */
