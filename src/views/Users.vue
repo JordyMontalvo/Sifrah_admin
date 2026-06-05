@@ -1022,7 +1022,7 @@ export default {
     },
 
     getUserRowClass(item) {
-      const status = item.raw?.status || item.status;
+      var status = (item.raw && item.raw.status) || item.status;
       if (status === 'blocked')   return 'table-row--blocked';
       if (status === 'eliminated') return 'table-row--eliminated';
       return null;
