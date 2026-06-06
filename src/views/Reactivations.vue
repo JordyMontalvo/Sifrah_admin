@@ -126,21 +126,21 @@ export default {
     itemActions() {
       return [
         {
-          id: "approve",
+          key: "approve",
           label: "Aprobar",
           icon: "fas fa-check",
           class: "is-success",
-          showIf: (item) => item.status === "pending",
+          condition: (item) => item.status === "pending",
         },
         {
-          id: "reject",
+          key: "reject",
           label: "Rechazar",
           icon: "fas fa-times",
           class: "is-danger",
-          showIf: (item) => item.status === "pending",
+          condition: (item) => item.status === "pending",
         },
         {
-          id: "view",
+          key: "view",
           label: "Ver Detalle",
           icon: "fas fa-eye",
           class: "is-info",
