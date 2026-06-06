@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import Layout from "@/views/layouts/Layout";
+import Layout from "@/views/Layout";
 import ModernTable from "@/components/ModernTable";
 import DashboardCard from "@/components/DashboardCard";
 import api from "@/api";
