@@ -1006,6 +1006,8 @@ export default {
         if (filter == "affiliated") this.title = "Usuarios Afiliados";
         if (filter == "activated") this.title = "Usuarios Activados";
         if (filter == "registered") this.title = "Usuarios Registrados";
+        if (filter == "blocked") this.title = "Usuarios Bloqueados";
+        if (filter == "eliminated") this.title = "Usuarios Eliminados";
       } catch (error) {
         console.error("Error loading users:", error);
         Swal.fire({
