@@ -161,7 +161,13 @@ export default {
         });
 
         if (data.error) {
-          Swal.fire("Error", data.msg, "error");
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: data.msg,
+            showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' },
+            hideClass: { popup: '', backdrop: '' }
+          });
           return;
         }
 
@@ -175,7 +181,13 @@ export default {
         this.currentPage = data.page;
       } catch (error) {
         console.error("Error fetching reactivations:", error);
-        Swal.fire("Error", "No se pudo cargar la lista", "error");
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo cargar la lista',
+          showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' },
+          hideClass: { popup: '', backdrop: '' }
+        });
       }
     },
     
@@ -236,7 +248,9 @@ export default {
           </div>
         `,
         confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#6e62cc'
+        confirmButtonColor: '#6e62cc',
+        showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' },
+        hideClass: { popup: '', backdrop: '' }
       });
     },
 
@@ -257,6 +271,8 @@ export default {
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#27ae60',
         cancelButtonColor: '#d33',
+        showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' },
+        hideClass: { popup: '', backdrop: '' },
         preConfirm: () => {
           return { new_sponsor_code: document.getElementById('admin-sponsor-code').value };
         }
@@ -272,14 +288,23 @@ export default {
           });
 
           if (data.error) {
-            Swal.fire("Error", data.msg, "error");
+            Swal.fire({
+              icon: 'error', title: 'Error', text: data.msg,
+              showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' }, hideClass: { popup: '', backdrop: '' }
+            });
           } else {
-            Swal.fire("Aprobado", data.msg, "success");
+            Swal.fire({
+              icon: 'success', title: 'Aprobado', text: data.msg,
+              showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' }, hideClass: { popup: '', backdrop: '' }
+            });
             this.fetchData();
           }
         } catch (error) {
           console.error(error);
-          Swal.fire("Error", "Hubo un error al procesar la solicitud", "error");
+          Swal.fire({
+            icon: 'error', title: 'Error', text: 'Hubo un error al procesar la solicitud',
+            showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' }, hideClass: { popup: '', backdrop: '' }
+          });
         }
       }
     },
@@ -293,7 +318,9 @@ export default {
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Sí, rechazar',
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
+        showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' },
+        hideClass: { popup: '', backdrop: '' }
       });
 
       if (result.isConfirmed) {
@@ -305,14 +332,23 @@ export default {
           });
 
           if (data.error) {
-            Swal.fire("Error", data.msg, "error");
+            Swal.fire({
+              icon: 'error', title: 'Error', text: data.msg,
+              showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' }, hideClass: { popup: '', backdrop: '' }
+            });
           } else {
-            Swal.fire("Rechazado", data.msg, "success");
+            Swal.fire({
+              icon: 'success', title: 'Rechazado', text: data.msg,
+              showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' }, hideClass: { popup: '', backdrop: '' }
+            });
             this.fetchData();
           }
         } catch (error) {
           console.error(error);
-          Swal.fire("Error", "Hubo un error al procesar la solicitud", "error");
+          Swal.fire({
+            icon: 'error', title: 'Error', text: 'Hubo un error al procesar la solicitud',
+            showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' }, hideClass: { popup: '', backdrop: '' }
+          });
         }
       }
     }
