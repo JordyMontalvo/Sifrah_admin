@@ -38,45 +38,52 @@
       </div>
 
       <!-- Table -->
-      <div class="box" style="padding: 0; overflow: hidden;">
-        <ModernTable
-          :headers="['DNI', 'Nombre', 'Estado', 'Motivo', 'Fecha', 'Acciones']"
-          :items="filteredUsers"
-          emptyText="No hay usuarios registrados con este estado"
-        >
-          <template #row="{ item }">
-            <td>
-              <span class="has-text-weight-bold">{{ item.dni }}</span>
-            </td>
-            <td>
-              {{ item.name }} {{ item.lastName }}
-            </td>
-            <td>
-              <span class="tag is-danger" v-if="item.status === 'eliminated'">Eliminado</span>
-              <span class="tag is-warning" v-if="item.status === 'blocked'">Bloqueado</span>
-            </td>
-            <td>
-              <span style="font-size: 0.9em; color: #555;">{{ item.statusReason || 'Sin motivo registrado' }}</span>
-            </td>
-            <td>
-              <span style="font-size: 0.85em; color: #7f8c8d;">
-                {{ item.status === 'eliminated' ? formatDateTime(item.eliminated_at) : formatDateTime(item.blocked_at) }}
-              </span>
-            </td>
-            <td>
-              <div class="buttons are-small">
-                <button
-                  v-if="item.status === 'blocked'"
-                  class="button is-success is-light"
-                  @click="unblockUser(item)"
-                  title="Desbloquear usuario"
-                >
-                  <span class="icon"><i class="fas fa-unlock"></i></span>
-                </button>
-              </div>
-            </td>
-          </template>
-        </ModernTable>
+      <div class="box" style="padding: 0; overflow-x: auto;">
+        <table class="table is-fullwidth is-striped is-hoverable" style="margin-bottom: 0;">
+          <thead>
+            <tr>
+              <th>DNI</th>
+              <th>Nombre</th>
+              <th>Estado</th>
+              <th>Motivo</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in filteredUsers" :key="item.id">
+              <td><span class="has-text-weight-bold">{{ item.dni }}</span></td>
+              <td>{{ item.name }} {{ item.lastName }}</td>
+              <td>
+                <span class="tag is-danger" v-if="item.status === 'eliminated'">Eliminado</span>
+                <span class="tag is-warning" v-if="item.status === 'blocked'">Bloqueado</span>
+              </td>
+              <td><span style="font-size: 0.9em; color: #555;">{{ item.statusReason || 'Sin motivo registrado' }}</span></td>
+              <td>
+                <span style="font-size: 0.85em; color: #7f8c8d;">
+                  {{ item.status === 'eliminated' ? formatDateTime(item.eliminated_at) : formatDateTime(item.blocked_at) }}
+                </span>
+              </td>
+              <td>
+                <div class="buttons are-small">
+                  <button
+                    v-if="item.status === 'blocked'"
+                    class="button is-success is-light"
+                    @click="unblockUser(item)"
+                    title="Desbloquear usuario"
+                  >
+                    <span class="icon"><i class="fas fa-unlock"></i></span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="filteredUsers.length === 0">
+              <td colspan="6" class="has-text-centered has-text-grey" style="padding: 2rem;">
+                No hay usuarios registrados con este estado
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Loading Overlay -->
@@ -92,14 +99,12 @@
 
 <script>
 import Layout from "@/views/Layout";
-import ModernTable from "@/components/ModernTable";
 import api from "@/api";
 import Swal from "sweetalert2";
 
 export default {
   components: {
     Layout,
-    ModernTable,
   },
   data() {
     return {
@@ -112,10 +117,14 @@ export default {
   computed: {
     filteredUsers() {
       return this.users.filter((u) => {
-        const matchesSearch =
-          (u.dni && u.dni.toLowerCase().includes(this.search.toLowerCase())) ||
-          (u.name && u.name.toLowerCase().includes(this.search.toLowerCase())) ||
-          (u.lastName && u.lastName.toLowerCase().includes(this.search.toLowerCase()));
+        let matchesSearch = true;
+        if (this.search) {
+          const s = this.search.toLowerCase();
+          matchesSearch = 
+            (u.dni && u.dni.toLowerCase().includes(s)) ||
+            (u.name && u.name.toLowerCase().includes(s)) ||
+            (u.lastName && u.lastName.toLowerCase().includes(s));
+        }
 
         let matchesStatus = true;
         if (this.filterStatus !== "all") {
