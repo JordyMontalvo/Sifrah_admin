@@ -6,9 +6,9 @@
         <div class="container">
           <div class="header-content">
             <div class="header-left">
-              <h1 class="page-title">Reactivaciones de Cuentas</h1>
+              <h1 class="page-title">Solicitudes de Desbloqueo</h1>
               <p class="page-subtitle">
-                Gestiona las solicitudes de usuarios eliminados
+                Gestiona las solicitudes de usuarios bloqueados
               </p>
             </div>
             <div class="header-actions">
@@ -29,7 +29,7 @@
           :data="tableData"
           :columns="tableColumns"
           title="Solicitudes"
-          subtitle="Lista de solicitudes de reactivación"
+          subtitle="Lista de solicitudes de desbloqueo"
           :item-actions="itemActions"
           :show-filters="true"
           :show-pagination="true"
@@ -93,12 +93,6 @@ export default {
           label: "Motivo",
           sortable: false,
           format: (val) => val && val.length > 50 ? val.substring(0, 50) + '...' : val
-        },
-        {
-          key: "new_sponsor_code",
-          label: "Nuevo Patrocinador",
-          sortable: false,
-          format: (val) => val ? val : "N/A"
         },
         {
           key: "status",
@@ -242,8 +236,6 @@ export default {
             <p><strong>Fecha:</strong> ${new Date(item.created_at).toLocaleString()}</p>
             <hr style="margin: 10px 0;">
             <p><strong>Motivo:</strong><br/>${item.reason}</p>
-            <hr style="margin: 10px 0;">
-            <p><strong>Patrocinador Solicitado:</strong> ${item.new_sponsor_code || 'No especificado (mantiene original)'}</p>
             <p><strong>Estado:</strong> ${item.status}</p>
           </div>
         `,
@@ -256,36 +248,30 @@ export default {
 
     async approveRequest(item) {
       const { value: formValues } = await Swal.fire({
-        title: 'Aprobar Reactivación',
+        title: 'Aprobar Desbloqueo',
         html: `
-          <p style="font-size: 14px; margin-bottom: 15px;">Estás a punto de reactivar al usuario <strong>${item.name} ${item.lastName}</strong>.</p>
-          <div style="text-align: left;">
-            <label style="font-size: 12px; font-weight: bold; color: #555;">Código del Patrocinador</label>
-            <input id="admin-sponsor-code" class="swal2-input" style="margin: 5px 0; width: 100%; box-sizing: border-box; text-transform: uppercase;" value="${item.new_sponsor_code || ''}" placeholder="Código de patrocinador (opcional)">
-            <small style="font-size: 11px; color: #888;">Puedes modificar el código que solicitó el usuario, o dejarlo en blanco si debe volver con su patrocinador original.</small>
-          </div>
+          <p style="font-size: 14px; margin-bottom: 15px;">Estás a punto de desbloquear al usuario <strong>${item.name} ${item.lastName}</strong>.</p>
         `,
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: 'Confirmar y Reactivar',
+        confirmButtonText: 'Confirmar y Desbloquear',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#27ae60',
         cancelButtonColor: '#d33',
         showClass: { popup: 'swal2-noanimation', backdrop: 'swal2-noanimation' },
         hideClass: { popup: '', backdrop: '' },
         preConfirm: () => {
-          return { new_sponsor_code: document.getElementById('admin-sponsor-code').value };
+          return true;
         }
       });
 
       if (formValues) {
         try {
-          const { data } = await api.reactivations.POST({
-            action: 'approve',
-            request_id: item.id,
-            admin_id: this.$store.state.user ? this.$store.state.user.id : null,
-            new_sponsor_code: formValues.new_sponsor_code
-          });
+            const { data } = await api.reactivations.POST({
+              action: 'approve',
+              request_id: item.id,
+              admin_id: this.$store.state.user ? this.$store.state.user.id : null
+            });
 
           if (data.error) {
             Swal.fire({
@@ -312,7 +298,7 @@ export default {
     async rejectRequest(item) {
       const result = await Swal.fire({
         title: '¿Rechazar solicitud?',
-        text: "El usuario permanecerá eliminado.",
+        text: "El usuario permanecerá bloqueado.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',

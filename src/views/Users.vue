@@ -1187,14 +1187,23 @@ export default {
         icon: "warning",
         title: "Bloquear usuario",
         html: `<b>${user.name} ${user.lastName}</b> (DNI: ${user.dni})<br><br>El usuario no podrá iniciar sesión y sus sesiones activas se cerrarán.`,
+        input: "textarea",
+        inputPlaceholder: "Ingresa el motivo del bloqueo...",
         showCancelButton: true,
         confirmButtonText: "Sí, bloquear",
         cancelButtonText: "Cancelar",
         confirmButtonColor: "#e67e22",
+        preConfirm: (reason) => {
+          if (!reason.trim()) {
+            Swal.showValidationMessage("Debes ingresar un motivo");
+            return false;
+          }
+          return reason;
+        }
       });
       if (!result.isConfirmed) return;
       try {
-        await api.users.POST({ action: "block", id: user.id });
+        await api.users.POST({ action: "block", id: user.id, data: { reason: result.value } });
         Swal.fire({ icon: "success", title: "Usuario bloqueado", timer: 1800, showConfirmButton: false });
         await this.GET();
       } catch (e) {
@@ -1226,22 +1235,30 @@ export default {
       const result = await Swal.fire({
         icon: "error",
         title: "Eliminar usuario de la red",
-        html: `<b>${user.name} ${user.lastName}</b> (DNI: ${user.dni})<br><br>⚠️ <b>Esta acción comprime el árbol</b>: sus afiliados directos pasarán a su patrocinador.<br>El historial del usuario se conserva para auditoría.`,
+        html: `<b>${user.name} ${user.lastName}</b> (DNI: ${user.dni})<br><br>⚠️ <b>Esta acción comprime el árbol</b>: sus afiliados directos pasarán a su patrocinador.<br>El historial del usuario se conserva para auditoría.<br><br>
+        <input id="swal-input1" class="swal2-input" placeholder='Escribe "ELIMINAR" para confirmar'>
+        <textarea id="swal-input2" class="swal2-textarea" placeholder="Motivo de la eliminación"></textarea>`,
         showCancelButton: true,
         confirmButtonText: "Sí, eliminar",
         cancelButtonText: "Cancelar",
         confirmButtonColor: "#c0392b",
-        input: "text",
-        inputPlaceholder: 'Escribe "ELIMINAR" para confirmar',
-        preConfirm: (val) => {
-          if (val !== "ELIMINAR") {
+        preConfirm: () => {
+          const word = document.getElementById('swal-input1').value;
+          const reason = document.getElementById('swal-input2').value;
+          if (word !== "ELIMINAR") {
             Swal.showValidationMessage('Debes escribir "ELIMINAR" para continuar');
+            return false;
           }
+          if (!reason.trim()) {
+            Swal.showValidationMessage('Debes ingresar un motivo');
+            return false;
+          }
+          return reason;
         },
       });
       if (!result.isConfirmed) return;
       try {
-        await api.users.POST({ action: "eliminate", id: user.id });
+        await api.users.POST({ action: "eliminate", id: user.id, data: { reason: result.value } });
         Swal.fire({ icon: "success", title: "Usuario eliminado de la red", timer: 2000, showConfirmButton: false });
         await this.GET();
       } catch (e) {

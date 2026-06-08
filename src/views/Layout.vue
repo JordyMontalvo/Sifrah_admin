@@ -432,6 +432,12 @@
             </span>
             <span>Historial de Rangos</span>
           </a>
+          <a class="menu-item" href="/blocked-eliminated" @click="closeMenu" v-if="accountType === 'admin'">
+            <span class="icon">
+              <i class="fas fa-ban"></i>
+            </span>
+            <span>Bloqueados y Eliminados</span>
+          </a>
         </div>
 
         <div v-if="activeMenu === 'affiliations'" class="menu-items">

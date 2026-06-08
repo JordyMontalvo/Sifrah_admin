@@ -44,6 +44,7 @@ import ChangePassword from "./views/ChangePassword.vue";
 import Sessions from "./views/Sessions.vue";
 import BonusReports from "./views/BonusReports.vue";
 import Reactivations from "./views/Reactivations.vue";
+import BlockedEliminated from "./views/BlockedEliminated.vue";
 
 // import Reports      from './views/Reports.vue'
 
@@ -96,6 +97,11 @@ const routes = [
     path: "/users/:filter",
     component: Users,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/blocked-eliminated",
+    component: BlockedEliminated,
+    meta: { requiresAuth: true, title: "Bloqueados y Eliminados" },
   },
   {
     path: "/reactivations",
