@@ -140,8 +140,8 @@ export default {
         ]);
         
         let arr = [];
-        if (!resBlocked.error) arr = arr.concat(resBlocked.data.users);
-        if (!resEliminated.error) arr = arr.concat(resEliminated.data.users);
+        if (resBlocked.data && !resBlocked.data.error) arr = arr.concat(resBlocked.data.users);
+        if (resEliminated.data && !resEliminated.data.error) arr = arr.concat(resEliminated.data.users);
         
         // Ordenar por fecha más reciente (blocked_at o eliminated_at)
         arr.sort((a, b) => {
