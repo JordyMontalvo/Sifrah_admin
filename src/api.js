@@ -65,6 +65,7 @@ class API {
         promos,
         activationBanners,
         affiliationBanners,
+        rankImages,
         promo,
         pay,
         wallet,
@@ -105,6 +106,7 @@ class API {
         this.promos = promos;
         this.activationBanners = activationBanners;
         this.affiliationBanners = affiliationBanners;
+        this.rankImages = rankImages;
         this.promo = promo;
         this.pay = pay;
         this.wallet = wallet;

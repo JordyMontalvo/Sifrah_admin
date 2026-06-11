@@ -124,7 +124,10 @@
             :banner="banner"
             :position="banner.position"
             :loading="rankImageSendingStates[banner.position]"
+            removable-image
             @file-selected="onRankImageFileSelected"
+            @file-removed="onRankImageFileRemoved"
+            @remove-image="removeRankImage"
             @save="saveRankImage"
             @error="showErrorMessage"
           />
@@ -533,9 +536,54 @@ export default {
 
     onRankImageFileSelected({ position, file, preview }) {
       this.rankImageSelectedFiles[position] = file;
-      if (this.rankImagesData) {
+      if (preview && this.rankImagesData) {
         this.rankImagesData[position] = preview;
       }
+    },
+
+    onRankImageFileRemoved(position) {
+      this.rankImageSelectedFiles[position] = null;
+      this.fetchRankImages();
+    },
+
+    async removeRankImage(position) {
+      const banner = this.rankImageBanners.find((b) => b.position === position);
+      const bannerTitle = banner ? banner.title : "Imagen de rango";
+
+      if (!this.rankImagesData[position]) {
+        return;
+      }
+
+      try {
+        this.rankImageSendingStates[position] = true;
+
+        const { data } = await api.rankImages.POST({
+          id: "rank_images",
+          img: "",
+          position,
+        });
+
+        if (data && data.error) {
+          throw new Error(data.msg || "El servidor rechazó quitar la imagen");
+        }
+
+        this.rankImageSelectedFiles[position] = null;
+        this.rankImagesData[position] = "";
+        this.showSuccessMessage(`${bannerTitle} eliminada exitosamente`);
+      } catch (error) {
+        console.error(`Error removing rank image ${position}:`, error);
+        this.showErrorMessage(this.rankImageErrorMessage(error));
+      } finally {
+        this.rankImageSendingStates[position] = false;
+      }
+    },
+
+    rankImageErrorMessage(error) {
+      const data = error && error.response && error.response.data;
+      if (data && data.msg) return data.msg;
+      if (data && typeof data.error === "string") return data.error;
+      if (error && error.message) return error.message;
+      return "Error al guardar la imagen del rango";
     },
 
     async saveRankImage(position) {
@@ -550,22 +598,29 @@ export default {
         this.rankImageSendingStates[position] = true;
 
         const img = await lib.upload(file, file.name, "rank_image");
+        if (!img || typeof img !== "string") {
+          throw new Error("No se recibió la URL de la imagen tras subirla al servidor");
+        }
 
-        await api.rankImages.POST({
+        const { data } = await api.rankImages.POST({
           id: "rank_images",
           img,
           position,
         });
+
+        if (data && data.error) {
+          throw new Error(data.msg || "El servidor rechazó guardar la imagen");
+        }
 
         const banner = this.rankImageBanners.find((b) => b.position === position);
         const bannerTitle = banner ? banner.title : "Imagen de rango";
         this.showSuccessMessage(`${bannerTitle} guardada exitosamente`);
         this.rankImageSelectedFiles[position] = null;
 
-        await this.fetchBanners();
+        await this.fetchRankImages();
       } catch (error) {
         console.error(`Error saving rank image ${position}:`, error);
-        this.showErrorMessage("Error al guardar la imagen del rango");
+        this.showErrorMessage(this.rankImageErrorMessage(error));
       } finally {
         this.rankImageSendingStates[position] = false;
       }

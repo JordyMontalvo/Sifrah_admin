@@ -18,6 +18,15 @@
           <i class="fas fa-image"></i>
           <p>Sin imagen</p>
         </div>
+        <button
+          v-if="removableImage && banner.img && !loading"
+          type="button"
+          class="remove-image-btn"
+          title="Quitar imagen"
+          @click="handleRemoveImage"
+        >
+          <i class="fas fa-times"></i>
+        </button>
       </div>
 
       <!-- File Upload -->
@@ -95,6 +104,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    removableImage: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   data() {
@@ -137,14 +150,14 @@ export default {
       }
 
       this.selectedFile = file;
-      this.createImagePreview(file);
 
-      // Emit to parent
+      // Guardar el archivo de inmediato; el preview llega cuando FileReader termina
       this.$emit("file-selected", {
         position: this.position,
-        file: file,
-        preview: this.imagePreview,
+        file,
+        preview: null,
       });
+      this.createImagePreview(file);
     },
 
     validateFile(file) {
@@ -169,6 +182,11 @@ export default {
       const reader = new FileReader();
       reader.onload = (e) => {
         this.imagePreview = e.target.result;
+        this.$emit("file-selected", {
+          position: this.position,
+          file: this.selectedFile,
+          preview: this.imagePreview,
+        });
       };
       reader.readAsDataURL(file);
     },
@@ -177,6 +195,12 @@ export default {
       this.selectedFile = null;
       this.imagePreview = null;
       this.$emit("file-removed", this.position);
+    },
+
+    handleRemoveImage() {
+      this.selectedFile = null;
+      this.imagePreview = null;
+      this.$emit("remove-image", this.position);
     },
 
     handleSave() {
@@ -236,6 +260,7 @@ export default {
 }
 
 .image-container {
+  position: relative;
   margin-bottom: 1.5rem;
   border-radius: 8px;
   overflow: hidden;
@@ -245,6 +270,30 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(220, 53, 69, 0.95);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.remove-image-btn:hover {
+  background: #c82333;
+  transform: scale(1.05);
 }
 
 .banner-image {
