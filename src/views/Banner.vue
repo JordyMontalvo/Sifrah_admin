@@ -334,7 +334,7 @@ export default {
         img: this.rankImagesData[slot.key] || "",
         title: `Rango ${slot.label}`,
         description: `Icono para la card Rango Histórico (${slot.label})`,
-        dimensions: "120 x 120 px",
+        dimensions: "150 x 150 px",
         position: slot.key,
       }));
     },

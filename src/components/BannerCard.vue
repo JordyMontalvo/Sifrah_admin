@@ -7,13 +7,19 @@
 
     <div class="card-content">
       <!-- Image Preview -->
-      <div class="image-container">
+      <div class="image-container" :class="{ 'image-container--rank': removableImage }">
         <img
           v-if="banner.img"
           :src="banner.img"
           :alt="banner.title"
           class="banner-image"
         />
+        <div v-else-if="removableImage" class="rank-gauge-default">
+          <div class="rank-icon-slot">
+            <RankGaugeIcon />
+          </div>
+          <p class="rank-gauge-hint">Velocímetro por defecto</p>
+        </div>
         <div v-else class="no-image">
           <i class="fas fa-image"></i>
           <p>Sin imagen</p>
@@ -84,8 +90,14 @@
 </template>
 
 <script>
+import RankGaugeIcon from "@/components/RankGaugeIcon.vue";
+
 export default {
   name: "BannerCard",
+
+  components: {
+    RankGaugeIcon,
+  },
 
   props: {
     banner: {
@@ -272,6 +284,14 @@ export default {
   justify-content: center;
 }
 
+.image-container--rank .banner-image {
+  width: 150px;
+  height: 150px;
+  max-width: 150px;
+  max-height: 150px;
+  object-fit: contain;
+}
+
 .remove-image-btn {
   position: absolute;
   top: 8px;
@@ -313,6 +333,40 @@ export default {
   font-size: 3rem;
   margin-bottom: 1rem;
   opacity: 0.5;
+}
+
+.rank-gauge-default {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0;
+  gap: 0.35rem;
+}
+
+.rank-icon-slot {
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rank-icon-slot ::v-deep .rank-gauge-icon {
+  width: 150px;
+  height: 150px;
+  max-width: 150px;
+  max-height: 150px;
+}
+
+.rank-gauge-hint {
+  margin: 0;
+  font-size: 0.65rem;
+  color: #6c757d;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .upload-section {
