@@ -253,6 +253,15 @@ class AffiliationBanners {
         return axios.post(`/admin/affiliation-banners`, { id, img, position });
     }
 }
+
+class RankImages {
+    GET() {
+        return axios.get(`/admin/rank-images`);
+    }
+    POST({ id, img, position }) {
+        return axios.post(`/admin/rank-images`, { id, img, position });
+    }
+}
 class Promo {
     POST({ type, action, data }) {
         // console.log({ type, action, data })
@@ -611,6 +620,7 @@ export default new API({
     promos: new Promos(),
     activationBanners: new ActivationBanners(),
     affiliationBanners: new AffiliationBanners(),
+    rankImages: new RankImages(),
     promo: new Promo(),
     pay: new Pay(),
     wallet: new Wallet(),

@@ -62,6 +62,14 @@
               <i class="fas fa-id-badge"></i>
               <span>Banners Afiliación</span>
             </button>
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'ranks' }"
+              @click="activeTab = 'ranks'"
+            >
+              <i class="fas fa-tachometer-alt"></i>
+              <span>Imágenes de rangos</span>
+            </button>
           </div>
         </div>
 
@@ -104,6 +112,20 @@
             :loading="affiliationSendingStates[banner.position]"
             @file-selected="onAffiliationFileSelected"
             @save="saveAffiliationBanner"
+            @error="showErrorMessage"
+          />
+        </div>
+
+        <!-- Rank Images -->
+        <div v-if="activeTab === 'ranks'" class="banner-grid">
+          <BannerCard
+            v-for="(banner, index) in rankImageBanners"
+            :key="'rank-' + index"
+            :banner="banner"
+            :position="banner.position"
+            :loading="rankImageSendingStates[banner.position]"
+            @file-selected="onRankImageFileSelected"
+            @save="saveRankImage"
             @error="showErrorMessage"
           />
         </div>
@@ -173,6 +195,60 @@ export default {
       affiliationSendingStates: {
         hero: false,
         kit: false,
+      },
+
+      rankImageSlots: [
+        { key: "activo", label: "Activo" },
+        { key: "bronce", label: "Bronce" },
+        { key: "plata", label: "Plata" },
+        { key: "oro", label: "Oro" },
+        { key: "ruby", label: "Ruby" },
+        { key: "esmeralda", label: "Esmeralda" },
+        { key: "diamante", label: "Diamante" },
+        { key: "doble_diamante", label: "Doble diamante" },
+        { key: "triple_diamante", label: "Triple diamante" },
+        { key: "diamante_imperial", label: "Diamante imperial" },
+        { key: "embajador_sifrah", label: "Embajador Sifrah" },
+      ],
+      rankImagesData: {
+        id: "rank_images",
+        activo: "",
+        bronce: "",
+        plata: "",
+        oro: "",
+        ruby: "",
+        esmeralda: "",
+        diamante: "",
+        doble_diamante: "",
+        triple_diamante: "",
+        diamante_imperial: "",
+        embajador_sifrah: "",
+      },
+      rankImageSelectedFiles: {
+        activo: null,
+        bronce: null,
+        plata: null,
+        oro: null,
+        ruby: null,
+        esmeralda: null,
+        diamante: null,
+        doble_diamante: null,
+        triple_diamante: null,
+        diamante_imperial: null,
+        embajador_sifrah: null,
+      },
+      rankImageSendingStates: {
+        activo: false,
+        bronce: false,
+        plata: false,
+        oro: false,
+        ruby: false,
+        esmeralda: false,
+        diamante: false,
+        doble_diamante: false,
+        triple_diamante: false,
+        diamante_imperial: false,
+        embajador_sifrah: false,
       },
     };
   },
@@ -249,6 +325,17 @@ export default {
       ];
     },
 
+    rankImageBanners() {
+      return this.rankImageSlots.map((slot) => ({
+        id: "rank_images",
+        img: this.rankImagesData[slot.key] || "",
+        title: `Rango ${slot.label}`,
+        description: `Icono para la card Rango Histórico (${slot.label})`,
+        dimensions: "120 x 120 px",
+        position: slot.key,
+      }));
+    },
+
     affiliationBanners() {
       if (!this.affiliationBannersData) return [];
 
@@ -289,6 +376,20 @@ export default {
       }
     },
 
+    async fetchRankImages() {
+      try {
+        const { data } = await api.rankImages.GET();
+        if (data && data.rankImages) {
+          this.rankImagesData = { ...this.rankImagesData, ...data.rankImages };
+        }
+      } catch (error) {
+        console.error("Error fetching rank images:", error);
+        this.showErrorMessage(
+          "No se pudieron cargar las imágenes de rangos. Verifica que el servidor esté actualizado."
+        );
+      }
+    },
+
     async fetchBanners() {
       try {
         this.loading = true;
@@ -304,6 +405,8 @@ export default {
       } finally {
         this.loading = false;
       }
+
+      await this.fetchRankImages();
     },
 
     onFileSelected({ position, file, preview }) {
@@ -425,6 +528,46 @@ export default {
 
       if (this.affiliationBannersData) {
         this.affiliationBannersData[position] = preview;
+      }
+    },
+
+    onRankImageFileSelected({ position, file, preview }) {
+      this.rankImageSelectedFiles[position] = file;
+      if (this.rankImagesData) {
+        this.rankImagesData[position] = preview;
+      }
+    },
+
+    async saveRankImage(position) {
+      const file = this.rankImageSelectedFiles[position];
+
+      if (!file) {
+        this.showErrorMessage("Por favor selecciona una imagen antes de guardar");
+        return;
+      }
+
+      try {
+        this.rankImageSendingStates[position] = true;
+
+        const img = await lib.upload(file, file.name, "rank_image");
+
+        await api.rankImages.POST({
+          id: "rank_images",
+          img,
+          position,
+        });
+
+        const banner = this.rankImageBanners.find((b) => b.position === position);
+        const bannerTitle = banner ? banner.title : "Imagen de rango";
+        this.showSuccessMessage(`${bannerTitle} guardada exitosamente`);
+        this.rankImageSelectedFiles[position] = null;
+
+        await this.fetchBanners();
+      } catch (error) {
+        console.error(`Error saving rank image ${position}:`, error);
+        this.showErrorMessage("Error al guardar la imagen del rango");
+      } finally {
+        this.rankImageSendingStates[position] = false;
       }
     },
 
