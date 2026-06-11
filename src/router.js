@@ -44,6 +44,7 @@ import ChangePassword from "./views/ChangePassword.vue";
 import Sessions from "./views/Sessions.vue";
 import BonusReports from "./views/BonusReports.vue";
 import Reactivations from "./views/Reactivations.vue";
+import SavingsRedemptions from "./views/SavingsRedemptions.vue";
 import BlockedEliminated from "./views/BlockedEliminated.vue";
 
 // import Reports      from './views/Reports.vue'
@@ -127,6 +128,11 @@ const routes = [
     path: "/activations/:filter",
     component: Activations,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/savings-redemptions/:filter?",
+    component: SavingsRedemptions,
+    meta: { requiresAuth: true, title: "Canjes Bono Ahorro" },
   },
   // {
   //   path: '/promotions/:filter',

@@ -70,6 +70,13 @@
                 <span>Productos</span>
               </a>
 
+              <a class="navbar-item" href="/savings-redemptions">
+                <span class="icon">
+                  <i class="fas fa-piggy-bank"></i>
+                </span>
+                <span>Canjes Bono Ahorro</span>
+              </a>
+
               <!-- Transactions -->
               <a class="navbar-item" href="/trans">
                 <span class="icon">

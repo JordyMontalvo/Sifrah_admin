@@ -94,6 +94,7 @@ class API {
         adminAuth,
         agenda,
         reactivations,
+        savingsRedemptions,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -135,6 +136,7 @@ class API {
         this.adminAuth = adminAuth;
         this.agenda = agenda;
         this.reactivations = reactivations;
+        this.savingsRedemptions = savingsRedemptions;
     }
 }
 
@@ -610,6 +612,18 @@ class Reactivations {
     }
 }
 
+class SavingsRedemptions {
+    GET({ filter = "all", page = 1, limit = 20, search = "" } = {}) {
+        const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
+        return axios.get(
+            `/admin/savings-redemptions?filter=${filter}&page=${page}&limit=${limit}${searchParam}`
+        );
+    }
+    POST({ action, id }) {
+        return axios.post(`/admin/savings-redemptions`, { action, id });
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -651,4 +665,5 @@ export default new API({
     adminAuth: new AdminAuth(),
     agenda: new Agenda(),
     reactivations: new Reactivations(),
+    savingsRedemptions: new SavingsRedemptions(),
 });
