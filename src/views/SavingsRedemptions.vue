@@ -96,6 +96,62 @@
               <small>DNI: {{ row.dni || "—" }}</small>
             </div>
           </template>
+          <template #cell-product="{ row }">
+            <span>{{ row.product || row.productsSummary || "—" }}</span>
+          </template>
+          <template #cell-pay_method="{ row }">
+            {{ formatPayMethod(row.raw || row) }}
+          </template>
+          <template #cell-voucher="{ row }">
+            <div
+              v-if="hasVoucher(row)"
+              style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap"
+            >
+              <span v-if="row.voucher && row.voucher.isImage">
+                <img
+                  :src="row.voucher.url"
+                  alt="Voucher"
+                  class="voucher-thumb"
+                  @click="openImageModal(row.voucher.url)"
+                />
+              </span>
+              <span v-else-if="row.voucher && row.voucher.url">{{
+                row.voucher.url
+              }}</span>
+              <span v-if="row.voucher2 && row.voucher2.isImage">
+                <img
+                  :src="row.voucher2.url"
+                  alt="Voucher 2"
+                  class="voucher-thumb"
+                  @click="openImageModal(row.voucher2.url)"
+                />
+              </span>
+              <span v-else-if="row.voucher2 && row.voucher2.url">{{
+                row.voucher2.url
+              }}</span>
+            </div>
+            <span v-else class="tag is-light">No aplica</span>
+          </template>
+          <template #cell-payment_split="{ row }">
+            <div
+              style="display: flex; flex-direction: column; gap: 4px; line-height: 1.15"
+            >
+              <span
+                class="tag is-light is-success"
+                style="align-self: flex-start"
+              >
+                {{ paymentSplitDisplay(row.raw || row).modeLabel }}
+              </span>
+              <small style="color: #374151; font-weight: 700">
+                Bono Ahorro: S/
+                {{ paymentSplitDisplay(row.raw || row).paid_savings.toFixed(2) }}
+              </small>
+              <small style="color: #6b7280">
+                Faltante: S/
+                {{ paymentSplitDisplay(row.raw || row).due.toFixed(2) }}
+              </small>
+            </div>
+          </template>
           <template #cell-status="{ row }">
             <span class="tag" :class="statusTagClass(row.status)">
               {{ statusLabel(row.status) }}
@@ -128,7 +184,27 @@
               <p><strong>Estado:</strong> {{ statusLabel(selected.status) }}</p>
               <p><strong>Oficina:</strong> {{ selected.officeName || selected.office }}</p>
               <p><strong>Total canjeado:</strong> S/ {{ Number(selected.price || 0).toFixed(2) }}</p>
-              <p><strong>Medio de pago:</strong> Bono Ahorro</p>
+              <p><strong>Medio de pago:</strong> {{ formatPayMethod(selected) }}</p>
+              <p>
+                <strong>Monto faltante:</strong> S/
+                {{ paymentSplitDisplay(selected).due.toFixed(2) }}
+              </p>
+              <p>
+                <strong>Pagado con Bono Ahorro:</strong> S/
+                {{ paymentSplitDisplay(selected).paid_savings.toFixed(2) }}
+              </p>
+              <p v-if="hasVoucher(selected)">
+                <strong>Voucher:</strong>
+                <a
+                  v-if="selected.voucher && selected.voucher.url"
+                  :href="selected.voucher.url"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Ver comprobante
+                </a>
+                <span v-else>—</span>
+              </p>
             </div>
             <hr />
             <h4 class="title is-6">Productos</h4>
@@ -160,6 +236,18 @@
           </footer>
         </div>
       </div>
+
+      <div v-if="imageModalUrl" class="modal is-active">
+        <div class="modal-background" @click="imageModalUrl = null"></div>
+        <div class="modal-content" style="max-width: 90vw">
+          <img :src="imageModalUrl" alt="Voucher" style="width: 100%; border-radius: 8px" />
+        </div>
+        <button
+          class="modal-close is-large"
+          aria-label="close"
+          @click="imageModalUrl = null"
+        ></button>
+      </div>
     </section>
   </Layout>
 </template>
@@ -185,18 +273,21 @@ export default {
       searchQuery: "",
       showViewModal: false,
       selected: null,
+      imageModalUrl: null,
       tableColumns: [
-        { key: "id", label: "#", sortable: false },
         { key: "date", label: "Fecha", sortable: false },
         { key: "user", label: "Usuario", sortable: false },
-        { key: "productsSummary", label: "Productos", sortable: false },
         { key: "officeName", label: "Oficina", sortable: false },
+        { key: "product", label: "Producto", sortable: false },
         {
           key: "price",
-          label: "Monto",
+          label: "Total",
           sortable: false,
           type: "currency",
         },
+        { key: "pay_method", label: "Medio de Pago", sortable: false },
+        { key: "voucher", label: "Voucher", sortable: false },
+        { key: "payment_split", label: "Monto Faltante", sortable: false },
         { key: "status", label: "Estado", sortable: false },
       ],
       initialTableFilters: { status: "" },
@@ -274,6 +365,47 @@ export default {
       if (!val) return "—";
       return new Date(val).toLocaleString("es-PE");
     },
+    formatPayMethod(row) {
+      if (!row) return "—";
+      if (row.payMethodLabel) return row.payMethodLabel;
+      if (row.pay_method === "savings_bonus") return "Bono Ahorro";
+      return row.pay_method || "Bono Ahorro";
+    },
+    paymentSplitDisplay(row) {
+      if (row && row.paymentSplit) {
+        return {
+          paid_savings: Number(row.paymentSplit.paid_savings || 0),
+          due: Number(row.paymentSplit.due || 0),
+          modeLabel: row.paymentSplit.modeLabel || "Bono Ahorro",
+        };
+      }
+      const price = Number((row && row.price) || 0);
+      if (
+        row &&
+        (row.pay_method === "savings_bonus" ||
+          row.order_type === "savings_bonus")
+      ) {
+        return {
+          paid_savings: price,
+          due: 0,
+          modeLabel: "Bono Ahorro",
+        };
+      }
+      return {
+        paid_savings: price,
+        due: 0,
+        modeLabel: "Bono Ahorro",
+      };
+    },
+    hasVoucher(row) {
+      if (!row) return false;
+      const v1 = row.voucher && row.voucher.url;
+      const v2 = row.voucher2 && row.voucher2.url;
+      return !!(v1 || v2);
+    },
+    openImageModal(url) {
+      if (url) this.imageModalUrl = url;
+    },
     statusLabel(status) {
       const map = {
         pending: "Pendiente",
@@ -318,6 +450,7 @@ export default {
 
         this.tableData = (data.redemptions || []).map((r) => ({
           ...r,
+          product: r.product || r.productsSummary || "—",
           raw: r,
         }));
         this.stats = data.stats || this.stats;
@@ -476,6 +609,14 @@ export default {
 }
 .detail-grid p {
   margin: 0;
+}
+.voucher-thumb {
+  max-width: 60px;
+  max-height: 60px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 @media (max-width: 640px) {
   .detail-grid {
