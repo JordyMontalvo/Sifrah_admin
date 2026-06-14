@@ -58,6 +58,12 @@
                 <span>Tienda Bono Ahorro</span>
               </a>
             </li>
+            <li :class="{ 'is-active': activeTab === 'promotions' }">
+              <a @click="activeTab = 'promotions'">
+                <span class="icon is-small" style="margin-right: 8px;"><i class="fas fa-tags"></i></span>
+                <span>Promociones</span>
+              </a>
+            </li>
           </ul>
         </div>
       </div>
@@ -104,9 +110,9 @@
       <div class="container">
         <ModernTable
           :data="filteredTableData"
-          :columns="activeTab === 'sifrah' ? sifrahColumns : savingsColumns"
-          :title="activeTab === 'sifrah' ? 'Catálogo SIFRAH' : 'Catálogo Bono Ahorro'"
-          :subtitle="activeTab === 'sifrah' ? 'Gestiona productos, puntos y asignación a planes' : 'Edita el precio de canje sin modificar el catálogo SIFRAH'"
+          :columns="activeTableColumns"
+          :title="activeTableTitle"
+          :subtitle="activeTableSubtitle"
           :actions="tableActions"
           :item-actions="itemActions"
           :show-filters="true"
@@ -157,7 +163,18 @@
             <span v-else class="currency-value">{{ row.price }}</span>
           </template>
           <template #cell-is_savings_bonus="{ row }">
-            <div class="savings-toggle-field" @click.stop>
+            <div v-if="activeTab === 'promotions'" class="savings-toggle-field" @click.stop>
+              <input
+                type="checkbox"
+                class="switch is-rounded is-success"
+                :id="`promo-savings-${row.raw.id}`"
+                :checked="!!row.raw.is_savings_bonus"
+                :disabled="!!promotionToggleLoading[row.raw.id]"
+                @change="togglePromotionSavings(row.raw, $event)"
+              />
+              <label :for="`promo-savings-${row.raw.id}`"></label>
+            </div>
+            <div v-else class="savings-toggle-field" @click.stop>
               <input
                 type="checkbox"
                 class="switch is-rounded is-success"
@@ -168,6 +185,22 @@
               />
               <label :for="`savings-switch-${row.raw.id}`"></label>
             </div>
+          </template>
+          <template #cell-promotion_active="{ row }">
+            <div class="savings-toggle-field" @click.stop>
+              <input
+                type="checkbox"
+                class="switch is-rounded is-success"
+                :id="`promo-active-${row.raw.id}`"
+                :checked="row.raw.promotion_active !== false"
+                :disabled="!!promotionToggleLoading[row.raw.id]"
+                @change="togglePromotionActive(row.raw, $event)"
+              />
+              <label :for="`promo-active-${row.raw.id}`"></label>
+            </div>
+          </template>
+          <template #cell-available_quantity="{ row }">
+            <span>{{ row.available_quantity || "—" }}</span>
           </template>
           <template #cell-img="{ value }">
             <span v-if="value">
@@ -280,6 +313,180 @@
               <span>Guardar Producto de Canje</span>
             </button>
             <button class="button" @click="showAddSavingsModal = false">Cancelar</button>
+          </footer>
+        </div>
+      </div>
+
+      <!-- Add Promotion Modal -->
+      <div class="modal" :class="{ 'is-active': showAddPromotionModal }">
+        <div class="modal-background" @click="showAddPromotionModal = false"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Nueva Promoción</p>
+            <button class="delete" @click="showAddPromotionModal = false"></button>
+          </header>
+          <section class="modal-card-body">
+            <div class="notification is-info is-light" style="margin-bottom: 16px;">
+              Visible solo para usuarios <strong>activos</strong>. No genera puntos ni participa en el plan de compensación.
+            </div>
+
+            <div class="field">
+              <label class="label">Nombre de la promoción <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" v-model="newPromotion.name" placeholder="Ej: Pack Verano" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Descripción</label>
+              <div class="control">
+                <textarea class="textarea" v-model="newPromotion.description" placeholder="Descripción principal"></textarea>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Sub-descripción</label>
+              <div class="control">
+                <textarea class="textarea" v-model="newPromotion.subdescription" placeholder="Detalle adicional"></textarea>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label class="label">Precio (S/) <span class="has-text-danger">*</span></label>
+                <div class="control">
+                  <input class="input" type="number" min="0" step="0.01" v-model.number="newPromotion.price" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Cantidad disponible <span class="has-text-danger">*</span></label>
+                <div class="control">
+                  <input class="input" type="number" min="1" step="1" v-model.number="newPromotion.available_quantity" placeholder="Máximo a vender" />
+                </div>
+                <p class="help">Unidades máximas que los usuarios pueden comprar en total.</p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Imagen principal</label>
+              <div class="control">
+                <div class="file has-name is-fullwidth">
+                  <label class="file-label">
+                    <input class="file-input" type="file" accept="image/*" @change="handlePromotionImageUpload($event, 'new')" :disabled="promotionImageUploading" />
+                    <span class="file-cta">
+                      <span class="file-icon"><i class="fas fa-upload"></i></span>
+                      <span class="file-label">{{ promotionImageUploading ? "Subiendo..." : "Subir imagen" }}</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div class="control" style="margin-top: 8px;">
+                <input class="input" v-model="newPromotion.img" placeholder="https://..." />
+              </div>
+            </div>
+
+            <div v-if="newPromotion.img" class="field has-text-centered">
+              <img :src="newPromotion.img" style="max-height: 150px; border-radius: 8px;" />
+            </div>
+
+            <div class="field" style="margin-top: 16px; padding-top: 16px; border-top: 2px dashed #eee;">
+              <label class="checkbox">
+                <input type="checkbox" v-model="newPromotion.is_savings_bonus" />
+                Habilitar también en Tienda Bono Ahorro
+              </label>
+            </div>
+
+            <div v-if="newPromotion.is_savings_bonus" class="field">
+              <label class="label">Precio en Bono Ahorro (S/)</label>
+              <div class="control">
+                <input class="input" type="number" min="0" step="0.01" v-model.number="newPromotion.savings_price" :placeholder="String(newPromotion.price || 0)" />
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-success" @click="savePromotion" :class="{ 'is-loading': loading || promotionImageUploading }">
+              <span class="icon"><i class="fas fa-save"></i></span>
+              <span>Guardar Promoción</span>
+            </button>
+            <button class="button" @click="showAddPromotionModal = false">Cancelar</button>
+          </footer>
+        </div>
+      </div>
+
+      <!-- Edit Promotion Modal -->
+      <div class="modal" :class="{ 'is-active': showEditPromotionModal }">
+        <div class="modal-background" @click="closeEditPromotionModal"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Editar Promoción</p>
+            <button class="delete" @click="closeEditPromotionModal"></button>
+          </header>
+          <section class="modal-card-body">
+            <div class="field">
+              <label class="label">Nombre</label>
+              <div class="control">
+                <input class="input" v-model="editingPromotion.name" />
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">Descripción</label>
+              <div class="control">
+                <textarea class="textarea" v-model="editingPromotion.description"></textarea>
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">Sub-descripción</label>
+              <div class="control">
+                <textarea class="textarea" v-model="editingPromotion.subdescription"></textarea>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label class="label">Precio tienda (S/)</label>
+                <div class="control">
+                  <input class="input" type="number" min="0" step="0.01" v-model.number="editingPromotion.price" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Cantidad disponible</label>
+                <div class="control">
+                  <input class="input" type="number" min="1" step="1" v-model.number="editingPromotion.available_quantity" />
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">Imagen principal</label>
+              <div class="control">
+                <div class="file has-name is-fullwidth">
+                  <label class="file-label">
+                    <input class="file-input" type="file" accept="image/*" @change="handlePromotionImageUpload($event, 'edit')" :disabled="promotionImageUploading" />
+                    <span class="file-cta">
+                      <span class="file-icon"><i class="fas fa-upload"></i></span>
+                      <span class="file-label">{{ promotionImageUploading ? "Subiendo..." : "Subir imagen" }}</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div class="control" style="margin-top: 8px;">
+                <input class="input" v-model="editingPromotion.img" placeholder="https://..." />
+              </div>
+            </div>
+            <div class="field">
+              <label class="checkbox">
+                <input type="checkbox" v-model="editingPromotion.is_savings_bonus" />
+                Habilitar en Tienda Bono Ahorro
+              </label>
+            </div>
+            <div v-if="editingPromotion.is_savings_bonus" class="field">
+              <label class="label">Precio Bono Ahorro (S/)</label>
+              <div class="control">
+                <input class="input" type="number" min="0" step="0.01" v-model.number="editingPromotion.savings_price" />
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-success" @click="saveEditPromotion">Guardar cambios</button>
+            <button class="button" @click="closeEditPromotionModal">Cancelar</button>
           </footer>
         </div>
       </div>
@@ -1088,6 +1295,32 @@ export default {
         savings_img: "",
       },
       showAddSavingsModal: false,
+      showAddPromotionModal: false,
+      showEditPromotionModal: false,
+      promotionImageUploading: false,
+      promotionToggleLoading: {},
+      newPromotion: {
+        name: "",
+        description: "",
+        subdescription: "",
+        price: 0,
+        available_quantity: 1,
+        img: "",
+        is_savings_bonus: false,
+        savings_price: 0,
+      },
+      editingPromotion: {
+        id: "",
+        name: "",
+        description: "",
+        subdescription: "",
+        price: 0,
+        available_quantity: 1,
+        img: "",
+        is_savings_bonus: false,
+        savings_price: 0,
+        promotion_active: true,
+      },
       activeTab: "sifrah",
       searchQuery: "",
       activeFilters: null,
@@ -1136,19 +1369,56 @@ export default {
         savings_price: product.savings_price || 0,
         savings_description: product.savings_description || "",
         savings_img: product.savings_img || "",
+        is_promotion: !!product.is_promotion,
+        promotion_active: product.promotion_active !== false,
+        available_quantity: Number(product.available_quantity) || 0,
         catalog_type: product.catalog_type || (product.points ? 'both' : 'savings'),
         raw: product,
       }));
     },
     filteredTableData() {
       let rows = this.tableData;
-      if (this.activeTab === 'savings') {
+      if (this.activeTab === 'sifrah') {
+        rows = rows.filter((p) => !p.is_promotion);
+      } else if (this.activeTab === 'savings') {
         rows = rows.filter(p => p.is_savings_bonus);
+      } else if (this.activeTab === 'promotions') {
+        rows = rows.filter((p) => p.is_promotion);
       }
       return rows.map((row, index) => ({ ...row, rowNum: index + 1 }));
     },
+    activeTableColumns() {
+      if (this.activeTab === 'promotions') return this.promotionsColumns;
+      if (this.activeTab === 'savings') return this.savingsColumns;
+      return this.sifrahColumns;
+    },
+    activeTableTitle() {
+      if (this.activeTab === 'promotions') return 'Promociones';
+      if (this.activeTab === 'savings') return 'Catálogo Bono Ahorro';
+      return 'Catálogo SIFRAH';
+    },
+    activeTableSubtitle() {
+      if (this.activeTab === 'promotions') {
+        return 'Promociones comerciales visibles solo para usuarios activos (sin puntos ni compensación)';
+      }
+      if (this.activeTab === 'savings') {
+        return 'Edita el precio de canje sin modificar el catálogo SIFRAH';
+      }
+      return 'Gestiona productos, puntos y asignación a planes';
+    },
     sifrahColumns() {
       return this.tableColumns;
+    },
+    promotionsColumns() {
+      return [
+        { key: "rowNum", label: "#", sortable: true, type: "number" },
+        { key: "img", label: "Imagen", sortable: false },
+        { key: "name", label: "Promoción", sortable: true },
+        { key: "price", label: "Precio", sortable: true, type: "currency" },
+        { key: "available_quantity", label: "Stock máx.", sortable: true, type: "number" },
+        { key: "promotion_active", label: "En tienda", sortable: true, type: "boolean" },
+        { key: "is_savings_bonus", label: "Bono Ahorro", sortable: true, type: "boolean" },
+      ];
     },
     savingsColumns() {
       return [
@@ -1186,6 +1456,9 @@ export default {
           ...p,
           is_savings_bonus: !!p.is_savings_bonus,
           savings_price: Number(p.savings_price) || 0,
+          is_promotion: !!p.is_promotion || p.type === "Promoción" || p.catalog_type === "promotion",
+          promotion_active: p.promotion_active !== false,
+          available_quantity: Number(p.available_quantity) || 0,
         }));
 
         this.allProducts = normalized;
@@ -1212,7 +1485,9 @@ export default {
           this.load();
           break;
         case "add":
-          if (this.activeTab === 'savings') {
+          if (this.activeTab === "promotions") {
+            this.showAddPromotionModal = true;
+          } else if (this.activeTab === 'savings') {
             this.showAddSavingsModal = true;
           } else {
             this.showAddModal = true;
@@ -1284,6 +1559,203 @@ export default {
       } finally {
         this.savingsImageUploading = false;
         event.target.value = "";
+      }
+    },
+
+    generatePromotionCode() {
+      const numericCodes = this.allProducts
+        .map((p) => parseInt(String(p.code || "").replace(/\D/g, ""), 10))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+      const next = numericCodes.length ? Math.max(...numericCodes) + 1 : 7001;
+      return `PROM-${next}`;
+    },
+
+    async handlePromotionImageUpload(event, target) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        Swal.fire("Error", "Selecciona un archivo de imagen válido", "error");
+        event.target.value = "";
+        return;
+      }
+      this.promotionImageUploading = true;
+      try {
+        const url = await lib.upload(file, file.name, "products");
+        if (target === "edit") {
+          this.editingPromotion.img = url;
+        } else {
+          this.newPromotion.img = url;
+        }
+        Swal.fire({ icon: "success", title: "Imagen subida", timer: 1500, showConfirmButton: false });
+      } catch (error) {
+        Swal.fire("Error", error.message || "No se pudo subir la imagen", "error");
+      } finally {
+        this.promotionImageUploading = false;
+        event.target.value = "";
+      }
+    },
+
+    async savePromotion() {
+      const { name, price, available_quantity, img } = this.newPromotion;
+      if (!name || !price || !available_quantity || available_quantity < 1) {
+        return Swal.fire("Error", "Completa nombre, precio y cantidad disponible", "error");
+      }
+
+      this.loading = true;
+      try {
+        const savingsPrice = this.newPromotion.is_savings_bonus
+          ? Number(this.newPromotion.savings_price) || Number(price)
+          : 0;
+
+        await api.products.POST({
+          action: "add",
+          data: {
+            code: this.generatePromotionCode(),
+            name: this.newPromotion.name,
+            type: "Promoción",
+            description: this.newPromotion.description || "",
+            subdescription: this.newPromotion.subdescription || "",
+            price: Number(price),
+            points: 0,
+            weight: 0,
+            img: img || "",
+            plans: {},
+            prices: {},
+            is_promotion: true,
+            promotion_active: true,
+            available_quantity: Number(available_quantity),
+            catalog_type: "promotion",
+            is_savings_bonus: !!this.newPromotion.is_savings_bonus,
+            savings_price: savingsPrice,
+            savings_img: img || "",
+          },
+        });
+
+        Swal.fire({ icon: "success", title: "Promoción creada", timer: 1800, showConfirmButton: false });
+        this.showAddPromotionModal = false;
+        this.newPromotion = {
+          name: "",
+          description: "",
+          subdescription: "",
+          price: 0,
+          available_quantity: 1,
+          img: "",
+          is_savings_bonus: false,
+          savings_price: 0,
+        };
+        await this.load();
+      } catch (error) {
+        const msg = (error.response && error.response.data && error.response.data.error) || error.message || "No se pudo guardar";
+        Swal.fire("Error", msg, "error");
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    editPromotionProduct(product) {
+      const prod = this.allProducts.find((p) => p.id === product.id) || product;
+      this.editingPromotion = {
+        id: prod.id,
+        code: prod.code || "",
+        name: prod.name || "",
+        description: prod.description || "",
+        subdescription: prod.subdescription || "",
+        price: prod.price || 0,
+        available_quantity: Number(prod.available_quantity) || 1,
+        img: prod.img || "",
+        is_savings_bonus: !!prod.is_savings_bonus,
+        savings_price: Number(prod.savings_price) || Number(prod.price) || 0,
+        promotion_active: prod.promotion_active !== false,
+      };
+      this.showEditPromotionModal = true;
+    },
+
+    closeEditPromotionModal() {
+      this.showEditPromotionModal = false;
+    },
+
+    async saveEditPromotion() {
+      const p = this.editingPromotion;
+      if (!p.name || !p.price || !p.available_quantity) {
+        return Swal.fire("Error", "Completa los campos obligatorios", "error");
+      }
+
+      this.loading = true;
+      try {
+        await api.products.POST({
+          action: "edit",
+          id: p.id,
+          data: {
+            _code: p.code || this.generatePromotionCode(),
+            _name: p.name,
+            _type: "Promoción",
+            _price: Number(p.price),
+            _points: 0,
+            _weight: 0,
+            _img: p.img || "",
+            _description: p.description || "",
+            _subdescription: p.subdescription || "",
+            _plans: {},
+            _prices: {},
+            is_promotion: true,
+            promotion_active: p.promotion_active !== false,
+            available_quantity: Number(p.available_quantity),
+            catalog_type: "promotion",
+            is_savings_bonus: !!p.is_savings_bonus,
+            savings_price: p.is_savings_bonus ? Number(p.savings_price) || Number(p.price) : 0,
+            savings_description: "",
+            savings_img: p.img || "",
+          },
+        });
+        Swal.fire({ icon: "success", title: "Promoción actualizada", timer: 1800, showConfirmButton: false });
+        this.closeEditPromotionModal();
+        await this.load();
+      } catch (error) {
+        Swal.fire("Error", "No se pudo actualizar la promoción", "error");
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async togglePromotionActive(product, event) {
+      const enabled = event.target.checked;
+      this.$set(product, "promotion_active", enabled);
+      this.$set(this.promotionToggleLoading, product.id, true);
+      try {
+        await api.products.POST({
+          action: "toggle_promotion_active",
+          id: product.id,
+          enabled,
+        });
+      } catch (error) {
+        this.$set(product, "promotion_active", !enabled);
+        event.target.checked = !enabled;
+        Swal.fire("Error", "No se pudo actualizar el estado", "error");
+      } finally {
+        this.$set(this.promotionToggleLoading, product.id, false);
+      }
+    },
+
+    async togglePromotionSavings(product, event) {
+      const enabled = event.target.checked;
+      if (enabled && (!product.savings_price || product.savings_price <= 0)) {
+        product.savings_price = product.price || 0;
+      }
+      this.$set(product, "is_savings_bonus", enabled);
+      this.$set(this.promotionToggleLoading, product.id, true);
+      try {
+        await api.products.POST({
+          action: "toggle_promotion_savings",
+          id: product.id,
+          enabled,
+          savings_price: product.savings_price,
+        });
+      } catch (error) {
+        this.$set(product, "is_savings_bonus", !enabled);
+        event.target.checked = !enabled;
+        Swal.fire("Error", "No se pudo actualizar Bono Ahorro", "error");
+      } finally {
+        this.$set(this.promotionToggleLoading, product.id, false);
       }
     },
 
@@ -1515,7 +1987,9 @@ export default {
       console.log("handleItemAction", action, item);
       const product = item.raw ? item.raw : item;
       if (action === "edit") {
-        if (this.activeTab === "savings") {
+        if (this.activeTab === "promotions") {
+          this.editPromotionProduct(product);
+        } else if (this.activeTab === "savings") {
           this.editSavingsProduct(product);
         } else {
           this.editProduct(product);
