@@ -1241,12 +1241,6 @@ export default {
           icon: "fas fa-trash",
           class: "is-danger",
         },
-        {
-          key: "view",
-          label: "Ver",
-          icon: "fas fa-eye",
-          class: "is-primary",
-        },
       ],
       tableFilters: [
         {
@@ -1996,8 +1990,6 @@ export default {
         }
       } else if (action === "delete") {
         this.deleteProduct(product);
-      } else if (action === "view") {
-        this.viewProduct(product);
       }
     },
 
@@ -2283,11 +2275,6 @@ export default {
           showConfirmButton: false,
         });
       }
-    },
-
-    viewProduct(product) {
-      // Open product details modal
-      console.log("View product:", product);
     },
 
     async addProduct() {
