@@ -1132,7 +1132,7 @@ export default {
         savings_price: 0,
         savings_description: "",
         savings_img: "",
-        catalog_type: "both",
+        catalog_type: "sifrah",
       },
       editingProduct: {
         code: "",
@@ -1373,9 +1373,9 @@ export default {
     filteredTableData() {
       let rows = this.tableData;
       if (this.activeTab === 'sifrah') {
-        rows = rows.filter((p) => !p.is_promotion);
+        rows = rows.filter((p) => !p.is_promotion && !this.isSavingsOnlyProduct(p));
       } else if (this.activeTab === 'savings') {
-        rows = rows.filter(p => p.is_savings_bonus);
+        rows = rows.filter((p) => p.is_savings_bonus && !p.is_promotion);
       } else if (this.activeTab === 'promotions') {
         rows = rows.filter((p) => p.is_promotion);
       }
@@ -1437,6 +1437,12 @@ export default {
   mounted() {
   },
   methods: {
+    isSavingsOnlyProduct(product) {
+      if (!product) return false;
+      if (product.catalog_type === "savings") return true;
+      return !!product.is_savings_bonus && !(Number(product.points) > 0);
+    },
+
     async load() {
       this.loading = true;
 
@@ -1484,6 +1490,7 @@ export default {
           } else if (this.activeTab === 'savings') {
             this.showAddSavingsModal = true;
           } else {
+            this.resetNewProduct();
             this.showAddModal = true;
           }
           break;
@@ -1801,6 +1808,7 @@ export default {
         });
 
         this.showAddSavingsModal = false;
+        this.activeTab = "savings";
         // Reset form
         this.newSavingsProduct = {
           name: "",
@@ -2383,6 +2391,7 @@ export default {
         savings_price: 0,
         savings_description: "",
         savings_img: "",
+        catalog_type: "sifrah",
       };
       this.validationErrors = {}; // Clear validation errors
     },
