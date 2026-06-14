@@ -1,4 +1,5 @@
 import axios from 'axios'
+import './api'
 
 const SERVER = process.env.VUE_APP_SERVER || 'https://sifrah-server-0920254d8662.herokuapp.com';
 
@@ -22,7 +23,7 @@ class Lib {
   async uploadBuffer(arrayBuffer, fileName, mimeType, dir) {
     const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     console.log(`[Lib] uploadBuffer: ${safeFileName} (${arrayBuffer.byteLength} bytes)`);
-    console.log(`[Lib] Target: ${SERVER}/api/auxi/bunny-upload`);
+    console.log(`[Lib] Target: /admin/media-upload`);
 
     try {
       // Convertir ArrayBuffer a Base64 en bloques
@@ -35,20 +36,16 @@ class Lib {
       const base64Data = btoa(binary);
       console.log(`[Lib] Base64 length: ${base64Data.length} chars`);
 
-      const res = await fetch(`${SERVER}/api/auxi/bunny-upload`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: safeFileName, dir, fileData: base64Data })
+      const { data } = await axios.post('/admin/media-upload', {
+        fileName: safeFileName,
+        dir,
+        fileData: base64Data,
       });
 
-      console.log(`[Lib] Server response status: ${res.status}`);
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Server error (${res.status}): ${errText}`);
+      if (!data || !data.url) {
+        throw new Error((data && data.error) || 'No se recibió la URL de la imagen');
       }
 
-      const data = await res.json();
       console.log(`[Lib] SUCCESS: ${data.url}`);
       return data.url;
 
