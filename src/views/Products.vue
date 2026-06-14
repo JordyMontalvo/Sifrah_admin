@@ -106,18 +106,17 @@
           :data="filteredTableData"
           :columns="activeTab === 'sifrah' ? sifrahColumns : savingsColumns"
           :title="activeTab === 'sifrah' ? 'Catálogo SIFRAH' : 'Catálogo Bono Ahorro'"
-          :subtitle="activeTab === 'sifrah' ? 'Gestiona productos, puntos y asignación a planes' : 'Gestiona productos de canje, electrodomésticos y premios'"
+          :subtitle="activeTab === 'sifrah' ? 'Gestiona productos, puntos y asignación a planes' : 'Edita el precio de canje sin modificar el catálogo SIFRAH'"
           :actions="tableActions"
           :item-actions="itemActions"
           :show-filters="true"
           :show-pagination="false"
           :server-pagination="true"
           search-placeholder="Buscar por nombre, código o categoría..."
-          :filters="tableFilters"
+          :filters="[]"
           @action="handleTableAction"
           @item-action="handleItemAction"
           @search="handleSearch"
-          @filter="handleFilter"
         >
           <template #cell-name="{ value, row }">
             <div style="display: flex; flex-direction: column;">
@@ -129,15 +128,45 @@
               </div>
             </div>
           </template>
-          <template #cell-is_savings_bonus="{ value, row }">
-            <div class="field">
+          <template #cell-savings_price="{ row }">
+            <div class="savings-price-edit" @click.stop>
+              <div class="field has-addons">
+                <p class="control">
+                  <span class="button is-static is-small">S/</span>
+                </p>
+                <p class="control">
+                  <input
+                    class="input is-small"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    v-model.number="row.raw.savings_price"
+                    :disabled="!!savingsPriceSaving[row.raw.id]"
+                    @focus="rememberSavingsPrice(row.raw)"
+                    @blur="saveSavingsPriceIfChanged(row.raw)"
+                    @keyup.enter="$event.target.blur()"
+                  />
+                </p>
+              </div>
+            </div>
+          </template>
+          <template #cell-price="{ row }">
+            <span v-if="activeTab === 'savings'" class="sifrah-price-ref" title="Precio del catálogo SIFRAH (solo lectura)">
+              S/ {{ row.price }}
+            </span>
+            <span v-else class="currency-value">{{ row.price }}</span>
+          </template>
+          <template #cell-is_savings_bonus="{ row }">
+            <div class="savings-toggle-field" @click.stop>
               <input
                 type="checkbox"
                 class="switch is-rounded is-success"
-                v-model="row.raw.is_savings_bonus"
-                @change="toggleSavingsBonus(row.raw)"
+                :id="`savings-switch-${row.raw.id}`"
+                :checked="!!row.raw.is_savings_bonus"
+                :disabled="!!savingsToggleLoading[row.raw.id]"
+                @change="toggleSavingsBonus(row.raw, $event)"
               />
-              <label></label>
+              <label :for="`savings-switch-${row.raw.id}`"></label>
             </div>
           </template>
           <template #cell-img="{ value }">
@@ -166,8 +195,8 @@
       <div class="modal" :class="{ 'is-active': showAddSavingsModal }">
         <div class="modal-background" @click="showAddSavingsModal = false"></div>
         <div class="modal-card">
-          <header class="modal-card-head" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-            <p class="modal-card-title" style="color: white;">Nuevo Producto Bono Ahorro</p>
+          <header class="modal-card-head">
+            <p class="modal-card-title">Nuevo Producto Bono Ahorro</p>
             <button class="delete" @click="showAddSavingsModal = false"></button>
           </header>
           <section class="modal-card-body">
@@ -200,9 +229,35 @@
             </div>
 
             <div class="field">
-              <label class="label">Imagen URL</label>
+              <label class="label">Imagen</label>
               <div class="control">
-                <input class="input" v-model="newSavingsProduct.savings_img" placeholder="https://..." />
+                <div class="file has-name is-fullwidth">
+                  <label class="file-label">
+                    <input
+                      class="file-input"
+                      type="file"
+                      accept="image/*"
+                      @change="handleSavingsImageUpload"
+                      :disabled="savingsImageUploading"
+                    />
+                    <span class="file-cta">
+                      <span class="file-icon">
+                        <i class="fas fa-upload"></i>
+                      </span>
+                      <span class="file-label">
+                        {{ savingsImageUploading ? "Subiendo..." : "Subir imagen" }}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <p class="help">También puedes pegar una URL</p>
+              <div class="control" style="margin-top: 8px;">
+                <input
+                  class="input"
+                  v-model="newSavingsProduct.savings_img"
+                  placeholder="https://..."
+                />
               </div>
             </div>
 
@@ -214,7 +269,16 @@
             </div>
           </section>
           <footer class="modal-card-foot">
-            <button class="button is-warning" @click="saveSavingsProduct" :class="{ 'is-loading': loading }">Guardar Producto de Canje</button>
+            <button
+              class="button is-success"
+              @click="saveSavingsProduct"
+              :class="{ 'is-loading': loading || savingsImageUploading }"
+            >
+              <span class="icon">
+                <i class="fas fa-save"></i>
+              </span>
+              <span>Guardar Producto de Canje</span>
+            </button>
             <button class="button" @click="showAddSavingsModal = false">Cancelar</button>
           </footer>
         </div>
@@ -612,48 +676,120 @@
               </div>
             </div>
 
-            <!-- Savings Bonus Configuration -->
-            <div class="savings-bonus-config-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed #eee;">
-              <h3 class="title is-5" style="color: #e91e63;">
-                <i class="fas fa-piggy-bank"></i> Configuración Bono Ahorro
-              </h3>
-              
-              <div class="field">
-                <label class="checkbox">
-                  <input type="checkbox" v-model="editingProduct.is_savings_bonus">
-                  Habilitar para tienda Bono Ahorro
-                </label>
-              </div>
-
-              <div v-if="editingProduct.is_savings_bonus" class="form-grid">
-                <div class="field">
-                  <label class="label">Precio Bono Ahorro (S/)</label>
-                  <div class="control">
-                    <input class="input" type="number" v-model.number="editingProduct.savings_price" placeholder="Precio en el bono">
-                  </div>
-                </div>
-
-                <div class="field">
-                  <label class="label">Imagen Exclusiva Bono (Opcional)</label>
-                  <div class="control">
-                    <input class="input" v-model="editingProduct.savings_img" placeholder="URL imagen para bono">
-                  </div>
-                </div>
-
-                <div class="field" style="grid-column: span 2;">
-                  <label class="label">Descripción Exclusiva Bono (Opcional)</label>
-                  <div class="control">
-                    <textarea class="textarea" v-model="editingProduct.savings_description" placeholder="Descripción especial para el canje"></textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
           </section>
           <footer class="modal-card-foot">
             <button class="button is-success" @click="saveProduct">
               Guardar Cambios
             </button>
             <button class="button" @click="closeEditModal">Cancelar</button>
+          </footer>
+        </div>
+      </div>
+
+      <!-- Edit Savings Catalog Modal (solo precio Bono Ahorro) -->
+      <div class="modal" :class="{ 'is-active': showEditSavingsModal }">
+        <div class="modal-background" @click="closeEditSavingsModal"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Editar precio Bono Ahorro</p>
+            <button class="delete" @click="closeEditSavingsModal"></button>
+          </header>
+          <section class="modal-card-body">
+            <p class="has-text-weight-bold is-size-5">{{ editingSavingsProduct.name }}</p>
+            <p class="is-size-7 has-text-grey" style="margin-bottom: 16px;">
+              Código: {{ editingSavingsProduct.code || "—" }}
+            </p>
+
+            <div class="notification is-light" style="margin-bottom: 16px;">
+              Precio SIFRAH: <strong>S/ {{ editingSavingsProduct.price || 0 }}</strong>
+              <span class="is-size-7 has-text-grey"> — no se modifica desde aquí</span>
+            </div>
+
+            <div class="field">
+              <label class="label">Precio de canje Bono Ahorro (S/)</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  v-model.number="editingSavingsProduct.savings_price"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Descripción para canje (opcional)</label>
+              <div class="control">
+                <textarea
+                  class="textarea"
+                  v-model="editingSavingsProduct.savings_description"
+                  placeholder="Descripción visible en la tienda Bono Ahorro"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="field" v-if="editingSavingsUsesSifrahImage">
+              <label class="label">Imagen del producto</label>
+              <p class="help" style="margin-bottom: 8px;">
+                Usa la imagen del catálogo SIFRAH (no editable aquí).
+              </p>
+              <div v-if="editingSavingsProduct.img" class="has-text-centered">
+                <img
+                  :src="editingSavingsProduct.img"
+                  alt="Imagen SIFRAH"
+                  style="max-height: 150px; border-radius: 8px; border: 1px solid #eee;"
+                />
+              </div>
+              <p v-else class="has-text-grey is-size-7">Sin imagen en catálogo SIFRAH</p>
+            </div>
+
+            <div class="field" v-else>
+              <label class="label">Imagen para canje (opcional)</label>
+              <div class="control">
+                <div class="file has-name is-fullwidth">
+                  <label class="file-label">
+                    <input
+                      class="file-input"
+                      type="file"
+                      accept="image/*"
+                      @change="handleEditSavingsImageUpload"
+                      :disabled="savingsImageUploading"
+                    />
+                    <span class="file-cta">
+                      <span class="file-icon">
+                        <i class="fas fa-upload"></i>
+                      </span>
+                      <span class="file-label">
+                        {{ savingsImageUploading ? "Subiendo..." : "Subir imagen" }}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <p class="help">También puedes pegar una URL</p>
+              <div class="control" style="margin-top: 8px;">
+                <input
+                  class="input"
+                  v-model="editingSavingsProduct.savings_img"
+                  placeholder="URL de imagen exclusiva para Bono Ahorro"
+                />
+              </div>
+              <div v-if="editingSavingsProduct.savings_img" class="has-text-centered" style="margin-top: 12px;">
+                <img
+                  :src="editingSavingsProduct.savings_img"
+                  alt="Vista previa"
+                  style="max-height: 150px; border-radius: 8px;"
+                />
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-success" @click="saveSavingsCatalogProduct">
+              Guardar precio Bono Ahorro
+            </button>
+            <button class="button" @click="closeEditSavingsModal">Cancelar</button>
           </footer>
         </div>
       </div>
@@ -705,7 +841,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="product in products" :key="product.id">
+                <tr v-for="product in savingsManagerDraft" :key="product.id">
                   <td style="text-align: center;">
                     <input type="checkbox" v-model="product.is_savings_bonus">
                   </td>
@@ -723,7 +859,13 @@
                         <a class="button is-static is-small">S/</a>
                       </p>
                       <p class="control">
-                        <input class="input is-small" type="number" v-model.number="product.savings_price" :disabled="!product.is_savings_bonus">
+                        <input
+                          class="input is-small"
+                          type="number"
+                          v-model.number="product.savings_price"
+                          :disabled="!product.is_savings_bonus"
+                          :placeholder="String(product.price || 0)"
+                        >
                       </p>
                     </div>
                   </td>
@@ -748,6 +890,7 @@ import Layout from "@/views/Layout";
 import DashboardCard from "@/components/DashboardCard";
 import ModernTable from "@/components/ModernTable";
 import api from "@/api";
+import lib from "@/lib";
 import Swal from "sweetalert2";
 
 export default {
@@ -809,7 +952,7 @@ export default {
       // Table configuration
       tableColumns: [
         {
-          key: "id",
+          key: "rowNum",
           label: "#",
           sortable: true,
           type: "number",
@@ -925,6 +1068,25 @@ export default {
         },
       ],
       showSavingsManager: false,
+      savingsManagerDraft: [],
+      savingsToggleLoading: {},
+      savingsPriceSaving: {},
+      savingsPriceSnapshot: {},
+      showEditSavingsModal: false,
+      savingsImageUploading: false,
+      editingSavingsProduct: {
+        id: "",
+        code: "",
+        name: "",
+        price: 0,
+        points: 0,
+        img: "",
+        plans: {},
+        catalog_type: "",
+        savings_price: 0,
+        savings_description: "",
+        savings_img: "",
+      },
       showAddSavingsModal: false,
       activeTab: "sifrah",
       searchQuery: "",
@@ -994,10 +1156,13 @@ export default {
         { key: "img", label: "Imagen", sortable: false },
         { key: "name", label: "Producto", sortable: true },
         { key: "type", label: "Categoría", sortable: true },
-        { key: "price", label: "Precio Regular", sortable: true, type: "currency" },
-        { key: "savings_price", label: "Precio Bono", sortable: true, type: "currency" },
-        { key: "is_savings_bonus", label: "Estado", sortable: true, type: "boolean" },
+        { key: "price", label: "Precio SIFRAH", sortable: true, type: "currency" },
+        { key: "savings_price", label: "Precio canje", sortable: true, type: "currency" },
+        { key: "is_savings_bonus", label: "Activo", sortable: true, type: "boolean" },
       ];
+    },
+    editingSavingsUsesSifrahImage() {
+      return this.isFromSifrahCatalog(this.editingSavingsProduct);
     },
   },
   created() {
@@ -1017,8 +1182,15 @@ export default {
           api.Plans.GET(),
         ]);
 
-        this.products = productsResponse.data.products || [];
-        this.allProducts = productsResponse.data.products || [];
+        const normalized = (productsResponse.data.products || []).map((p) => ({
+          ...p,
+          is_savings_bonus: !!p.is_savings_bonus,
+          savings_price: Number(p.savings_price) || 0,
+        }));
+
+        this.allProducts = normalized;
+        this.products = [...normalized];
+        this.applyFilters();
         this.plans = plansResponse.data.plans || [];
 
         // Update filter options
@@ -1049,6 +1221,80 @@ export default {
       }
     },
 
+    async handleSavingsImageUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        Swal.fire("Error", "Selecciona un archivo de imagen válido", "error");
+        event.target.value = "";
+        return;
+      }
+
+      this.savingsImageUploading = true;
+      try {
+        const url = await lib.upload(file, file.name, "products");
+        this.newSavingsProduct.savings_img = url;
+        Swal.fire({
+          icon: "success",
+          title: "Imagen subida",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error uploading savings image:", error);
+        Swal.fire(
+          "Error",
+          error.message || "No se pudo subir la imagen",
+          "error"
+        );
+      } finally {
+        this.savingsImageUploading = false;
+        event.target.value = "";
+      }
+    },
+
+    async handleEditSavingsImageUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        Swal.fire("Error", "Selecciona un archivo de imagen válido", "error");
+        event.target.value = "";
+        return;
+      }
+
+      this.savingsImageUploading = true;
+      try {
+        const url = await lib.upload(file, file.name, "products");
+        this.editingSavingsProduct.savings_img = url;
+        Swal.fire({
+          icon: "success",
+          title: "Imagen subida",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error uploading savings image:", error);
+        Swal.fire(
+          "Error",
+          error.message || "No se pudo subir la imagen",
+          "error"
+        );
+      } finally {
+        this.savingsImageUploading = false;
+        event.target.value = "";
+      }
+    },
+
+    generateSavingsProductCode() {
+      const numericCodes = this.allProducts
+        .map((p) => parseInt(String(p.code || "").replace(/\D/g, ""), 10))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+      const next = numericCodes.length ? Math.max(...numericCodes) + 1 : 9001;
+      return String(next);
+    },
+
     async saveSavingsProduct() {
       if (!this.newSavingsProduct.name || !this.newSavingsProduct.type || !this.newSavingsProduct.savings_price) {
         return Swal.fire("Error", "Por favor completa los campos obligatorios", "error");
@@ -1056,14 +1302,27 @@ export default {
 
       this.loading = true;
       try {
+        const savingsPrice = Number(this.newSavingsProduct.savings_price) || 0;
+
         await api.products.POST({
           action: "add",
           data: {
-            ...this.newSavingsProduct,
-            // Sincronizar precio base con el de ahorro para que aparezca bien en listas
-            price: this.newSavingsProduct.savings_price,
-            img: this.newSavingsProduct.savings_img,
-            description: this.newSavingsProduct.description
+            code: this.generateSavingsProductCode(),
+            name: this.newSavingsProduct.name,
+            type: this.newSavingsProduct.type,
+            description: this.newSavingsProduct.description || "",
+            subdescription: "",
+            price: savingsPrice,
+            points: 0,
+            weight: 0,
+            img: this.newSavingsProduct.savings_img || "",
+            plans: {},
+            prices: {},
+            is_savings_bonus: true,
+            savings_price: savingsPrice,
+            savings_description: this.newSavingsProduct.description || "",
+            savings_img: this.newSavingsProduct.savings_img || "",
+            catalog_type: "savings",
           },
         });
 
@@ -1091,14 +1350,35 @@ export default {
         this.load();
       } catch (error) {
         console.error("Error saving savings product:", error);
-        Swal.fire("Error", "No se pudo guardar el producto", "error");
+        const msg =
+          (error.response && error.response.data && error.response.data.error) ||
+          error.message ||
+          "No se pudo guardar el producto";
+        Swal.fire("Error", msg, "error");
       } finally {
         this.loading = false;
       }
     },
 
     openSavingsBonusManager() {
+      this.savingsManagerDraft = this.allProducts.map((p) => ({
+        ...p,
+        plans: { ...(p.plans || {}) },
+        prices: { ...(p.prices || {}) },
+        is_savings_bonus: !!p.is_savings_bonus,
+        savings_price:
+          p.savings_price ||
+          (p.is_savings_bonus ? p.price : 0) ||
+          0,
+      }));
       this.showSavingsManager = true;
+    },
+
+    normalizeSavingsPrice(product) {
+      if (product.is_savings_bonus && (!product.savings_price || product.savings_price <= 0)) {
+        product.savings_price = product.price || 0;
+      }
+      return product;
     },
 
     buildProductEditData(product) {
@@ -1121,65 +1401,94 @@ export default {
       };
     },
 
-    async toggleSavingsBonus(product) {
-      const enabled = !!product.is_savings_bonus;
+    async toggleSavingsBonus(product, event) {
+      if (!product || !product.id) {
+        return;
+      }
+
+      const enabled = event.target.checked;
+      const previous = !enabled;
+
+      this.$set(product, "is_savings_bonus", enabled);
+      this.normalizeSavingsPrice(product);
+      this.$set(this.savingsToggleLoading, product.id, true);
+
       try {
-        await api.products.POST({
-          action: "edit",
+        let response = await api.products.POST({
+          action: "toggle_savings_bonus",
           id: product.id,
-          data: this.buildProductEditData(product),
+          enabled,
+          savings_price: product.savings_price,
         });
 
-        const syncList = (list) => {
-          const idx = list.findIndex((p) => p.id === product.id);
-          if (idx !== -1) {
-            this.$set(list[idx], "is_savings_bonus", enabled);
-          }
-        };
-        syncList(this.allProducts);
-        syncList(this.products);
-
-        if (!enabled && this.activeTab === "savings") {
-          Swal.fire({
-            icon: "success",
-            title: "Producto desactivado",
-            text: "Ya no aparecerá en la tienda Bono Ahorro",
-            timer: 1800,
-            showConfirmButton: false,
+        let data = response.data;
+        if (data && data.is_savings_bonus === undefined) {
+          response = await api.products.POST({
+            action: "edit",
+            id: product.id,
+            data: this.buildProductEditData(product),
           });
+          data = {
+            is_savings_bonus: enabled,
+            savings_price: product.savings_price,
+          };
         }
+
+        if (data && data.is_savings_bonus !== undefined) {
+          this.$set(product, "is_savings_bonus", !!data.is_savings_bonus);
+        }
+        if (data && data.savings_price !== undefined) {
+          this.$set(product, "savings_price", Number(data.savings_price) || 0);
+        }
+
+        Swal.fire({
+          icon: "success",
+          title: enabled ? "Bono Ahorro activado" : "Bono Ahorro desactivado",
+          text: enabled
+            ? `Precio de canje: S/ ${product.savings_price}`
+            : "Ya no aparecerá en la tienda Bono Ahorro",
+          timer: 1800,
+          showConfirmButton: false,
+        });
       } catch (error) {
-        product.is_savings_bonus = !enabled;
+        this.$set(product, "is_savings_bonus", previous);
+        event.target.checked = previous;
         console.error("Error toggling savings bonus:", error);
         Swal.fire({
           icon: "error",
           title: "Error",
           text: "No se pudo actualizar el estado del producto",
         });
+      } finally {
+        this.$set(this.savingsToggleLoading, product.id, false);
       }
     },
 
     async saveSavingsBonusBulk() {
       this.loading = true;
       try {
-        // Enviar cada producto actualizado (esto es ineficiente si hay muchos, 
-        // pero seguimos el patrón del API actual que es por producto)
-        // Alternativamente, si el backend soporta bulk, sería mejor.
-        // Por ahora, asumimos que Products.POST procesa un solo producto o acción.
-        
-        const updates = this.products.map(p => {
+        const updates = this.savingsManagerDraft.map((p) => {
+          this.normalizeSavingsPrice(p);
           return api.products.POST({
-            action: 'update',
+            action: "edit",
             id: p.id,
-            data: {
-              ...p,
-              is_savings_bonus: p.is_savings_bonus,
-              savings_price: p.savings_price
-            }
+            data: this.buildProductEditData(p),
           });
         });
 
         await Promise.all(updates);
+
+        this.savingsManagerDraft.forEach((draft) => {
+          const syncList = (list) => {
+            const idx = list.findIndex((p) => p.id === draft.id);
+            if (idx !== -1) {
+              this.$set(list[idx], "is_savings_bonus", !!draft.is_savings_bonus);
+              this.$set(list[idx], "savings_price", draft.savings_price || 0);
+            }
+          };
+          syncList(this.allProducts);
+          syncList(this.products);
+        });
 
         Swal.fire({
           icon: "success",
@@ -1189,7 +1498,7 @@ export default {
           showConfirmButton: false,
         });
         this.showSavingsManager = false;
-        this.load();
+        await this.load();
       } catch (error) {
         console.error("Error bulk saving savings bonus:", error);
         Swal.fire({
@@ -1204,12 +1513,17 @@ export default {
 
     handleItemAction({ action, item }) {
       console.log("handleItemAction", action, item);
+      const product = item.raw ? item.raw : item;
       if (action === "edit") {
-        this.editProduct(item.raw ? item.raw : item);
+        if (this.activeTab === "savings") {
+          this.editSavingsProduct(product);
+        } else {
+          this.editProduct(product);
+        }
       } else if (action === "delete") {
-        this.deleteProduct(item.raw ? item.raw : item);
+        this.deleteProduct(product);
       } else if (action === "view") {
-        this.viewProduct(item.raw ? item.raw : item);
+        this.viewProduct(product);
       }
     },
 
@@ -1259,12 +1573,190 @@ export default {
       this.products = filtered;
     },
 
+    editSavingsProduct(product) {
+      const prod =
+        this.allProducts.find((p) => p.id === product.id) || product;
+
+      this.editingSavingsProduct = {
+        id: prod.id || "",
+        code: prod.code || "",
+        name: prod.name || "",
+        price: prod.price || 0,
+        points: prod.points || 0,
+        img: prod.img || "",
+        plans: prod.plans || {},
+        catalog_type:
+          prod.catalog_type ||
+          (prod.points ? (prod.is_savings_bonus ? "both" : "sifrah") : "savings"),
+        savings_price:
+          Number(prod.savings_price) > 0
+            ? Number(prod.savings_price)
+            : Number(prod.price) || 0,
+        savings_description: prod.savings_description || "",
+        savings_img: prod.savings_img || "",
+      };
+      this.showEditSavingsModal = true;
+    },
+
+    isFromSifrahCatalog(prod) {
+      if (!prod) return false;
+      if (prod.catalog_type === "savings") return false;
+      if (Number(prod.points) > 0) return true;
+      const plans = prod.plans || {};
+      if (Object.values(plans).some(Boolean)) return true;
+      return !!(prod.code && Number(prod.price) > 0);
+    },
+
+    closeEditSavingsModal() {
+      this.showEditSavingsModal = false;
+    },
+
+    rememberSavingsPrice(product) {
+      if (!product || !product.id) return;
+      this.$set(
+        this.savingsPriceSnapshot,
+        product.id,
+        Number(product.savings_price) || 0
+      );
+    },
+
+    async saveSavingsPriceIfChanged(product) {
+      if (!product || !product.id) return;
+
+      const previous =
+        this.savingsPriceSnapshot[product.id] !== undefined
+          ? this.savingsPriceSnapshot[product.id]
+          : Number(product.savings_price) || 0;
+      const next = Number(product.savings_price) || 0;
+
+      this.$delete(this.savingsPriceSnapshot, product.id);
+
+      if (next === previous) return;
+
+      if (next <= 0) {
+        this.$set(product, "savings_price", previous);
+        Swal.fire({
+          icon: "error",
+          title: "Precio inválido",
+          text: "El precio de canje debe ser mayor a 0",
+        });
+        return;
+      }
+
+      await this.persistSavingsCatalogFields(product, {
+        savings_price: next,
+      });
+    },
+
+    async saveSavingsCatalogProduct() {
+      const price = Number(this.editingSavingsProduct.savings_price) || 0;
+      if (price <= 0) {
+        return Swal.fire({
+          icon: "error",
+          title: "Precio inválido",
+          text: "El precio de canje debe ser mayor a 0",
+        });
+      }
+
+      const product = this.allProducts.find(
+        (p) => p.id === this.editingSavingsProduct.id
+      );
+      if (!product) {
+        return Swal.fire("Error", "Producto no encontrado", "error");
+      }
+
+      this.loading = true;
+      try {
+        const fields = {
+          savings_price: price,
+          savings_description: this.editingSavingsProduct.savings_description || "",
+        };
+
+        if (this.isFromSifrahCatalog(product)) {
+          fields.savings_img = "";
+        } else {
+          fields.savings_img = this.editingSavingsProduct.savings_img || "";
+        }
+
+        await this.persistSavingsCatalogFields(product, fields);
+        this.closeEditSavingsModal();
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async persistSavingsCatalogFields(product, fields) {
+      this.$set(this.savingsPriceSaving, product.id, true);
+
+      try {
+        let response = await api.products.POST({
+          action: "update_savings_catalog",
+          id: product.id,
+          data: fields,
+        });
+
+        let data = response.data;
+        if (data && data.savings_price === undefined && fields.savings_price !== undefined) {
+          const editData = {
+            ...this.buildProductEditData(product),
+            savings_price: fields.savings_price,
+            savings_description:
+              fields.savings_description !== undefined
+                ? fields.savings_description
+                : product.savings_description || "",
+            savings_img:
+              fields.savings_img !== undefined
+                ? fields.savings_img
+                : product.savings_img || "",
+          };
+          await api.products.POST({
+            action: "edit",
+            id: product.id,
+            data: editData,
+          });
+          data = {
+            savings_price: fields.savings_price,
+            savings_description: editData.savings_description,
+            savings_img: editData.savings_img,
+          };
+        }
+
+        if (data && data.savings_price !== undefined) {
+          this.$set(product, "savings_price", Number(data.savings_price) || 0);
+        }
+        if (data && data.savings_description !== undefined) {
+          this.$set(product, "savings_description", data.savings_description || "");
+        }
+        if (data && data.savings_img !== undefined) {
+          this.$set(product, "savings_img", data.savings_img || "");
+        }
+
+        Swal.fire({
+          icon: "success",
+          title: "Precio Bono Ahorro guardado",
+          text: `Canje: S/ ${product.savings_price} — Precio SIFRAH sin cambios`,
+          timer: 1800,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error saving savings catalog fields:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo guardar el precio de Bono Ahorro",
+        });
+        await this.load();
+      } finally {
+        this.$set(this.savingsPriceSaving, product.id, false);
+      }
+    },
+
     editProduct(product) {
       console.log("editProduct", product);
       // Buscar el producto original por id
       let original = null;
       if (!original && product.id) {
-        original = this.products.find((p) => p.id === product.id);
+        original = this.allProducts.find((p) => p.id === product.id);
       }
       // Si no se encuentra, usar el producto recibido
       const prod = original || product;
@@ -1610,6 +2102,26 @@ export default {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
+}
+
+.savings-toggle-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+}
+
+.savings-price-edit {
+  min-width: 120px;
+}
+
+.savings-price-edit .input.is-small {
+  width: 90px;
+}
+
+.sifrah-price-ref {
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .field .label {
