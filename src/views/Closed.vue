@@ -147,6 +147,7 @@
                 <th>Bono Generacional VIP</th>
                 <th>Bono Ahorro Sifrah</th>
                 <th>Bono rango (logro / mant.)</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -231,6 +232,9 @@
                     </ul>
                   </template>
                   <span v-else class="td-zero">—</span>
+                </td>
+                <td>
+                  <button class="btn-ver-red" v-if="node.tree_snapshot" @click="snapshotModalData = node.tree_snapshot">👁️ Ver Red</button>
                 </td>
               </tr>
             </tbody>
