@@ -1402,7 +1402,13 @@ export default {
       } else if (this.activeTab === 'promotions') {
         rows = rows.filter((p) => p.is_promotion);
       }
-      return rows.map((row, index) => ({ ...row, rowNum: index + 1 }));
+      return rows.map((row, index) => {
+        const mapped = { ...row, rowNum: index + 1 };
+        if (this.activeTab === "savings") {
+          mapped.type = this.savingsCategoryLabel(row.raw);
+        }
+        return mapped;
+      });
     },
     activeTableColumns() {
       if (this.activeTab === 'promotions') return this.promotionsColumns;
@@ -1960,6 +1966,9 @@ export default {
         if (data && data.savings_price !== undefined) {
           this.$set(product, "savings_price", Number(data.savings_price) || 0);
         }
+        if (data && data.savings_category_id !== undefined) {
+          this.$set(product, "savings_category_id", data.savings_category_id);
+        }
 
         Swal.fire({
           icon: "success",
@@ -2127,6 +2136,18 @@ export default {
       return !!(prod.code && Number(prod.price) > 0);
     },
 
+    savingsCategoryLabel(prod) {
+      if (!prod) return "";
+      if (prod.savings_category_id) {
+        const cat = this.savingsCategories.find(
+          (c) => c.id === prod.savings_category_id
+        );
+        if (cat) return cat.name;
+      }
+      if (this.isFromSifrahCatalog(prod)) return "Productos SIFRAH";
+      return prod.type || "";
+    },
+
     closeEditSavingsModal() {
       this.showEditSavingsModal = false;
     },
@@ -2249,6 +2270,9 @@ export default {
         }
         if (data && data.savings_img !== undefined) {
           this.$set(product, "savings_img", data.savings_img || "");
+        }
+        if (data && data.savings_category_id !== undefined) {
+          this.$set(product, "savings_category_id", data.savings_category_id);
         }
 
         Swal.fire({
