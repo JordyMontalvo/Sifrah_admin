@@ -2,6 +2,19 @@
   <Layout>
     <i class="load" v-if="loading"></i>
 
+    <!-- ─── Modal Ver Red del Cierre ─── -->
+    <div class="modal-overlay" v-if="snapshotModalData" @click="snapshotModalData = null">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>👁️ Red de Usuario al momento del Cierre</h3>
+          <button class="btn-close" @click="snapshotModalData = null">✕</button>
+        </div>
+        <div class="modal-body tree-scroll">
+          <SnapshotTree :node="snapshotModalData" />
+        </div>
+      </div>
+    </div>
+
     <section v-if="!loading" class="cierre-wrapper">
 
       <!-- ─── Header ─── -->
@@ -288,6 +301,7 @@
                   <th>Bono Generacional VIP</th>
                   <th>Bono Ahorro Sifrah</th>
                   <th>Bono rango (logro / mant.)</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -372,6 +386,9 @@
                     </template>
                     <span v-else class="td-zero">—</span>
                   </td>
+                  <td>
+                    <button class="btn-ver-red" v-if="user.tree_snapshot" @click="snapshotModalData = user.tree_snapshot">👁️ Ver Red</button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -419,6 +436,7 @@
 
 <script>
 import Layout from '@/views/Layout'
+import SnapshotTree from '@/components/SnapshotTree.vue'
 import api    from '@/api'
 
 /**
@@ -476,7 +494,7 @@ function isRankShownInPreviewTable(rank) {
 }
 
 export default {
-  components: { Layout },
+  components: { Layout, SnapshotTree },
   data() {
     return {
       loading:      true,
@@ -488,6 +506,7 @@ export default {
       virtualResets: [],
       saving:       false,
       search:       '',
+      snapshotModalData: null,
     }
   },
   created() {
@@ -796,6 +815,37 @@ export default {
   transition: border 0.2s;
 }
 .search-input:focus { border-color: #667eea; }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5); z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-content {
+  background: #fff; width: 95%; max-width: 1200px;
+  height: 90vh; border-radius: 12px; display: flex; flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.modal-header {
+  padding: 16px 24px; border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-header h3 { margin: 0; font-size: 1.2rem; color: #1a202c; }
+.btn-close {
+  background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #a0aec0;
+}
+.btn-close:hover { color: #1a202c; }
+.modal-body.tree-scroll {
+  padding: 24px; overflow: auto; flex: 1; background: #f7fafc;
+}
+
+.btn-ver-red {
+  background: #ebf4ff; color: #3182ce; border: 1px solid #bee3f8;
+  padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.btn-ver-red:hover { background: #3182ce; color: #fff; }
 
 /* ─── Table ─── */
 .table-responsive { overflow-x: auto; }
