@@ -89,6 +89,7 @@ class API {
         audioCategories,
         books,
         bookCategories,
+        savingsCategories,
         rankHistory,
         generalPassword,
         adminAuth,
@@ -131,6 +132,7 @@ class API {
         this.audioCategories = audioCategories;
         this.books = books;
         this.bookCategories = bookCategories;
+        this.savingsCategories = savingsCategories;
         this.rankHistory = rankHistory;
         this.generalPassword = generalPassword;
         this.adminAuth = adminAuth;
@@ -551,6 +553,18 @@ class BookCategories {
     }
 }
 
+class SavingsCategories {
+    GET() {
+        return axios.get(`/admin/savings-categories`);
+    }
+    POST({ action, id, data, active, hidden }) {
+        return axios.post(`/admin/savings-categories`, { action, id, data, active, hidden });
+    }
+    DELETE({ id }) {
+        return axios.delete(`/admin/savings-categories`, { data: { id } });
+    }
+}
+
 class RankHistory {
     GET({ page = 1, limit = 20, search = "" } = {}) {
         const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
@@ -660,6 +674,7 @@ export default new API({
     audioCategories: new AudioCategories(),
     books: new Books(),
     bookCategories: new BookCategories(),
+    savingsCategories: new SavingsCategories(),
     rankHistory: new RankHistory(),
     generalPassword: new GeneralPassword(),
     adminAuth: new AdminAuth(),

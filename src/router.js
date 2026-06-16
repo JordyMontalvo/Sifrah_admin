@@ -45,6 +45,7 @@ import Sessions from "./views/Sessions.vue";
 import BonusReports from "./views/BonusReports.vue";
 import Reactivations from "./views/Reactivations.vue";
 import SavingsRedemptions from "./views/SavingsRedemptions.vue";
+import SavingsCategories from "./views/SavingsCategories.vue";
 import BlockedEliminated from "./views/BlockedEliminated.vue";
 
 // import Reports      from './views/Reports.vue'
@@ -184,6 +185,11 @@ const routes = [
   {
     path: "/products",
     component: Products,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/savings-categories",
+    component: SavingsCategories,
     meta: { requiresAuth: true },
   },
   {

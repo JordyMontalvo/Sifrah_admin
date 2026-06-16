@@ -22,35 +22,35 @@
 
       <div class="container">
         <div class="stats-grid">
-          <DashboardCard
-            :value="stats.total"
-            label="Total canjes"
-            icon="fas fa-piggy-bank"
-            color="primary"
-            description="Registrados en el sistema"
-          />
-          <DashboardCard
-            :value="stats.approved"
-            label="Aprobados"
-            icon="fas fa-check-circle"
-            color="success"
-            description="Canjes confirmados"
-          />
-          <DashboardCard
-            :value="stats.pending"
-            label="Pendientes"
-            icon="fas fa-clock"
-            color="warning"
-            description="Esperando aprobación"
-          />
-          <DashboardCard
-            :value="stats.totalAmount"
-            label="Monto canjeado"
-            icon="fas fa-coins"
-            color="info"
-            :show-currency="true"
-            description="Suma de todas las órdenes"
-          />
+            <DashboardCard
+              :value="stats.total"
+              label="Total canjes"
+              icon="fas fa-piggy-bank"
+              color="primary"
+              description="Registrados en el sistema"
+            />
+            <DashboardCard
+              :value="stats.approved"
+              label="Aprobados"
+              icon="fas fa-check-circle"
+              color="success"
+              description="Canjes confirmados"
+            />
+            <DashboardCard
+              :value="stats.pending"
+              label="Pendientes"
+              icon="fas fa-clock"
+              color="warning"
+              description="Esperando aprobación"
+            />
+            <DashboardCard
+              :value="stats.totalAmount"
+              label="Monto canjeado"
+              icon="fas fa-coins"
+              color="info"
+              :show-currency="true"
+              description="Suma de todas las órdenes"
+            />
         </div>
       </div>
 

@@ -37,6 +37,13 @@
               <button class="button is-warning" @click="openSavingsBonusManager">
                 <span>Gestionar Bono Ahorro</span>
               </button>
+
+              <router-link to="/savings-categories" class="button is-link is-light">
+                <span class="icon">
+                  <i class="fas fa-folder-open"></i>
+                </span>
+                <span>Categorías Bono Ahorro</span>
+              </router-link>
             </div>
           </div>
         </div>
@@ -243,8 +250,22 @@
             <div class="field">
               <label class="label">Categoría <span class="has-text-danger">*</span></label>
               <div class="control">
-                <input class="input" v-model="newSavingsProduct.type" placeholder="Ej: Electrodomésticos, Herramientas" />
+                <div class="select is-fullwidth">
+                  <select v-model="newSavingsProduct.savings_category_id">
+                    <option :value="null" disabled>Seleccione una categoría</option>
+                    <option
+                      v-for="cat in selectableSavingsCategories"
+                      :key="cat.id"
+                      :value="cat.id"
+                    >
+                      {{ cat.name }}
+                    </option>
+                  </select>
+                </div>
               </div>
+              <p class="help">
+                <router-link to="/savings-categories">Gestionar categorías</router-link>
+              </p>
             </div>
 
             <div class="field">
@@ -1321,14 +1342,16 @@ export default {
       newSavingsProduct: {
         name: "",
         type: "",
+        savings_category_id: null,
         description: "",
         savings_price: 0,
         savings_img: "",
         is_savings_bonus: true,
         catalog_type: 'savings',
-        price: 0, // precio regular (opcional en este caso)
+        price: 0,
         points: 0
       },
+      savingsCategories: [],
     };
   },
   computed: {
@@ -1428,9 +1451,15 @@ export default {
     editingSavingsUsesSifrahImage() {
       return this.isFromSifrahCatalog(this.editingSavingsProduct);
     },
+    selectableSavingsCategories() {
+      return [...this.savingsCategories]
+        .filter((c) => c.active !== false)
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    },
   },
   created() {
     this.load();
+    this.loadSavingsCategories();
     // Limpiar filtros al cargar
     this.tableFilters.forEach((f) => this.$set(f, "value", ""));
   },
@@ -1441,6 +1470,17 @@ export default {
       if (!product) return false;
       if (product.catalog_type === "savings") return true;
       return !!product.is_savings_bonus && !(Number(product.points) > 0);
+    },
+
+    async loadSavingsCategories() {
+      try {
+        const { data } = await api.savingsCategories.GET();
+        if (!data.error) {
+          this.savingsCategories = data.categories || [];
+        }
+      } catch (e) {
+        console.error("Error loading savings categories:", e);
+      }
     },
 
     async load() {
@@ -1769,9 +1809,13 @@ export default {
     },
 
     async saveSavingsProduct() {
-      if (!this.newSavingsProduct.name || !this.newSavingsProduct.type || !this.newSavingsProduct.savings_price) {
-        return Swal.fire("Error", "Por favor completa los campos obligatorios", "error");
+      if (!this.newSavingsProduct.name || !this.newSavingsProduct.savings_category_id || !this.newSavingsProduct.savings_price) {
+        return Swal.fire("Error", "Por favor completa los campos obligatorios (nombre, categoría y precio)", "error");
       }
+
+      const selectedCategory = this.savingsCategories.find(
+        (c) => c.id === this.newSavingsProduct.savings_category_id
+      );
 
       this.loading = true;
       try {
@@ -1782,7 +1826,8 @@ export default {
           data: {
             code: this.generateSavingsProductCode(),
             name: this.newSavingsProduct.name,
-            type: this.newSavingsProduct.type,
+            type: selectedCategory ? selectedCategory.name : "",
+            savings_category_id: this.newSavingsProduct.savings_category_id,
             description: this.newSavingsProduct.description || "",
             subdescription: "",
             price: savingsPrice,
@@ -1813,6 +1858,7 @@ export default {
         this.newSavingsProduct = {
           name: "",
           type: "",
+          savings_category_id: null,
           description: "",
           savings_price: 0,
           savings_img: "",

@@ -70,12 +70,19 @@
                 <span>Productos</span>
               </a>
 
-              <a class="navbar-item" href="/savings-redemptions">
+              <!-- Bono Ahorro Menu -->
+              <div
+                class="navbar-item menu-trigger"
+                @click="toggleMenu('savings-bonus')"
+              >
                 <span class="icon">
                   <i class="fas fa-piggy-bank"></i>
                 </span>
-                <span>Canjes Bono Ahorro</span>
-              </a>
+                <span>Bono Ahorro</span>
+                <span class="icon is-small">
+                  <i class="fas fa-chevron-down"></i>
+                </span>
+              </div>
 
               <!-- Transactions -->
               <a class="navbar-item" href="/trans">
@@ -513,6 +520,21 @@
           </a>
         </div>
 
+        <div v-if="activeMenu === 'savings-bonus'" class="menu-items">
+          <a class="menu-item" href="/savings-redemptions" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-piggy-bank"></i>
+            </span>
+            <span>Canjes</span>
+          </a>
+          <a class="menu-item" href="/savings-categories" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-folder-open"></i>
+            </span>
+            <span>Categorías</span>
+          </a>
+        </div>
+
         <div v-if="activeMenu === 'operations'" class="menu-items">
           <a class="menu-item" href="/operations/plan" @click="closeMenu">
             <span class="icon">
@@ -620,6 +642,8 @@ export default {
           return "Pagos";
         case "offices":
           return "Oficinas";
+        case "savings-bonus":
+          return "Bono Ahorro";
         case "operations":
           return "Compras";
         case "tools":
