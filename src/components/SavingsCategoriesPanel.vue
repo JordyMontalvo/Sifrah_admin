@@ -96,8 +96,7 @@
               <button
                 class="button is-small is-danger"
                 @click="deleteCategory(cat)"
-                :disabled="cat.product_count > 0"
-                :title="cat.product_count > 0 ? 'Reasigne los productos antes de eliminar' : 'Eliminar'"
+                title="Eliminar categoría"
               >
                 <span class="icon"><i class="fas fa-trash"></i></span>
               </button>
@@ -328,9 +327,12 @@ export default {
       }
     },
     async deleteCategory(cat) {
+      const linked = cat.product_count || 0;
       const result = await Swal.fire({
         title: "¿Eliminar categoría?",
-        text: `Se eliminará "${cat.name}" permanentemente.`,
+        html: linked
+          ? `Se eliminará <strong>${cat.name}</strong>.<br><small>${linked} producto(s) quedarán sin categoría asignada.</small>`
+          : `Se eliminará <strong>${cat.name}</strong> permanentemente.`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: "Eliminar",
