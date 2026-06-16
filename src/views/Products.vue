@@ -37,13 +37,6 @@
               <button class="button is-warning" @click="openSavingsBonusManager">
                 <span>Gestionar Bono Ahorro</span>
               </button>
-
-              <router-link to="/savings-categories" class="button is-link is-light">
-                <span class="icon">
-                  <i class="fas fa-folder-open"></i>
-                </span>
-                <span>Categorías Bono Ahorro</span>
-              </router-link>
             </div>
           </div>
         </div>
