@@ -148,6 +148,7 @@ export default {
         path: this.appPath,
         dni: String(dni).trim(),
         office_id: "central",
+        embed: "office",
       });
       return `${APP}/login/central?${params.toString()}`;
     },
@@ -252,9 +253,9 @@ export default {
 }
 
 .ops-header {
-  background: #4b001f;
+  background: #e91e63;
   color: #fff;
-  box-shadow: 0 2px 12px rgba(75, 0, 31, 0.25);
+  box-shadow: 0 2px 12px rgba(233, 30, 99, 0.25);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -312,7 +313,7 @@ export default {
   border: none;
   border-radius: 0 6px 6px 0;
   padding: 10px 16px;
-  background: #6b1a3a;
+  background: #c2185b;
   color: #fff;
   font-weight: 600;
   cursor: pointer;
@@ -321,7 +322,7 @@ export default {
 }
 
 .ops-search-btn:hover:not(:disabled) {
-  background: #7d2248;
+  background: #ad1457;
 }
 
 .ops-search-btn:disabled {
@@ -353,7 +354,7 @@ export default {
 
 .ops-member-dni {
   font-weight: 700;
-  color: #4b001f;
+  color: #e91e63;
 }
 
 .ops-member-sep {
