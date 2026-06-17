@@ -191,6 +191,24 @@ export default {
       });
       return `${resolveEmbedAppUrl()}/sudo-login?${params.toString()}`;
     },
+    buildLegacyIframeSrc(dni) {
+      const params = new URLSearchParams({
+        path: this.appPath,
+        dni: String(dni).trim(),
+        office_id: "central",
+        embed: "office",
+        _t: String(Date.now()),
+      });
+      return `${resolveEmbedAppUrl()}/login/central?${params.toString()}`;
+    },
+    async openIframeUrl(url) {
+      this.iframeSrc = "about:blank";
+      this.iframeKey += 1;
+      await this.$nextTick();
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      this.iframeSrc = url;
+      this.iframeKey += 1;
+    },
     async fetchMemberName(dni) {
       this.memberNameLoading = true;
       this.memberName = "";
@@ -256,23 +274,21 @@ export default {
           return;
         }
 
-        this.iframeSrc = "about:blank";
-        this.iframeKey += 1;
-        await this.$nextTick();
-        await new Promise((resolve) => setTimeout(resolve, 80));
-        this.iframeSrc = this.buildIframeSrc(this.activeDni, data.session);
-        this.iframeKey += 1;
+        await this.openIframeUrl(this.buildIframeSrc(this.activeDni, data.session));
       } catch (e) {
         console.error("Error al impersonar socio:", e);
+        const status = e && e.response && e.response.status;
+        const canFallback = !status || status === 404 || status === 405;
+        if (canFallback) {
+          console.warn("Usando login embebido (fallback) — despliega el server para bridge completo.");
+          await this.openIframeUrl(this.buildLegacyIframeSrc(this.activeDni));
+          return;
+        }
         if (!opts.silent) {
-          const status = e && e.response && e.response.status;
           const serverMsg =
             e && e.response && e.response.data && e.response.data.msg;
           let msg = "No se pudo conectar con el servidor";
-          if (status === 404) {
-            msg =
-              "El servidor aún no tiene el módulo de impersonación. Despliega el backend actualizado.";
-          } else if (serverMsg) {
+          if (serverMsg) {
             msg = serverMsg;
           } else if (status) {
             msg = `Error del servidor (${status})`;

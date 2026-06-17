@@ -2,13 +2,15 @@ import axios from "axios";
 
 // Configuración para diferentes entornos (igual que la app)
 const getBaseURL = () => {
+    const isDevelopment = process.env.NODE_ENV === "development";
+    // En dev usar siempre el proxy de vue.config.js (evita CORS y errores opacos)
+    if (isDevelopment) {
+        return "/api";
+    }
     if (process.env.VUE_APP_SERVER) {
         return process.env.VUE_APP_SERVER + "/api";
     }
-    const isDevelopment = process.env.NODE_ENV === "development";
-    return isDevelopment
-        ? "/api"
-        : "https://sifrah-server-0920254d8662.herokuapp.com/api";
+    return "https://sifrah-server-0920254d8662.herokuapp.com/api";
 };
 
 axios.defaults.baseURL = getBaseURL();
