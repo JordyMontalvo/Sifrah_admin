@@ -199,7 +199,7 @@ export default {
         embed: "office",
         _t: String(Date.now()),
       });
-      return `${resolveEmbedAppUrl()}/login/central?${params.toString()}`;
+      return `${resolveEmbedAppUrl()}/office/embed?${params.toString()}`;
     },
     async openIframeUrl(url) {
       this.iframeSrc = "about:blank";
