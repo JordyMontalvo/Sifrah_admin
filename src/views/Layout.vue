@@ -256,6 +256,7 @@
 
               <!-- Operations Menu -->
               <div
+                v-if="accountType === 'admin'"
                 class="navbar-item menu-trigger"
                 @click="toggleMenu('operations')"
               >
@@ -535,7 +536,7 @@
           </a>
         </div>
 
-        <div v-if="activeMenu === 'operations'" class="menu-items">
+        <div v-if="activeMenu === 'operations' && accountType === 'admin'" class="menu-items">
           <a class="menu-item" href="/operations/plan" @click="closeMenu">
             <span class="icon">
               <i class="fas fa-handshake"></i>
