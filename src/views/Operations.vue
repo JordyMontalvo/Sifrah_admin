@@ -191,7 +191,7 @@ export default {
       });
       return `${resolveEmbedAppUrl()}/sudo-login?${params.toString()}`;
     },
-    buildLegacyIframeSrc(dni) {
+    buildOfficeEmbedSrc(dni) {
       const params = new URLSearchParams({
         path: this.appPath,
         dni: String(dni).trim(),
@@ -255,48 +255,23 @@ export default {
       if (!this.activeDni) return;
       this.iframeLoading = true;
 
+      // Bridge seguro (opcional): si el backend lo tiene, usa sesión server-side
       try {
         const { data } = await api.operations.impersonate({
           dni: this.activeDni,
           path: this.appPath,
           office_id: "central",
         });
-
-        if (!data || data.error) {
-          if (!opts.silent) {
-            Swal.fire(
-              "Error",
-              (data && data.msg) || "No se pudo abrir la sesión del socio",
-              "error"
-            );
-          }
-          this.iframeLoading = false;
+        if (data && !data.error && data.session) {
+          await this.openIframeUrl(this.buildIframeSrc(this.activeDni, data.session));
           return;
         }
-
-        await this.openIframeUrl(this.buildIframeSrc(this.activeDni, data.session));
       } catch (e) {
-        console.error("Error al impersonar socio:", e);
-        const status = e && e.response && e.response.status;
-        const canFallback = !status || status === 404 || status === 405;
-        if (canFallback) {
-          console.warn("Usando login embebido (fallback) — despliega el server para bridge completo.");
-          await this.openIframeUrl(this.buildLegacyIframeSrc(this.activeDni));
-          return;
-        }
-        if (!opts.silent) {
-          const serverMsg =
-            e && e.response && e.response.data && e.response.data.msg;
-          let msg = "No se pudo conectar con el servidor";
-          if (serverMsg) {
-            msg = serverMsg;
-          } else if (status) {
-            msg = `Error del servidor (${status})`;
-          }
-          Swal.fire("Error", msg, "error");
-        }
-        this.iframeLoading = false;
+        console.warn("Impersonate no disponible, usando apertura por DNI", e);
       }
+
+      // Modo mostrador: solo DNI — la app hace login con clave de oficina en servidor
+      await this.openIframeUrl(this.buildOfficeEmbedSrc(this.activeDni));
     },
     onIframeLoad() {
       this.iframeLoading = false;
