@@ -638,6 +638,12 @@ class SavingsRedemptions {
     }
 }
 
+class Operations {
+    impersonate({ dni, path = "dashboard", office_id = "central" }) {
+        return axios.post(`/admin/operations-impersonate`, { dni, path, office_id });
+    }
+}
+
 export default new API({
     users: new Users(),
     Affiliations: new Affiliations(),
@@ -681,4 +687,5 @@ export default new API({
     agenda: new Agenda(),
     reactivations: new Reactivations(),
     savingsRedemptions: new SavingsRedemptions(),
+    operations: new Operations(),
 });

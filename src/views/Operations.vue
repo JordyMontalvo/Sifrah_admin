@@ -119,7 +119,7 @@ export default {
   watch: {
     "$route.params.filter"() {
       if (this.activeDni) {
-        this.reloadIframe();
+        this.reloadIframe({ silent: true });
       }
     },
   },
@@ -143,14 +143,16 @@ export default {
         console.warn("No se pudo cargar clave de oficina", e);
       }
     },
-    buildIframeSrc(dni) {
+    buildIframeSrc(dni, session) {
       const params = new URLSearchParams({
+        session,
         path: this.appPath,
         dni: String(dni).trim(),
         office_id: "central",
         embed: "office",
+        _t: String(Date.now()),
       });
-      return `${APP}/login/central?${params.toString()}`;
+      return `${APP}/sudo-login?${params.toString()}`;
     },
     async fetchMemberName(dni) {
       this.memberNameLoading = true;
@@ -192,13 +194,56 @@ export default {
       sessionStorage.setItem(STORAGE_KEY, dni);
 
       await this.fetchMemberName(dni);
-      this.reloadIframe();
+      await this.reloadIframe(opts);
     },
-    reloadIframe() {
+    async reloadIframe(opts = {}) {
       if (!this.activeDni) return;
       this.iframeLoading = true;
-      this.iframeSrc = this.buildIframeSrc(this.activeDni);
-      this.iframeKey += 1;
+
+      try {
+        const { data } = await api.operations.impersonate({
+          dni: this.activeDni,
+          path: this.appPath,
+          office_id: "central",
+        });
+
+        if (!data || data.error) {
+          if (!opts.silent) {
+            Swal.fire(
+              "Error",
+              (data && data.msg) || "No se pudo abrir la sesión del socio",
+              "error"
+            );
+          }
+          this.iframeLoading = false;
+          return;
+        }
+
+        this.iframeSrc = "about:blank";
+        this.iframeKey += 1;
+        await this.$nextTick();
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        this.iframeSrc = this.buildIframeSrc(this.activeDni, data.session);
+        this.iframeKey += 1;
+      } catch (e) {
+        console.error("Error al impersonar socio:", e);
+        if (!opts.silent) {
+          const status = e && e.response && e.response.status;
+          const serverMsg =
+            e && e.response && e.response.data && e.response.data.msg;
+          let msg = "No se pudo conectar con el servidor";
+          if (status === 404) {
+            msg =
+              "El servidor aún no tiene el módulo de impersonación. Despliega el backend actualizado.";
+          } else if (serverMsg) {
+            msg = serverMsg;
+          } else if (status) {
+            msg = `Error del servidor (${status})`;
+          }
+          Swal.fire("Error", msg, "error");
+        }
+        this.iframeLoading = false;
+      }
     },
     onIframeLoad() {
       this.iframeLoading = false;
