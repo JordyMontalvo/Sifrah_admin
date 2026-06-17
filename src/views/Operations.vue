@@ -103,8 +103,17 @@ function isPrivateNetworkUrl(url) {
   }
 }
 
-/** URL de la app embebida en iframe (nunca localhost si el admin está en HTTPS público). */
+/** URL de la app embebida en iframe */
 function resolveEmbedAppUrl() {
+  // En desarrollo: SIEMPRE la app local (evita cargar Vercel viejo en el iframe)
+  if (process.env.NODE_ENV !== "production") {
+    const local =
+      process.env.VUE_APP_APP ||
+      process.env.VUE_APP_ROOT ||
+      "http://localhost:8080";
+    return String(local).trim().replace(/\/$/, "");
+  }
+
   const isPublicAdmin =
     typeof window !== "undefined" &&
     window.location.protocol === "https:" &&
@@ -112,7 +121,7 @@ function resolveEmbedAppUrl() {
 
   const candidates = [
     process.env.VUE_APP_APP,
-    process.env.NODE_ENV === "production" ? PRODUCTION_APP_URL : null,
+    PRODUCTION_APP_URL,
     process.env.VUE_APP_ROOT,
     PRODUCTION_APP_URL,
   ]
@@ -255,23 +264,27 @@ export default {
       if (!this.activeDni) return;
       this.iframeLoading = true;
 
-      // Bridge seguro (opcional): si el backend lo tiene, usa sesión server-side
-      try {
-        const { data } = await api.operations.impersonate({
-          dni: this.activeDni,
-          path: this.appPath,
-          office_id: "central",
-        });
-        if (data && !data.error && data.session) {
-          await this.openIframeUrl(this.buildIframeSrc(this.activeDni, data.session));
-          return;
+      const embedUrl = this.buildOfficeEmbedSrc(this.activeDni);
+      console.info("[Operaciones] Abriendo iframe:", embedUrl);
+
+      // Bridge opcional (solo si el backend en producción ya lo tiene)
+      if (process.env.NODE_ENV === "production") {
+        try {
+          const { data } = await api.operations.impersonate({
+            dni: this.activeDni,
+            path: this.appPath,
+            office_id: "central",
+          });
+          if (data && !data.error && data.session) {
+            await this.openIframeUrl(this.buildIframeSrc(this.activeDni, data.session));
+            return;
+          }
+        } catch (e) {
+          console.warn("Impersonate no disponible, usando office/embed", e);
         }
-      } catch (e) {
-        console.warn("Impersonate no disponible, usando apertura por DNI", e);
       }
 
-      // Modo mostrador: solo DNI — la app hace login con clave de oficina en servidor
-      await this.openIframeUrl(this.buildOfficeEmbedSrc(this.activeDni));
+      await this.openIframeUrl(embedUrl);
     },
     onIframeLoad() {
       this.iframeLoading = false;
