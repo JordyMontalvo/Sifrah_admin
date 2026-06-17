@@ -84,11 +84,48 @@ import Layout from "@/views/Layout";
 import api from "@/api";
 import Swal from "sweetalert2";
 
-const APP =
-  process.env.VUE_APP_APP ||
-  process.env.VUE_APP_ROOT ||
-  "https://sifrah.vercel.app";
+const PRODUCTION_APP_URL = "https://sifrah.vercel.app";
 const STORAGE_KEY = "sifrah_operations_dni";
+
+function isPrivateNetworkHost(hostname) {
+  const h = String(hostname || "").toLowerCase();
+  if (!h || h === "localhost" || h === "127.0.0.1") return true;
+  if (h.endsWith(".local")) return true;
+  if (h.startsWith("192.168.") || h.startsWith("10.")) return true;
+  return /^172\.(1[6-9]|2\d|3[01])\./.test(h);
+}
+
+function isPrivateNetworkUrl(url) {
+  try {
+    return isPrivateNetworkHost(new URL(url).hostname);
+  } catch (e) {
+    return false;
+  }
+}
+
+/** URL de la app embebida en iframe (nunca localhost si el admin está en HTTPS público). */
+function resolveEmbedAppUrl() {
+  const isPublicAdmin =
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    !isPrivateNetworkHost(window.location.hostname);
+
+  const candidates = [
+    process.env.VUE_APP_APP,
+    process.env.NODE_ENV === "production" ? PRODUCTION_APP_URL : null,
+    process.env.VUE_APP_ROOT,
+    PRODUCTION_APP_URL,
+  ]
+    .map((v) => (v ? String(v).trim().replace(/\/$/, "") : ""))
+    .filter(Boolean);
+
+  for (const url of candidates) {
+    if (isPublicAdmin && isPrivateNetworkUrl(url)) continue;
+    return url;
+  }
+
+  return PRODUCTION_APP_URL;
+}
 
 export default {
   components: { Layout },
@@ -152,7 +189,7 @@ export default {
         embed: "office",
         _t: String(Date.now()),
       });
-      return `${APP}/sudo-login?${params.toString()}`;
+      return `${resolveEmbedAppUrl()}/sudo-login?${params.toString()}`;
     },
     async fetchMemberName(dni) {
       this.memberNameLoading = true;
