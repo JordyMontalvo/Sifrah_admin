@@ -254,20 +254,17 @@
                 </span>
               </div>
 
-              <!-- Operations Menu -->
-              <div
+              <!-- Compras -->
+              <a
+                class="navbar-item"
+                href="/operations"
                 v-if="accountType === 'admin'"
-                class="navbar-item menu-trigger"
-                @click="toggleMenu('operations')"
               >
                 <span class="icon">
                   <i class="fas fa-shopping-cart"></i>
                 </span>
                 <span>Compras</span>
-                <span class="icon is-small">
-                  <i class="fas fa-chevron-down"></i>
-                </span>
-              </div>
+              </a>
 
               <!-- Closures -->
               <a
@@ -533,21 +530,6 @@
               <i class="fas fa-folder-open"></i>
             </span>
             <span>Categorías</span>
-          </a>
-        </div>
-
-        <div v-if="activeMenu === 'operations' && accountType === 'admin'" class="menu-items">
-          <a class="menu-item" href="/operations/plan" @click="closeMenu">
-            <span class="icon">
-              <i class="fas fa-handshake"></i>
-            </span>
-            <span>Nueva Afiliación</span>
-          </a>
-          <a class="menu-item" href="/operations/products" @click="closeMenu">
-            <span class="icon">
-              <i class="fas fa-box"></i>
-            </span>
-            <span>Reconsumo de Productos</span>
           </a>
         </div>
 

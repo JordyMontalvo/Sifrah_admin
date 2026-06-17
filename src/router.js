@@ -168,7 +168,7 @@ const routes = [
   },
 
   {
-    path: "/operations/:filter",
+    path: "/operations/:filter?",
     component: Operations,
     meta: { requiresAuth: true },
   },
