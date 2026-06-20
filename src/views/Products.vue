@@ -646,14 +646,39 @@
               </div>
 
               <div class="field">
-                <label class="label">Imagen URL</label>
+                <label class="label">Imagen</label>
                 <div class="control">
+                  <div class="file has-name is-fullwidth">
+                    <label class="file-label">
+                      <input
+                        class="file-input"
+                        type="file"
+                        accept="image/*"
+                        @change="handleProductImageUpload($event, 'new')"
+                        :disabled="productImageUploading"
+                      />
+                      <span class="file-cta">
+                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                        <span class="file-label">
+                          {{ productImageUploading ? "Subiendo..." : "Subir desde dispositivo" }}
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <p class="help">También puedes pegar una URL</p>
+                <div class="control" style="margin-top: 8px;">
                   <input
                     class="input"
                     v-model="newProduct.img"
                     placeholder="https://ejemplo.com/imagen.jpg"
                   />
                 </div>
+                <p v-if="validationErrors.img" class="help is-danger">{{ validationErrors.img }}</p>
+              </div>
+
+              <div v-if="newProduct.img" class="field has-text-centered">
+                <img :src="newProduct.img" class="product-image-preview" alt="Vista previa" />
               </div>
 
               <div class="field">
@@ -715,6 +740,25 @@
                 <div class="field">
                   <label class="label">Imagen Exclusiva Bono (Opcional)</label>
                   <div class="control">
+                    <div class="file has-name is-fullwidth">
+                      <label class="file-label">
+                        <input
+                          class="file-input"
+                          type="file"
+                          accept="image/*"
+                          @change="handleProductImageUpload($event, 'new_savings')"
+                          :disabled="productImageUploading"
+                        />
+                        <span class="file-cta">
+                          <span class="file-icon"><i class="fas fa-upload"></i></span>
+                          <span class="file-label">
+                            {{ productImageUploading ? "Subiendo..." : "Subir imagen" }}
+                          </span>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="control" style="margin-top: 8px;">
                     <input class="input" v-model="newProduct.savings_img" placeholder="URL imagen para bono">
                   </div>
                 </div>
@@ -730,7 +774,11 @@
           </section>
 
           <footer class="modal-card-foot">
-            <button class="button is-success" @click="addProduct">
+            <button
+              class="button is-success"
+              @click="addProduct"
+              :class="{ 'is-loading': productImageUploading }"
+            >
               <span class="icon">
                 <i class="fas fa-save"></i>
               </span>
@@ -864,14 +912,38 @@
               </div>
 
               <div class="field">
-                <label class="label">Imagen URL</label>
+                <label class="label">Imagen</label>
                 <div class="control">
+                  <div class="file has-name is-fullwidth">
+                    <label class="file-label">
+                      <input
+                        class="file-input"
+                        type="file"
+                        accept="image/*"
+                        @change="handleProductImageUpload($event, 'edit')"
+                        :disabled="productImageUploading"
+                      />
+                      <span class="file-cta">
+                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                        <span class="file-label">
+                          {{ productImageUploading ? "Subiendo..." : "Subir desde dispositivo" }}
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <p class="help">También puedes pegar una URL</p>
+                <div class="control" style="margin-top: 8px;">
                   <input
                     class="input"
                     v-model="editingProduct.img"
                     placeholder="https://ejemplo.com/imagen.jpg"
                   />
                 </div>
+              </div>
+
+              <div v-if="editingProduct.img" class="field has-text-centered">
+                <img :src="editingProduct.img" class="product-image-preview" alt="Vista previa" />
               </div>
 
               <div class="field">
@@ -914,7 +986,11 @@
 
           </section>
           <footer class="modal-card-foot">
-            <button class="button is-success" @click="saveProduct">
+            <button
+              class="button is-success"
+              @click="saveProduct"
+              :class="{ 'is-loading': productImageUploading }"
+            >
               Guardar Cambios
             </button>
             <button class="button" @click="closeEditModal">Cancelar</button>
@@ -1312,6 +1388,7 @@ export default {
       sortOrderSnapshot: {},
       showEditSavingsModal: false,
       savingsImageUploading: false,
+      productImageUploading: false,
       editingSavingsProduct: {
         id: "",
         code: "",
@@ -1606,6 +1683,44 @@ export default {
             this.showAddModal = true;
           }
           break;
+      }
+    },
+
+    async handleProductImageUpload(event, target) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        Swal.fire("Error", "Selecciona un archivo de imagen válido", "error");
+        event.target.value = "";
+        return;
+      }
+
+      this.productImageUploading = true;
+      try {
+        const url = await lib.upload(file, file.name, "products");
+        if (target === "edit") {
+          this.editingProduct.img = url;
+        } else if (target === "new_savings") {
+          this.newProduct.savings_img = url;
+        } else {
+          this.newProduct.img = url;
+        }
+        if (this.validationErrors.img) {
+          this.validationErrors.img = "";
+        }
+        Swal.fire({
+          icon: "success",
+          title: "Imagen subida",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error uploading product image:", error);
+        Swal.fire("Error", error.message || "No se pudo subir la imagen", "error");
+      } finally {
+        this.productImageUploading = false;
+        event.target.value = "";
       }
     },
 
@@ -2450,7 +2565,7 @@ export default {
         hasError = true;
       }
       if (!this.newProduct.img) {
-        this.validationErrors.img = "La URL de la imagen es obligatoria.";
+        this.validationErrors.img = "La imagen del producto es obligatoria.";
         hasError = true;
       }
       if (Object.keys(this.newProduct.plans).length === 0) {
@@ -2959,5 +3074,12 @@ export default {
 .product-order-input {
   text-align: center;
   font-weight: 600;
+}
+
+.product-image-preview {
+  max-height: 150px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 </style>
