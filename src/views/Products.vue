@@ -124,6 +124,28 @@
           @item-action="handleItemAction"
           @search="handleSearch"
         >
+          <template #cell-sort_controls="{ row }">
+            <div class="product-order-controls" @click.stop>
+              <button
+                type="button"
+                class="button is-small is-light"
+                title="Subir"
+                :disabled="!!orderSaving || isFirstCatalogRow(row)"
+                @click="moveProductOrder(row.raw, 'up')"
+              >
+                <i class="fas fa-chevron-up"></i>
+              </button>
+              <button
+                type="button"
+                class="button is-small is-light"
+                title="Bajar"
+                :disabled="!!orderSaving || isLastCatalogRow(row)"
+                @click="moveProductOrder(row.raw, 'down')"
+              >
+                <i class="fas fa-chevron-down"></i>
+              </button>
+            </div>
+          </template>
           <template #cell-name="{ value, row }">
             <div style="display: flex; flex-direction: column;">
               <span class="has-text-weight-bold">{{ value }}</span>
@@ -1175,8 +1197,13 @@ export default {
         {
           key: "rowNum",
           label: "#",
-          sortable: true,
+          sortable: false,
           type: "number",
+        },
+        {
+          key: "sort_controls",
+          label: "Orden",
+          sortable: false,
         },
         {
           key: "code",
@@ -1287,6 +1314,7 @@ export default {
       savingsToggleLoading: {},
       savingsPriceSaving: {},
       savingsPriceSnapshot: {},
+      orderSaving: false,
       showEditSavingsModal: false,
       savingsImageUploading: false,
       editingSavingsProduct: {
@@ -1387,15 +1415,7 @@ export default {
       }));
     },
     filteredTableData() {
-      let rows = this.tableData;
-      if (this.activeTab === 'sifrah') {
-        rows = rows.filter((p) => !p.is_promotion && !this.isSavingsOnlyProduct(p));
-      } else if (this.activeTab === 'savings') {
-        rows = rows.filter((p) => p.is_savings_bonus && !p.is_promotion);
-      } else if (this.activeTab === 'promotions') {
-        rows = rows.filter((p) => p.is_promotion);
-      }
-      return rows.map((row, index) => {
+      return this.getSortedCatalogRows().map((row, index) => {
         const mapped = { ...row, rowNum: index + 1 };
         if (this.activeTab === "savings") {
           mapped.type = this.savingsCategoryLabel(row.raw);
@@ -1420,14 +1440,15 @@ export default {
       if (this.activeTab === 'savings') {
         return 'Edita el precio de canje sin modificar el catálogo SIFRAH';
       }
-      return 'Gestiona productos, puntos y asignación a planes';
+      return 'Gestiona productos, puntos y asignación a planes. Usa las flechas en Orden para definir cómo se ven en la tienda virtual.';
     },
     sifrahColumns() {
       return this.tableColumns;
     },
     promotionsColumns() {
       return [
-        { key: "rowNum", label: "#", sortable: true, type: "number" },
+        { key: "rowNum", label: "#", sortable: false, type: "number" },
+        { key: "sort_controls", label: "Orden", sortable: false },
         { key: "img", label: "Imagen", sortable: false },
         { key: "name", label: "Promoción", sortable: true },
         { key: "price", label: "Precio", sortable: true, type: "currency" },
@@ -1438,7 +1459,8 @@ export default {
     },
     savingsColumns() {
       return [
-        { key: "rowNum", label: "#", sortable: true, type: "number" },
+        { key: "rowNum", label: "#", sortable: false, type: "number" },
+        { key: "sort_controls", label: "Orden", sortable: false },
         { key: "img", label: "Imagen", sortable: false },
         { key: "name", label: "Producto", sortable: true },
         { key: "type", label: "Categoría", sortable: true },
@@ -1465,6 +1487,70 @@ export default {
   mounted() {
   },
   methods: {
+    compareProductOrder(a, b) {
+      const ao = Number(a && a.sort_order);
+      const bo = Number(b && b.sort_order);
+      const aHas = Number.isFinite(ao);
+      const bHas = Number.isFinite(bo);
+      if (aHas && bHas && ao !== bo) return ao - bo;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      return String((a && a.name) || "").localeCompare(String((b && b.name) || ""));
+    },
+    sortProductsInMemory(list) {
+      return [...(list || [])].sort((a, b) => this.compareProductOrder(a, b));
+    },
+    getSortedCatalogRows() {
+      let rows = this.tableData;
+      if (this.activeTab === "sifrah") {
+        rows = rows.filter((p) => !p.is_promotion && !this.isSavingsOnlyProduct(p));
+      } else if (this.activeTab === "savings") {
+        rows = rows.filter((p) => p.is_savings_bonus && !p.is_promotion);
+      } else if (this.activeTab === "promotions") {
+        rows = rows.filter((p) => p.is_promotion);
+      }
+      return [...rows].sort((a, b) => this.compareProductOrder(a.raw, b.raw));
+    },
+    isFirstCatalogRow(row) {
+      const rows = this.getSortedCatalogRows();
+      return !rows.length || rows[0].raw.id === row.raw.id;
+    },
+    isLastCatalogRow(row) {
+      const rows = this.getSortedCatalogRows();
+      return !rows.length || rows[rows.length - 1].raw.id === row.raw.id;
+    },
+    async moveProductOrder(product, direction) {
+      const rows = this.getSortedCatalogRows();
+      const idx = rows.findIndex((r) => r.raw.id === product.id);
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (idx < 0 || swapIdx < 0 || swapIdx >= rows.length) return;
+
+      const current = rows[idx].raw;
+      const neighbor = rows[swapIdx].raw;
+      const currentOrder = Number(current.sort_order) || 0;
+      const neighborOrder = Number(neighbor.sort_order) || 0;
+
+      this.orderSaving = true;
+      try {
+        await api.products.POST({
+          action: "reorder",
+          items: [
+            { id: current.id, sort_order: neighborOrder },
+            { id: neighbor.id, sort_order: currentOrder },
+          ],
+        });
+        current.sort_order = neighborOrder;
+        neighbor.sort_order = currentOrder;
+        this.allProducts = this.sortProductsInMemory(this.allProducts);
+        this.products = this.sortProductsInMemory(this.products);
+        this.applyFilters();
+      } catch (e) {
+        console.error("Error reordenando producto:", e);
+        Swal.fire("Error", "No se pudo guardar el orden del producto", "error");
+      } finally {
+        this.orderSaving = false;
+      }
+    },
     isSavingsOnlyProduct(product) {
       if (!product) return false;
       if (product.catalog_type === "savings") return true;
@@ -1493,6 +1579,7 @@ export default {
 
         const normalized = (productsResponse.data.products || []).map((p) => ({
           ...p,
+          sort_order: Number(p.sort_order) || 0,
           is_savings_bonus: !!p.is_savings_bonus,
           savings_price: Number(p.savings_price) || 0,
           is_promotion: !!p.is_promotion || p.type === "Promoción" || p.catalog_type === "promotion",
@@ -1500,8 +1587,8 @@ export default {
           available_quantity: Number(p.available_quantity) || 0,
         }));
 
-        this.allProducts = normalized;
-        this.products = [...normalized];
+        this.allProducts = this.sortProductsInMemory(normalized);
+        this.products = [...this.allProducts];
         this.applyFilters();
         this.plans = plansResponse.data.plans || [];
 
@@ -2877,5 +2964,17 @@ export default {
   color: #333;
   cursor: pointer;
   z-index: 2;
+}
+
+.product-order-controls {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-order-controls .button {
+  height: 1.6rem;
+  width: 1.8rem;
+  padding: 0;
 }
 </style>
