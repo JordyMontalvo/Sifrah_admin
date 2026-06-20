@@ -1483,7 +1483,9 @@ export default {
         is_promotion: !!product.is_promotion,
         promotion_active: product.promotion_active !== false,
         available_quantity: Number(product.available_quantity) || 0,
-        catalog_type: product.catalog_type || (product.points ? 'both' : 'savings'),
+        catalog_type:
+          product.catalog_type ||
+          (product.points ? "both" : product.is_savings_bonus ? "savings" : "sifrah"),
         raw: product,
       }));
     },
@@ -1576,7 +1578,9 @@ export default {
     getSortedCatalogRows() {
       let rows = this.tableData;
       if (this.activeTab === "sifrah") {
-        rows = rows.filter((p) => !p.is_promotion && !this.isSavingsOnlyProduct(p));
+        rows = rows.filter(
+          (p) => !p.is_promotion && this.isFromSifrahCatalog(p.raw || p)
+        );
       } else if (this.activeTab === "savings") {
         rows = rows.filter((p) => p.is_savings_bonus && !p.is_promotion);
       } else if (this.activeTab === "promotions") {
@@ -2311,7 +2315,9 @@ export default {
     isFromSifrahCatalog(prod) {
       if (!prod) return false;
       if (prod.catalog_type === "savings") return false;
+      if (prod.is_promotion) return false;
       if (Number(prod.points) > 0) return true;
+      if (prod.catalog_type === "sifrah" || prod.catalog_type === "both") return true;
       const plans = prod.plans || {};
       if (Object.values(plans).some(Boolean)) return true;
       return !!(prod.code && Number(prod.price) > 0);
