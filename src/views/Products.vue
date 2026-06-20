@@ -390,7 +390,7 @@
               <div class="field">
                 <label class="label">Cantidad disponible <span class="has-text-danger">*</span></label>
                 <div class="control">
-                  <input class="input" type="number" min="1" step="1" v-model.number="newPromotion.available_quantity" placeholder="Máximo a vender" />
+                  <input class="input" type="number" min="1" step="1" v-model.number="newPromotion.available_quantity" placeholder="Máximo por usuario" />
                 </div>
                 <p class="help">Unidades máximas que los usuarios pueden comprar en total.</p>
               </div>
@@ -1510,7 +1510,7 @@ export default {
     },
     activeTableSubtitle() {
       if (this.activeTab === 'promotions') {
-        return 'Promociones comerciales visibles solo para usuarios activos (sin puntos ni compensación)';
+        return 'Promociones comerciales visibles solo para usuarios activos (sin puntos ni compensación). Máx. / usuario = límite de compra individual.';
       }
       if (this.activeTab === 'savings') {
         return 'Edita el precio de canje sin modificar el catálogo SIFRAH';
@@ -1527,7 +1527,7 @@ export default {
         { key: "img", label: "Imagen", sortable: false },
         { key: "name", label: "Promoción", sortable: true },
         { key: "price", label: "Precio", sortable: true, type: "currency" },
-        { key: "available_quantity", label: "Stock máx.", sortable: true, type: "number" },
+        { key: "available_quantity", label: "Máx. / usuario", sortable: true, type: "number" },
         { key: "promotion_active", label: "En tienda", sortable: true, type: "boolean" },
         { key: "is_savings_bonus", label: "Bono Ahorro", sortable: true, type: "boolean" },
       ];
