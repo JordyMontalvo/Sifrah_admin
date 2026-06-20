@@ -124,26 +124,19 @@
           @item-action="handleItemAction"
           @search="handleSearch"
         >
-          <template #cell-sort_controls="{ row }">
-            <div class="product-order-controls" @click.stop>
-              <button
-                type="button"
-                class="button is-small is-light"
-                title="Subir"
-                :disabled="!!orderSaving || isFirstCatalogRow(row)"
-                @click="moveProductOrder(row.raw, 'up')"
-              >
-                <i class="fas fa-chevron-up"></i>
-              </button>
-              <button
-                type="button"
-                class="button is-small is-light"
-                title="Bajar"
-                :disabled="!!orderSaving || isLastCatalogRow(row)"
-                @click="moveProductOrder(row.raw, 'down')"
-              >
-                <i class="fas fa-chevron-down"></i>
-              </button>
+          <template #cell-sort_order="{ row }">
+            <div class="product-order-edit" @click.stop>
+              <input
+                class="input is-small product-order-input"
+                type="number"
+                min="1"
+                step="1"
+                v-model.number="row.raw.sort_order"
+                :disabled="!!sortOrderSaving[row.raw.id]"
+                @focus="rememberSortOrder(row.raw)"
+                @blur="saveSortOrderIfChanged(row.raw)"
+                @keyup.enter="$event.target.blur()"
+              />
             </div>
           </template>
           <template #cell-name="{ value, row }">
@@ -1201,9 +1194,10 @@ export default {
           type: "number",
         },
         {
-          key: "sort_controls",
+          key: "sort_order",
           label: "Orden",
           sortable: false,
+          type: "number",
         },
         {
           key: "code",
@@ -1314,7 +1308,8 @@ export default {
       savingsToggleLoading: {},
       savingsPriceSaving: {},
       savingsPriceSnapshot: {},
-      orderSaving: false,
+      sortOrderSaving: {},
+      sortOrderSnapshot: {},
       showEditSavingsModal: false,
       savingsImageUploading: false,
       editingSavingsProduct: {
@@ -1402,6 +1397,7 @@ export default {
         points: product.points || 0,
         weight: product.weight || 0,
         img: product.img || "",
+        sort_order: Math.max(1, Number(product.sort_order) || 0),
         plans: product.plans || {},
         is_savings_bonus: product.is_savings_bonus || false,
         savings_price: product.savings_price || 0,
@@ -1440,7 +1436,7 @@ export default {
       if (this.activeTab === 'savings') {
         return 'Edita el precio de canje sin modificar el catálogo SIFRAH';
       }
-      return 'Gestiona productos, puntos y asignación a planes. Usa las flechas en Orden para definir cómo se ven en la tienda virtual.';
+      return 'Gestiona productos, puntos y asignación a planes. El número en Orden define cómo se ven en la tienda virtual (1 = primero).';
     },
     sifrahColumns() {
       return this.tableColumns;
@@ -1448,7 +1444,7 @@ export default {
     promotionsColumns() {
       return [
         { key: "rowNum", label: "#", sortable: false, type: "number" },
-        { key: "sort_controls", label: "Orden", sortable: false },
+        { key: "sort_order", label: "Orden", sortable: false, type: "number" },
         { key: "img", label: "Imagen", sortable: false },
         { key: "name", label: "Promoción", sortable: true },
         { key: "price", label: "Precio", sortable: true, type: "currency" },
@@ -1460,7 +1456,7 @@ export default {
     savingsColumns() {
       return [
         { key: "rowNum", label: "#", sortable: false, type: "number" },
-        { key: "sort_controls", label: "Orden", sortable: false },
+        { key: "sort_order", label: "Orden", sortable: false, type: "number" },
         { key: "img", label: "Imagen", sortable: false },
         { key: "name", label: "Producto", sortable: true },
         { key: "type", label: "Categoría", sortable: true },
@@ -1511,44 +1507,34 @@ export default {
       }
       return [...rows].sort((a, b) => this.compareProductOrder(a.raw, b.raw));
     },
-    isFirstCatalogRow(row) {
-      const rows = this.getSortedCatalogRows();
-      return !rows.length || rows[0].raw.id === row.raw.id;
+    rememberSortOrder(product) {
+      this.$set(this.sortOrderSnapshot, product.id, Math.max(1, Number(product.sort_order) || 1));
     },
-    isLastCatalogRow(row) {
-      const rows = this.getSortedCatalogRows();
-      return !rows.length || rows[rows.length - 1].raw.id === row.raw.id;
-    },
-    async moveProductOrder(product, direction) {
-      const rows = this.getSortedCatalogRows();
-      const idx = rows.findIndex((r) => r.raw.id === product.id);
-      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-      if (idx < 0 || swapIdx < 0 || swapIdx >= rows.length) return;
+    async saveSortOrderIfChanged(product) {
+      const prev = this.sortOrderSnapshot[product.id];
+      let next = Math.round(Number(product.sort_order));
+      if (!Number.isFinite(next) || next < 1) {
+        product.sort_order = prev || 1;
+        return;
+      }
+      product.sort_order = next;
+      if (prev === next) return;
 
-      const current = rows[idx].raw;
-      const neighbor = rows[swapIdx].raw;
-      const currentOrder = Number(current.sort_order) || 0;
-      const neighborOrder = Number(neighbor.sort_order) || 0;
-
-      this.orderSaving = true;
+      this.$set(this.sortOrderSaving, product.id, true);
       try {
         await api.products.POST({
           action: "reorder",
-          items: [
-            { id: current.id, sort_order: neighborOrder },
-            { id: neighbor.id, sort_order: currentOrder },
-          ],
+          items: [{ id: product.id, sort_order: next }],
         });
-        current.sort_order = neighborOrder;
-        neighbor.sort_order = currentOrder;
         this.allProducts = this.sortProductsInMemory(this.allProducts);
         this.products = this.sortProductsInMemory(this.products);
         this.applyFilters();
       } catch (e) {
-        console.error("Error reordenando producto:", e);
+        console.error("Error guardando orden:", e);
+        product.sort_order = prev || 1;
         Swal.fire("Error", "No se pudo guardar el orden del producto", "error");
       } finally {
-        this.orderSaving = false;
+        this.$delete(this.sortOrderSaving, product.id);
       }
     },
     isSavingsOnlyProduct(product) {
@@ -1579,7 +1565,7 @@ export default {
 
         const normalized = (productsResponse.data.products || []).map((p) => ({
           ...p,
-          sort_order: Number(p.sort_order) || 0,
+          sort_order: Math.max(1, Number(p.sort_order) || 0),
           is_savings_bonus: !!p.is_savings_bonus,
           savings_price: Number(p.savings_price) || 0,
           is_promotion: !!p.is_promotion || p.type === "Promoción" || p.catalog_type === "promotion",
@@ -2966,15 +2952,12 @@ export default {
   z-index: 2;
 }
 
-.product-order-controls {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 4px;
+.product-order-edit {
+  max-width: 72px;
 }
 
-.product-order-controls .button {
-  height: 1.6rem;
-  width: 1.8rem;
-  padding: 0;
+.product-order-input {
+  text-align: center;
+  font-weight: 600;
 }
 </style>
