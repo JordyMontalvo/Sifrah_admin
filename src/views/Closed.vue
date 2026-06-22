@@ -294,6 +294,68 @@
 
         <!-- Expandable Content -->
         <div v-if="cl._open">
+          
+          <!-- HISTORICAL SUMMARY CARDS -->
+          <div class="summary-cards" style="margin-top: 20px; margin-bottom: 20px;">
+            <div class="summary-card">
+              <span class="summary-card__icon">💰</span>
+              <div>
+                <span class="summary-card__label">Total Bono Residual</span>
+                <strong class="summary-card__value">S/ {{ (cl._summary.totalResidual || 0).toFixed(2) }}</strong>
+              </div>
+            </div>
+            <div class="summary-card">
+              <span class="summary-card__icon">🌟</span>
+              <div>
+                <span class="summary-card__label">Total Bono Gen. VIP</span>
+                <strong class="summary-card__value">S/ {{ (cl._summary.totalGenerationalBonus || 0).toFixed(2) }}</strong>
+              </div>
+            </div>
+            <div class="summary-card">
+              <span class="summary-card__icon">🎁</span>
+              <div>
+                <span class="summary-card__label">Total Bono Ahorro Sifrah</span>
+                <strong class="summary-card__value">S/ {{ (cl._summary.totalSavingsBonus || 0).toFixed(2) }}</strong>
+              </div>
+            </div>
+            <div class="summary-card">
+              <span class="summary-card__icon">💎</span>
+              <div>
+                <span class="summary-card__label">Usuarios con Rango</span>
+                <strong class="summary-card__value">{{ cl._summary.usersWithRank || 0 }}</strong>
+              </div>
+            </div>
+            <div class="summary-card">
+              <span class="summary-card__icon">✅</span>
+              <div>
+                <span class="summary-card__label">Activos Full</span>
+                <strong class="summary-card__value">{{ cl._summary.activosFull || 0 }}</strong>
+              </div>
+            </div>
+            <div class="summary-card summary-card--accent">
+              <span class="summary-card__icon">🏆</span>
+              <div>
+                <span class="summary-card__label">Bono logro / mant. rango</span>
+                <strong class="summary-card__value">S/ {{ (cl._summary.totalRankBonus || 0).toFixed(2) }}</strong>
+              </div>
+            </div>
+            <div class="summary-card summary-card--accent2">
+              <span class="summary-card__icon">📌</span>
+              <div>
+                <span class="summary-card__label">Total cierre (residual + gen + ahorro + rango)</span>
+                <strong class="summary-card__value">S/ {{ (cl._summary.totalPreviewCierre || 0).toFixed(2) }}</strong>
+              </div>
+            </div>
+            <div class="summary-card summary-card--warn" v-if="cl._summary.totalVirtualReset > 0">
+              <span class="summary-card__icon">🧹</span>
+              <div>
+                <span class="summary-card__label">Saldo no disponible a quitar</span>
+                <strong class="summary-card__value">S/ {{ (cl._summary.totalVirtualReset || 0).toFixed(2) }}</strong>
+                <span class="summary-card__sub">{{ cl._summary.virtualResetsCount }} usuario(s)</span>
+              </div>
+            </div>
+          </div>
+
           <div class="table-search">
             <input v-model="cl._search" class="search-input" placeholder="🔍 Buscar en este cierre..." />
           </div>
@@ -626,7 +688,45 @@ export default {
       this.loading = true
       try {
         const { data } = await api.closeds.GET()
-        this.closeds = (data.closeds || []).reverse().map(c => ({ ...c, _open: false, _search: '' }))
+        this.closeds = (data.closeds || []).reverse().map(c => {
+          let summary = {}
+          if (c.data && c.data.total_residual !== undefined) {
+            summary = {
+              totalResidual: c.data.total_residual,
+              totalGenerationalBonus: c.data.total_generational,
+              totalSavingsBonus: c.data.total_savings,
+              totalRankBonus: c.data.rank_bonus_total || 0,
+              usersWithRank: c.data.users_with_rank,
+              activosFull: c.data.activos_full,
+              totalVirtualReset: (c.data.virtual_balance_resets || []).reduce((sum, r) => sum + (r.amount || 0), 0),
+              virtualResetsCount: (c.data.virtual_balance_resets || []).length,
+              totalPreviewCierre: (c.data.total_residual || 0) + (c.data.total_generational || 0) + (c.data.total_savings || 0) + (c.data.rank_bonus_total || 0),
+            }
+          } else {
+            // Fallback para cierres historicos viejos
+            const users = c.users || []
+            const totalResidual = users.reduce((sum, u) => sum + (u.residual_bonus || 0), 0)
+            const totalGenerationalBonus = users.reduce((sum, u) => sum + (u.generational_bonus || 0), 0)
+            const totalSavingsBonus = users.reduce((sum, u) => sum + (u.savings_bonus || 0), 0)
+            const totalRankBonus = Number((c.data && c.data.rank_bonus_total) || 0)
+            const usersWithRank = users.filter(u => u.rank && u.rank !== 'none' && u.rank !== 'active').length
+            const activosFull = users.filter(u => u.rank && u.rank !== 'none').length
+            const virtualResetsArray = (c.data && c.data.virtual_balance_resets) || []
+            const totalVirtualReset = virtualResetsArray.reduce((sum, r) => sum + (r.amount || 0), 0)
+            summary = {
+              totalResidual,
+              totalGenerationalBonus,
+              totalSavingsBonus,
+              totalRankBonus,
+              totalPreviewCierre: totalResidual + totalGenerationalBonus + totalSavingsBonus + totalRankBonus,
+              usersWithRank,
+              activosFull,
+              totalVirtualReset,
+              virtualResetsCount: virtualResetsArray.length,
+            }
+          }
+          return { ...c, _open: false, _search: '', _summary: summary }
+        })
       } catch (e) {
         console.error('Error loading closures:', e)
       } finally {
