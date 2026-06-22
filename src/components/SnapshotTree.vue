@@ -5,7 +5,10 @@
         <div class="node-name">{{ node.name }} <span class="node-dni" v-if="node.dni">DNI: {{ node.dni }}</span></div>
         <div class="node-rank">{{ node.rank || 'Sin rango' }}</div>
         <div class="node-points">
-          <span class="pts-personales" title="Puntos Personales">PP: {{ Number(node.points || 0).toFixed(0) }}</span>
+          <span class="pts-personales" title="Puntos Personales (Rec + Afil)">
+            PP: {{ Number(node.personal_points != null ? node.personal_points : (node.points || 0)).toFixed(0) }}
+            <span class="pts-detail">(R:{{ Number(node.reconsumo_points != null ? node.reconsumo_points : (node.points || 0)).toFixed(0) }} A:{{ Number(node.affiliation_points || 0).toFixed(0) }})</span>
+          </span>
           <span class="pts-grupales" title="Puntos Grupales">PG: {{ Number(node._total || 0).toFixed(0) }}</span>
         </div>
       </div>
@@ -104,6 +107,12 @@ export default {
   padding: 3px 8px;
   border-radius: 6px;
   font-weight: 600;
+}
+.pts-detail {
+  font-size: 0.7rem;
+  font-weight: normal;
+  color: #4a5568;
+  margin-left: 4px;
 }
 .pts-grupales {
   background: #e6fffa;

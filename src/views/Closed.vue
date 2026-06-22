@@ -157,7 +157,11 @@
                   {{ node.name }}
                   <div v-if="node.dni" class="user-dni-sub">DNI {{ node.dni }}</div>
                 </td>
-                <td>{{ node.points || 0 }}</td>
+                <td>
+                  <strong>Total: {{ node.personal_points != null ? node.personal_points : (node.points || 0) }}</strong>
+                  <div style="font-size: 0.8rem; color: #718096; margin-top: 2px;">Rec: {{ node.reconsumo_points != null ? node.reconsumo_points : (node.points || 0) }}</div>
+                  <div style="font-size: 0.8rem; color: #718096;">Afil: {{ node.affiliation_points || 0 }}</div>
+                </td>
                 <td>
                   <div class="group-points-wrapper">
                     <div class="group-total">Total: {{ (node._total || 0).toFixed(0) }}</div>
@@ -299,6 +303,7 @@
                 <tr>
                   <th>#</th>
                   <th>Nombre</th>
+                  <th>Pts. Personales</th>
                   <th>Pts. Grupales</th>
                   <th>Rango Cerrado</th>
                   <th>Bono Residual</th>
@@ -314,6 +319,11 @@
                   <td class="td-name">
                     {{ user.name }}
                     <div v-if="user.dni" class="user-dni-sub">DNI {{ user.dni }}</div>
+                  </td>
+                  <td>
+                    <strong>Total: {{ user.personal_points != null ? user.personal_points : (user.points || 0) }}</strong>
+                    <div style="font-size: 0.8rem; color: #718096; margin-top: 2px;">Rec: {{ user.reconsumo_points != null ? user.reconsumo_points : (user.points || 0) }}</div>
+                    <div style="font-size: 0.8rem; color: #718096;">Afil: {{ user.affiliation_points || 0 }}</div>
                   </td>
                   <td>
                     <div class="group-points-wrapper">
