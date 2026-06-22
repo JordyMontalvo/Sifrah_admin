@@ -114,6 +114,17 @@
               </div>
             </div>
           </template>
+          <template #cell-date="{ row, value }">
+            <div>
+              <div>{{ row.date ? new Date(row.date).toLocaleDateString('es-PE') : '' }}</div>
+              <div v-if="row.raw && row.raw.period_label" class="tag is-info is-light is-small" style="margin-top: 4px;">
+                Ciclo: {{ row.raw.period_label }}
+              </div>
+              <div v-else-if="row.raw && row.raw.period_key" class="tag is-info is-light is-small" style="margin-top: 4px;">
+                Ciclo: {{ row.raw.period_key }}
+              </div>
+            </div>
+          </template>
         </ModernTable>
       </div>
 
