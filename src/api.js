@@ -234,6 +234,12 @@ class Closeds {
     POST({ action, id, data }) {
         return axios.post(`/admin/closeds`, { action, id, data });
     }
+    downloadDatabaseBackup() {
+        return axios.get(`/admin/database-backup`, {
+            responseType: "blob",
+            timeout: 600000,
+        });
+    }
 }
 
 class Promos {

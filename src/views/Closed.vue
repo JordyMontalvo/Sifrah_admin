@@ -15,6 +15,81 @@
       </div>
     </div>
 
+    <!-- ─── Modal confirmación antes de guardar cierre ─── -->
+    <div
+      class="save-confirm-overlay"
+      v-if="showSaveConfirmModal"
+      @click.self="closeSaveConfirmModal"
+    >
+      <div class="save-confirm-modal" role="dialog" aria-labelledby="save-confirm-title">
+        <button
+          type="button"
+          class="save-confirm-close"
+          aria-label="Cerrar"
+          @click="closeSaveConfirmModal"
+        >
+          ✕
+        </button>
+
+        <div class="save-confirm-icon-wrap">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h2 id="save-confirm-title" class="save-confirm-title">Antes de guardar el cierre</h2>
+
+        <div class="save-confirm-step save-confirm-step--download">
+          <div class="save-confirm-step-icon save-confirm-step-icon--blue">
+            <i class="fas fa-cloud-download-alt"></i>
+          </div>
+          <div class="save-confirm-step-body">
+            <h3>1. Descarga la base de datos</h3>
+            <p>
+              Obtén una copia de respaldo completa de la información actual antes de continuar.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="save-confirm-download-btn"
+            :class="{ 'is-loading': backupDownloading }"
+            :disabled="backupDownloading"
+            @click="downloadDatabaseBackup"
+          >
+            <i class="fas fa-download"></i>
+            <span>{{ backupDownloading ? "Generando..." : "Descargar base de datos" }}</span>
+          </button>
+        </div>
+
+        <div class="save-confirm-step save-confirm-step--confirm">
+          <div class="save-confirm-step-icon save-confirm-step-icon--amber">
+            <i class="fas fa-lock"></i>
+          </div>
+          <div class="save-confirm-step-body">
+            <h3>2. Confirma el cierre del periodo</h3>
+            <div class="save-confirm-warning">
+              <i class="fas fa-exclamation-circle"></i>
+              <span>Esta acción es definitiva y no se puede revertir.</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="save-confirm-question">¿Estás seguro que deseas guardar el cierre?</p>
+
+        <div class="save-confirm-actions">
+          <button type="button" class="save-confirm-cancel" @click="closeSaveConfirmModal">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="save-confirm-submit"
+            :disabled="saving"
+            @click="confirmSave"
+          >
+            <i class="fas fa-lock"></i>
+            <span>{{ saving ? "Guardando..." : "Confirmar y guardar el cierre" }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <section v-if="!loading" class="cierre-wrapper">
 
       <!-- ─── Header ─── -->
@@ -248,7 +323,7 @@
 
       <div class="table-card save-bar" v-if="hasPreviewData">
         <div class="table-card__footer table-card__footer--solo">
-          <button v-if="!saving" class="btn-guardar" @click="save">
+          <button v-if="!saving" class="btn-guardar" @click="openSaveConfirmModal">
             💾 Confirmar y Guardar Cierre
           </button>
           <button v-else class="btn-guardar btn-guardar--loading" disabled>
@@ -583,6 +658,8 @@ export default {
       saving:       false,
       search:       '',
       snapshotModalData: null,
+      showSaveConfirmModal: false,
+      backupDownloading: false,
     }
   },
   created() {
@@ -785,8 +862,54 @@ export default {
         this.calculating = false
       }
     },
-    async save() {
-      if (!confirm('⚠️ Está a punto de guardar el cierre. Este proceso actualizará la base de datos y NO se puede revertir. ¿Confirmar?')) return
+    openSaveConfirmModal() {
+      this.showSaveConfirmModal = true
+    },
+    closeSaveConfirmModal() {
+      if (this.saving) return
+      this.showSaveConfirmModal = false
+    },
+    async downloadDatabaseBackup() {
+      this.backupDownloading = true
+      try {
+        const response = await api.closeds.downloadDatabaseBackup()
+        const disposition = response.headers && response.headers['content-disposition']
+        let filename = `sifrah-backup-${Date.now()}.gz`
+        if (disposition) {
+          const match = disposition.match(/filename="?([^"]+)"?/i)
+          if (match && match[1]) filename = match[1]
+        }
+        const blob = new Blob([response.data], { type: 'application/gzip' })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', filename)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        console.error('Error descargando respaldo:', e)
+        let msg = 'No se pudo descargar el respaldo de la base de datos.'
+        if (e.response && e.response.data instanceof Blob) {
+          try {
+            const text = await e.response.data.text()
+            const parsed = JSON.parse(text)
+            if (parsed.details) msg += `\n\n${parsed.details}`
+            else if (parsed.error) msg += `\n\n${parsed.error}`
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        alert(msg)
+      } finally {
+        this.backupDownloading = false
+      }
+    },
+    confirmSave() {
+      this.executeSave()
+    },
+    async executeSave() {
       this.saving = true
       try {
         const { data } = await api.closeds.POST({ action: 'save', data: {
@@ -794,6 +917,7 @@ export default {
           affiliations: this.affiliations,
           activations:  this.activations,
         }})
+        this.showSaveConfirmModal = false
         const rb = data && data.rank_bonuses
         let extra = ''
         if (rb && !rb.error && typeof rb.totalAmount === 'number') {
@@ -1094,4 +1218,214 @@ export default {
 .empty-state span { font-size: 3rem; display: block; margin-bottom: 12px; }
 
 .historical-card { margin-bottom: 14px; }
+
+/* ─── Modal confirmación guardar cierre ─── */
+.save-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+}
+
+.save-confirm-modal {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.save-confirm-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.save-confirm-close:hover { background: #e2e8f0; color: #1e293b; }
+
+.save-confirm-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  color: #f59e0b;
+  font-size: 2.4rem;
+}
+
+.save-confirm-title {
+  margin: 0 0 22px;
+  text-align: center;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.save-confirm-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px 16px;
+  align-items: start;
+  padding: 18px;
+  border-radius: 14px;
+  margin-bottom: 14px;
+}
+
+.save-confirm-step--download {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+}
+
+.save-confirm-step--confirm {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.save-confirm-step-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.save-confirm-step-icon--blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.save-confirm-step-icon--amber {
+  background: #fde68a;
+  color: #b45309;
+}
+
+.save-confirm-step-body h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.save-confirm-step-body p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.save-confirm-download-btn {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+}
+
+.save-confirm-download-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.save-confirm-download-btn:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.save-confirm-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.save-confirm-question {
+  margin: 18px 0 16px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.save-confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.save-confirm-cancel,
+.save-confirm-submit {
+  min-width: 180px;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-confirm-cancel {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+}
+
+.save-confirm-cancel:hover { background: #f8fafc; }
+
+.save-confirm-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: linear-gradient(135deg, #48bb78, #38a169);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(56, 161, 105, 0.28);
+}
+
+.save-confirm-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.save-confirm-submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+@media (max-width: 640px) {
+  .save-confirm-modal { padding: 22px 18px 18px; }
+  .save-confirm-actions { flex-direction: column; }
+  .save-confirm-cancel,
+  .save-confirm-submit { width: 100%; }
+}
 </style>
