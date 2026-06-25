@@ -287,8 +287,8 @@ class Pay {
     GET() {
         return axios.get(`/admin/pay`);
     }
-    POST({ dni, amount, desc }) {
-        return axios.post(`/admin/pay`, { dni, amount, desc });
+    POST({ dni, amount, desc, period_key }) {
+        return axios.post(`/admin/pay`, { dni, amount, desc, period_key });
     }
 }
 

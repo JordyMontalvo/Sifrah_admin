@@ -64,17 +64,17 @@
 
             <div class="card-content">
               <form @submit.prevent="save" class="payment-form">
-                <!-- DNI Field -->
+                <!-- User Number Field -->
                 <div class="form-field">
                   <label class="field-label">
                     <i class="fas fa-user"></i>
-                    Número de CI
+                    Número de Usuario
                   </label>
                   <div class="input-container">
                     <input
                       class="form-input"
                       type="text"
-                      placeholder="Ingrese el número de CI"
+                      placeholder="Ingrese el número de usuario"
                       v-model="dni"
                       :class="{ error: dniError }"
                       @input="validateDNI"
@@ -91,8 +91,8 @@
                 <!-- Amount Field -->
                 <div class="form-field">
                   <label class="field-label">
-                    <i class="fas fa-dollar-sign"></i>
-                    Monto (USD)
+                    <i class="fas fa-coins"></i>
+                    Monto (S/)
                   </label>
                   <div class="input-container">
                     <input
@@ -111,6 +111,37 @@
                   </div>
                   <span v-if="amountError" class="error-message">{{
                     amountError
+                  }}</span>
+                </div>
+
+                <!-- Period Field -->
+                <div class="form-field">
+                  <label class="field-label">
+                    <i class="fas fa-calendar-alt"></i>
+                    Período
+                  </label>
+                  <div class="input-container">
+                    <select
+                      class="form-input form-select"
+                      v-model="periodKey"
+                      :class="{ error: periodError }"
+                      @change="validatePeriod"
+                    >
+                      <option value="" disabled>Seleccione un período</option>
+                      <option
+                        v-for="period in periodOptions"
+                        :key="period.key"
+                        :value="period.key"
+                      >
+                        {{ formatPeriodOption(period) }}
+                      </option>
+                    </select>
+                    <span class="input-icon">
+                      <i class="fas fa-calendar-check"></i>
+                    </span>
+                  </div>
+                  <span v-if="periodError" class="error-message">{{
+                    periodError
                   }}</span>
                 </div>
 
@@ -176,6 +207,7 @@
                 <tr>
                   <th>Fecha</th>
                   <th>Usuario</th>
+                  <th>Período</th>
                   <th>Monto</th>
                   <th>Descripción</th>
                   <th>Estado</th>
@@ -200,6 +232,11 @@
                       </div>
                       <span class="user-name">{{ pay.user.name }}</span>
                     </div>
+                  </td>
+                  <td class="period-cell">
+                    <span class="period-badge">
+                      {{ pay.period_label || pay.period_key || "—" }}
+                    </span>
                   </td>
                   <td class="amount-cell">
                     <span class="amount">S/.{{ formatAmount(pay.value) }}</span>
@@ -257,17 +294,35 @@ export default {
       dni: "",
       amount: "",
       desc: "",
+      periodKey: "",
 
       dniError: "",
       amountError: "",
+      periodError: "",
 
       pays: null,
+      periods: [],
     };
   },
 
   computed: {
     isFormValid() {
-      return this.dni && this.amount && !this.dniError && !this.amountError;
+      return (
+        this.dni &&
+        this.amount &&
+        this.periodKey &&
+        !this.dniError &&
+        !this.amountError &&
+        !this.periodError
+      );
+    },
+
+    periodOptions() {
+      return [...(this.periods || [])].sort((a, b) => {
+        const keyA = String(a.key || "");
+        const keyB = String(b.key || "");
+        return keyB.localeCompare(keyA);
+      });
     },
 
     paymentStats() {
@@ -302,7 +357,7 @@ export default {
 
   async created() {
     this.initializeSession();
-    await this.fetchPayments();
+    await Promise.all([this.fetchPayments(), this.fetchPeriods()]);
   },
 
   methods: {
@@ -329,16 +384,42 @@ export default {
       }
     },
 
+    async fetchPeriods() {
+      try {
+        const { data } = await api.Periods.GET();
+        this.periods = (data && data.periods) || [];
+        if (!this.periodKey && this.periodOptions.length) {
+          const open = this.periodOptions.find((p) => p.status === "open");
+          this.periodKey = open ? open.key : this.periodOptions[0].key;
+        }
+      } catch (error) {
+        console.error("Error fetching periods:", error);
+        this.showErrorMessage("Error al cargar los períodos");
+      }
+    },
+
+    formatPeriodOption(period) {
+      if (!period) return "";
+      const label = period.label || period.key || "";
+      const status =
+        period.status === "open"
+          ? "Abierto"
+          : period.status === "closed"
+          ? "Cerrado"
+          : "";
+      return status ? `${label} (${status})` : label;
+    },
+
     validateDNI() {
       this.dniError = "";
 
       if (!this.dni) {
-        this.dniError = "El CI es requerido";
+        this.dniError = "El número de usuario es requerido";
         return false;
       }
 
       if (this.dni.length < 5) {
-        this.dniError = "El CI debe tener al menos 5 caracteres";
+        this.dniError = "El número de usuario debe tener al menos 5 caracteres";
         return false;
       }
 
@@ -360,18 +441,28 @@ export default {
       }
 
       if (amount > 10000) {
-        this.amountError = "El monto no puede exceder $10,000";
+        this.amountError = "El monto no puede exceder S/ 10,000";
         return false;
       }
 
       return true;
     },
 
+    validatePeriod() {
+      this.periodError = "";
+      if (!this.periodKey) {
+        this.periodError = "Debe seleccionar un período";
+        return false;
+      }
+      return true;
+    },
+
     async save() {
       const isDNIValid = this.validateDNI();
       const isAmountValid = this.validateAmount();
+      const isPeriodValid = this.validatePeriod();
 
-      if (!isDNIValid || !isAmountValid) {
+      if (!isDNIValid || !isAmountValid || !isPeriodValid) {
         this.showErrorMessage("Por favor corrige los errores en el formulario");
         return;
       }
@@ -386,13 +477,20 @@ export default {
           dni: this.dni,
           amount: this.amount,
           desc: this.desc,
+          period_key: this.periodKey,
         });
 
         if (data.error) {
-          this.showErrorMessage("DNI no encontrado");
+          if (data.error === "period not found") {
+            this.showErrorMessage("El período seleccionado no es válido");
+          } else if (data.error === "period_key is required") {
+            this.showErrorMessage("Debe seleccionar un período");
+          } else {
+            this.showErrorMessage("Usuario no encontrado");
+          }
         } else {
           this.showSuccessMessage(
-            `Pago de $${this.amount} enviado exitosamente`
+            `Pago de S/ ${this.amount} enviado exitosamente`
           );
           this.resetForm();
           await this.fetchPayments();
@@ -406,9 +504,11 @@ export default {
     },
 
     async confirmPayment() {
+      const period = this.periodOptions.find((p) => p.key === this.periodKey);
+      const periodLabel = period ? this.formatPeriodOption(period) : this.periodKey;
       return new Promise((resolve) => {
         const confirmed = confirm(
-          `¿Desea enviar USD ${this.amount} al CI: ${this.dni}?\n\nEsta acción no se puede deshacer.`
+          `¿Desea enviar S/ ${this.amount} al usuario ${this.dni}?\nPeríodo: ${periodLabel}\n\nEsta acción no se puede deshacer.`
         );
         resolve(confirmed);
       });
@@ -420,13 +520,20 @@ export default {
       this.desc = "";
       this.dniError = "";
       this.amountError = "";
+      this.periodError = "";
+      if (this.periodOptions.length) {
+        const open = this.periodOptions.find((p) => p.status === "open");
+        this.periodKey = open ? open.key : this.periodOptions[0].key;
+      } else {
+        this.periodKey = "";
+      }
       this.showSuccessMessage("Formulario limpiado");
     },
 
     async refreshPayments() {
       this.refreshing = true;
       try {
-        await this.fetchPayments();
+        await Promise.all([this.fetchPayments(), this.fetchPeriods()]);
         this.showSuccessMessage("Pagos actualizados");
       } catch (error) {
         console.error("Error refreshing payments:", error);
@@ -676,7 +783,8 @@ export default {
 }
 
 .form-input,
-.form-textarea {
+.form-textarea,
+.form-select {
   width: 100%;
   padding: 0.875rem 1rem 0.875rem 2.5rem;
   border: 2px solid #e5e7eb;
@@ -686,8 +794,14 @@ export default {
   background: #f9fafb;
 }
 
+.form-select {
+  appearance: none;
+  cursor: pointer;
+}
+
 .form-input:focus,
-.form-textarea:focus {
+.form-textarea:focus,
+.form-select:focus {
   outline: none;
   border-color: #667eea;
   background: white;
@@ -863,6 +977,20 @@ export default {
 .user-name {
   font-weight: 500;
   color: #374151;
+}
+
+.period-cell {
+  min-width: 120px;
+}
+
+.period-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .amount-cell {
