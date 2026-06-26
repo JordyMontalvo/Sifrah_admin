@@ -346,6 +346,9 @@
           <div class="historical-title-group">
             <h2 class="table-card__title">📅 {{ cl.date | date }}</h2>
             <div class="historical-chips">
+              <span class="chip chip--purple" style="background:#5b21b6" v-if="cl.period_label">
+                🏷️ Periodo: {{ cl.period_label }}
+              </span>
               <span class="chip chip--purple">{{ (cl.users || []).length }} usuarios</span>
               <span class="chip chip--green" v-if="cl.data && cl.data.bonus_transactions">
                 {{ cl.data.bonus_transactions }} transacciones
