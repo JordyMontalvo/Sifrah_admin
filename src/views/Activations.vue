@@ -416,12 +416,20 @@
                 </div>
               </template>
               
-              <!-- Número de operación -->
+              <!-- Número de operación (Comprobante 1) -->
               <div class="detail-item" v-if="selectedActivation.pay_method === 'bank' && selectedActivation.voucher_number">
                 <span class="detail-label"
-                  ><i class="fas fa-hashtag"></i> Nº de Operación:</span
+                  ><i class="fas fa-hashtag"></i> Nº de Operación{{ selectedActivation.voucher_number2 ? ' (1)' : '' }}:</span
                 >
                 <span class="detail-value">{{ selectedActivation.voucher_number }}</span>
+              </div>
+
+              <!-- Número de operación (Comprobante 2) -->
+              <div class="detail-item" v-if="selectedActivation.pay_method === 'bank' && selectedActivation.voucher_number2">
+                <span class="detail-label"
+                  ><i class="fas fa-hashtag"></i> Nº de Operación (2):</span
+                >
+                <span class="detail-value">{{ selectedActivation.voucher_number2 }}</span>
               </div>
               
               <!-- Voucher/Comprobante -->

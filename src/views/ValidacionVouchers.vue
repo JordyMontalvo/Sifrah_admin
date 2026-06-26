@@ -115,31 +115,46 @@
             </div>
           </template>
 
+          <template #cell-voucher_number="{ row }">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-weight:700;">
+                <span v-if="row.voucher_number2" style="color:#6b7280; font-weight:600;">1.</span>
+                {{ row.voucher_number || "-" }}
+              </span>
+              <span v-if="row.voucher_number2" style="font-weight:700;">
+                <span style="color:#6b7280; font-weight:600;">2.</span>
+                {{ row.voucher_number2 }}
+              </span>
+            </div>
+          </template>
+
           <template #cell-voucher="{ row }">
-            <div style="display:flex; gap:8px; align-items:center;">
+            <div style="display:flex; gap:12px; align-items:flex-start;">
               <!-- Voucher 1 -->
-              <span v-if="row.voucher && isImage(row.voucher)">
+              <div v-if="row.voucher" style="display:flex; flex-direction:column; align-items:center; gap:3px;">
                 <img
+                  v-if="isImage(row.voucher)"
                   :src="row.voucher"
                   alt="Voucher"
                   class="voucher-thumb"
                   @click="openImageModal(row.voucher)"
                   style="max-width: 60px; max-height: 60px; cursor:pointer; border-radius:6px; border:1px solid #eee;"
                 />
-              </span>
-              <span v-else-if="row.voucher" class="is-size-7">{{ row.voucher }}</span>
+                <span v-else class="is-size-7">{{ row.voucher }}</span>
+              </div>
 
               <!-- Voucher 2 -->
-              <span v-if="row.voucher2 && isImage(row.voucher2)">
+              <div v-if="row.voucher2" style="display:flex; flex-direction:column; align-items:center; gap:3px;">
                 <img
+                  v-if="isImage(row.voucher2)"
                   :src="row.voucher2"
                   alt="Voucher 2"
                   class="voucher-thumb"
                   @click="openImageModal(row.voucher2)"
                   style="max-width: 60px; max-height: 60px; cursor:pointer; border-radius:6px; border:1px solid #eee;"
                 />
-              </span>
-              <span v-else-if="row.voucher2" class="is-size-7">{{ row.voucher2 }}</span>
+                <span v-else class="is-size-7">{{ row.voucher2 }}</span>
+              </div>
             </div>
           </template>
 
@@ -259,7 +274,9 @@ export default {
           payment: raw.payment_breakdown,
           bank: raw.bank || "-",
           voucher_number: raw.voucher_number || "-",
+          voucher_number2: raw.voucher_number2 || "",
           voucher: raw.voucher || "",
+          voucher2: raw.voucher2 || "",
           dup: raw.possibleDuplicate ? "dup" : "ok",
           status: raw.status,
           // ModernTable filtra por `filter` y `kind` según las keys definidas en `tableFilters`.
@@ -346,17 +363,23 @@ export default {
     },
     buildDuplicateFlags(items) {
       // Usamos el flag possibleDuplicate que viene del backend (valida contra toda la base de datos)
-      // Pero también hacemos un chequeo local rápido por si acaso
+      // Pero también hacemos un chequeo local rápido por si acaso, considerando ambos números de operación.
+      const keyOf = (bank, num) =>
+        `${String(bank || "").toLowerCase()}::${String(num || "").trim()}`;
+
       const keyCount = new Map();
       items.forEach((it) => {
-        const k = `${String(it.bank || "").toLowerCase()}::${String(it.voucher_number || "").trim()}`;
-        if (!it.voucher_number) return;
-        keyCount.set(k, (keyCount.get(k) || 0) + 1);
+        [it.voucher_number, it.voucher_number2].forEach((num) => {
+          if (!num) return;
+          const k = keyOf(it.bank, num);
+          keyCount.set(k, (keyCount.get(k) || 0) + 1);
+        });
       });
 
       return items.map((it) => {
-        const k = `${String(it.bank || "").toLowerCase()}::${String(it.voucher_number || "").trim()}`;
-        const localDup = !!it.voucher_number && (keyCount.get(k) || 0) > 1;
+        const localDup = [it.voucher_number, it.voucher_number2].some(
+          (num) => !!num && (keyCount.get(keyOf(it.bank, num)) || 0) > 1
+        );
         // Priorizamos el flag del backend if exists, sino el local
         const possibleDuplicate = it.possibleDuplicate || localDup;
         return { ...it, possibleDuplicate };
