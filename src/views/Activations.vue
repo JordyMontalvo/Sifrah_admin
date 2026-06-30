@@ -26,6 +26,13 @@
                 </span>
                 <span>Ver Analytics</span>
               </router-link>
+
+              <router-link to="/auto-healer-logs" class="button is-warning">
+                <span class="icon">
+                  <i class="fas fa-tools"></i>
+                </span>
+                <span>Logs de Auto-Sanador</span>
+              </router-link>
             </div>
           </div>
 
