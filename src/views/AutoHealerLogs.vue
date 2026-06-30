@@ -61,7 +61,7 @@
 </template>
 
 <script>
-import api from "../api";
+import axios from "axios";
 import Layout from "@/views/Layout.vue";
 
 export default {
@@ -80,7 +80,7 @@ export default {
     async fetchLogs() {
       this.loading = true;
       try {
-        const res = await api.get("/admin/auto-healer-logs");
+        const res = await axios.get("/admin/auto-healer-logs");
         if (res && res.logs) {
           this.logs = res.logs;
         } else if (res && res.data && res.data.logs) {
