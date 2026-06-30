@@ -47,7 +47,7 @@ import Reactivations from "./views/Reactivations.vue";
 import SavingsRedemptions from "./views/SavingsRedemptions.vue";
 import SavingsCategories from "./views/SavingsCategories.vue";
 import BlockedEliminated from "./views/BlockedEliminated.vue";
-
+import AutoHealerLogs from "./views/AutoHealerLogs.vue";
 // import Reports      from './views/Reports.vue'
 
 Vue.use(Router);
@@ -291,6 +291,11 @@ const routes = [
     path: "/agenda",
     component: Agenda,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/auto-healer-logs",
+    component: AutoHealerLogs,
+    meta: { requiresAuth: true, title: "Logs del Auto-Sanador" },
   },
 ];
 
