@@ -407,6 +407,22 @@
                 }}</span>
               </div>
               
+              <!-- Información de Izipay -->
+              <template v-if="selectedActivation.transaction_id || selectedActivation.authorization_code">
+                <div class="detail-item" v-if="selectedActivation.transaction_id">
+                  <span class="detail-label"
+                    ><i class="fas fa-hashtag"></i> Transaction ID:</span
+                  >
+                  <span class="detail-value">{{ selectedActivation.transaction_id }}</span>
+                </div>
+                <div class="detail-item" v-if="selectedActivation.authorization_code">
+                  <span class="detail-label"
+                    ><i class="fas fa-key"></i> Autorización:</span
+                  >
+                  <span class="detail-value">{{ selectedActivation.authorization_code }}</span>
+                </div>
+              </template>
+              
               <!-- Información detallada del banco (solo si NO es efectivo) -->
               <template v-if="selectedActivation.pay_method === 'bank' && selectedActivation.bank_info && !isEfectivo(selectedActivation)">
                 <div class="detail-item">
@@ -1497,6 +1513,10 @@ export default {
     },
 
     formatPayMethod(activation) {
+      if (activation.pay_method === "credit-card") {
+        return "Tarjeta - Izipay";
+      }
+      
       // Efectivo (legacy)
       if (activation.pay_method === "cash") {
         return "Efectivo";

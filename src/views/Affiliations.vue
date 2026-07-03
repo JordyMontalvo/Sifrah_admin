@@ -487,6 +487,22 @@
                   formatPayMethod(selectedAffiliation)
                 }}</span>
               </div>
+              
+              <!-- Información de Izipay -->
+              <template v-if="selectedAffiliation.transaction_id || selectedAffiliation.authorization_code">
+                <div class="detail-item" v-if="selectedAffiliation.transaction_id">
+                  <span class="detail-label"
+                    ><i class="fas fa-hashtag"></i> Transaction ID:</span
+                  >
+                  <span class="detail-value">{{ selectedAffiliation.transaction_id }}</span>
+                </div>
+                <div class="detail-item" v-if="selectedAffiliation.authorization_code">
+                  <span class="detail-label"
+                    ><i class="fas fa-key"></i> Autorización:</span
+                  >
+                  <span class="detail-value">{{ selectedAffiliation.authorization_code }}</span>
+                </div>
+              </template>
               <!-- Número de operación (Comprobante 1) -->
               <div class="detail-item" v-if="selectedAffiliation.voucher_number">
                 <span class="detail-label"
@@ -1580,6 +1596,9 @@ export default {
     },
 
     formatPayMethod(affiliation) {
+      if (affiliation.pay_method === "credit-card") {
+        return "Tarjeta - Izipay";
+      }
       if (affiliation.pay_method === "cash") {
         return "Efectivo";
       }
