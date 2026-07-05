@@ -1636,9 +1636,29 @@ export default {
     },
 
     async approve(activation) {
-      if (!confirm("¿Desea aprobar esta activación?")) return;
+      const result = await Swal.fire({
+        title: "¿Desea aprobar esta activación?",
+        text: "Se procesará el alta y se pagarán las comisiones correspondientes.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Sí, aprobar",
+        cancelButtonText: "Cancelar"
+      });
+
+      if (!result.isConfirmed) return;
 
       activation.sending = true;
+
+      Swal.fire({
+        title: "Procesando solicitud...",
+        text: "Por favor espere, no cierre la ventana.",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
       try {
         const { data } = await api.Activations.POST({
@@ -1646,18 +1666,48 @@ export default {
           id: activation.id,
         });
 
-        activation.status = "approved";
+        if (data && data.error) {
+          const errMsg = data.msg || data.error;
+          if (errMsg === "already approved") {
+            activation.status = "approved";
+            Swal.fire("Información", "La activación ya había sido aprobada.", "info");
+          } else {
+            Swal.fire("Aviso", errMsg, "warning");
+          }
+        } else {
+          activation.status = "approved";
+          Swal.fire("¡Aprobada!", "La activación se procesó exitosamente.", "success");
+        }
       } catch (error) {
         console.error("Error approving activation:", error);
+        Swal.fire("Error", "Ocurrió un problema de red al aprobar.", "error");
       } finally {
         activation.sending = false;
       }
     },
 
     async reject(activation) {
-      if (!confirm("¿Desea rechazar esta activación?")) return;
+      const result = await Swal.fire({
+        title: "¿Desea rechazar esta activación?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Sí, rechazar",
+        cancelButtonText: "Cancelar"
+      });
+
+      if (!result.isConfirmed) return;
 
       activation.sending = true;
+
+      Swal.fire({
+        title: "Procesando...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
       try {
         const { data } = await api.Activations.POST({
@@ -1665,9 +1715,15 @@ export default {
           id: activation.id,
         });
 
-        activation.status = "rejected";
+        if (data && data.error) {
+          Swal.fire("Aviso", data.msg || data.error, "warning");
+        } else {
+          activation.status = "rejected";
+          Swal.fire("Rechazada", "La activación ha sido rechazada.", "success");
+        }
       } catch (error) {
         console.error("Error rejecting activation:", error);
+        Swal.fire("Error", "Ocurrió un problema al rechazar.", "error");
       } finally {
         activation.sending = false;
       }
