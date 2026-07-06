@@ -240,10 +240,10 @@
                 <td>
                   <div class="group-points-wrapper">
                     <div class="group-total">Total: {{ (node._total || 0).toFixed(0) }}</div>
-                    <div v-if="node.grouped_points_legs && node.grouped_points_legs.length" class="group-legs-array">
+                    <div v-if="validLegs(node.grouped_points_legs).length" class="group-legs-array">
                       <div class="legs-list">
                         <div
-                          v-for="(leg, idx) in node.grouped_points_legs"
+                          v-for="(leg, idx) in validLegs(node.grouped_points_legs)"
                           :key="`${node.id}-leg-readable-${idx}`"
                           class="legs-list-item"
                         >
@@ -469,12 +469,12 @@
                     <div class="group-points-wrapper">
                       <div class="group-total">Total: {{ (user.total_points || user.total || 0).toFixed(0) }}</div>
                       <div
-                        v-if="user.grouped_points_legs && user.grouped_points_legs.length"
+                        v-if="validLegs(user.grouped_points_legs).length"
                         class="group-legs-array"
                       >
                         <div class="legs-list">
                           <div
-                            v-for="(leg, idx) in user.grouped_points_legs"
+                            v-for="(leg, idx) in validLegs(user.grouped_points_legs)"
                             :key="`hist-${ci}-${i}-leg-${idx}`"
                             class="legs-list-item"
                           >
@@ -737,6 +737,10 @@ export default {
     },
   },
   methods: {
+    validLegs(legs) {
+      if (!legs || !legs.length) return []
+      return legs.filter(leg => leg && leg.name && !leg.name.includes('(Eliminado)'))
+    },
     rankClass(rank) {
       if (!rank) return ''
       return 'rank-' + rank.toLowerCase().replace(/ /g, '-')
