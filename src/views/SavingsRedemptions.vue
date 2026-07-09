@@ -85,7 +85,7 @@
                 v-if="row.period_label"
                 style="color: #6b7280; font-weight: 600; font-size: 0.85em"
               >
-                Período: {{ row.period_label }}
+                Período: {{ formatPeriodLabel(row.period_label) }}
               </small>
             </div>
           </template>
@@ -99,8 +99,14 @@
           <template #cell-product="{ row }">
             <span>{{ row.product || row.productsSummary || "—" }}</span>
           </template>
+          <template #cell-price="{ row }">
+            <span class="savings-total-coins">
+              <img src="@/assets/img/coin-saldo-icon.png" alt="" />
+              {{ formatCoins(row.price) }}
+            </span>
+          </template>
           <template #cell-pay_method="{ row }">
-            {{ formatPayMethod(row.raw || row) }}
+            <span class="tag is-light is-success">{{ formatPayMethod(row.raw || row) }}</span>
           </template>
           <template #cell-voucher="{ row }">
             <div
@@ -143,12 +149,14 @@
                 {{ paymentSplitDisplay(row.raw || row).modeLabel }}
               </span>
               <small style="color: #374151; font-weight: 700">
-                Bono Ahorro: S/
-                {{ paymentSplitDisplay(row.raw || row).paid_savings.toFixed(2) }}
+                Aplicado:
+                {{ formatCoins(paymentSplitDisplay(row.raw || row).paid_savings) }}
+                /
+                {{ formatCoins((row.raw || row).price) }}
               </small>
               <small style="color: #6b7280">
-                Faltante: S/
-                {{ paymentSplitDisplay(row.raw || row).due.toFixed(2) }}
+                Faltante:
+                {{ formatCoins(paymentSplitDisplay(row.raw || row).due) }}
               </small>
             </div>
           </template>
@@ -283,11 +291,10 @@ export default {
           key: "price",
           label: "Total",
           sortable: false,
-          type: "currency",
         },
         { key: "pay_method", label: "Medio de Pago", sortable: false },
         { key: "voucher", label: "Voucher", sortable: false },
-        { key: "payment_split", label: "Monto Faltante", sortable: false },
+        { key: "payment_split", label: "Monto aplicado", sortable: false },
         { key: "status", label: "Estado", sortable: false },
       ],
       initialTableFilters: { status: "" },
@@ -364,6 +371,32 @@ export default {
     formatDateTime(val) {
       if (!val) return "—";
       return new Date(val).toLocaleString("es-PE");
+    },
+    formatCoins(value) {
+      const n = Number(value);
+      const safe = Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+      return safe.toLocaleString("es-PE");
+    },
+    formatPeriodLabel(label) {
+      if (!label) return "—";
+      const match = String(label).match(/^(\d{1,2})\/(\d{4})$/);
+      if (!match) return label;
+      const months = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+      ];
+      const monthIndex = Number(match[1]) - 1;
+      return `${months[monthIndex] || match[1]} ${match[2]}`;
     },
     formatPayMethod(row) {
       if (!row) return "—";
@@ -617,6 +650,19 @@ export default {
   border-radius: 6px;
   border: 1px solid #eee;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.savings-total-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: #374151;
+}
+.savings-total-coins img {
+  width: 1.15em;
+  height: 1.15em;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 @media (max-width: 640px) {
   .detail-grid {

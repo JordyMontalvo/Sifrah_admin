@@ -1624,6 +1624,14 @@ export default {
       return !!product.is_savings_bonus && !(Number(product.points) > 0);
     },
 
+    isPromotionProduct(product) {
+      if (!product) return false;
+      const raw = product.raw || product;
+      if (raw.is_promotion) return true;
+      if (raw.catalog_type === "promotion") return true;
+      return /^promoci[oó]n$/i.test(String(raw.type || "").trim());
+    },
+
     async loadSavingsCategories() {
       try {
         const { data } = await api.savingsCategories.GET();
@@ -1649,7 +1657,7 @@ export default {
           sort_order: Math.max(1, Number(p.sort_order) || 0),
           is_savings_bonus: !!p.is_savings_bonus,
           savings_price: Number(p.savings_price) || 0,
-          is_promotion: !!p.is_promotion || p.type === "Promoción" || p.catalog_type === "promotion",
+          is_promotion: this.isPromotionProduct({ raw: p }),
           promotion_active: p.promotion_active !== false,
           available_quantity: Number(p.available_quantity) || 0,
         }));
