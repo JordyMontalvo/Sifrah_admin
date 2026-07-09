@@ -8,13 +8,17 @@
         </div>
       </div>
 
-      <div class="filters">
+      <div class="filters table-search table-search--with-filter">
         <input
           v-model="search"
           class="search-input"
           placeholder="Buscar por nombre, DNI o ID"
           @input="onSearchInput"
         />
+        <select v-model="searchRank" class="search-select" @change="onSearchInput">
+          <option value="">Todos los rangos</option>
+          <option v-for="r in availableRanks" :key="r" :value="r">{{ r }}</option>
+        </select>
       </div>
 
       <div class="table-card">
@@ -83,6 +87,22 @@ export default {
       totalPages: 1,
       total: 0,
       limit: 20,
+      searchRank: "",
+      availableRanks: [
+        'Activo',
+        'Ejecutivo',
+        'Bronce',
+        'Plata',
+        'Oro',
+        'Zafiro',
+        'Rubí',
+        'Diamante',
+        'Doble Diamante',
+        'Doble Diamante Azul',
+        'Diamante Corona',
+        'Diamante Imperial',
+        'Embajador Sifrah'
+      ]
     };
   },
   created() {
@@ -102,6 +122,7 @@ export default {
           page: this.currentPage,
           limit: this.limit,
           search: this.search,
+          rank: this.searchRank,
         });
         this.items = data.items || [];
         this.totalPages = data.totalPages || 1;
@@ -138,8 +159,14 @@ export default {
 .page-header { margin-bottom: 14px; }
 .page-header h1 { margin: 0; font-size: 1.4rem; font-weight: 700; }
 .page-header p { margin: 4px 0 0; color: #64748b; }
-.filters { margin-bottom: 12px; }
+.filters { margin-bottom: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .search-input { width: 360px; max-width: 100%; padding: 8px 10px; border: 1px solid #dbe1e8; border-radius: 8px; }
+.search-select {
+  padding: 8px 14px; border: 1px solid #e2e8f0;
+  border-radius: 8px; font-size: 0.88rem; outline: none;
+  background: #fff; cursor: pointer; min-width: 180px;
+}
+.search-select:focus { border-color: #667eea; }
 .table-card { background: #fff; border-radius: 12px; border: 1px solid #e8edf3; overflow: auto; }
 .user-name { font-weight: 600; }
 .user-id { color: #94a3b8; font-size: 0.8rem; }
