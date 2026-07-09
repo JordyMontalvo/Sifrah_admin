@@ -206,8 +206,12 @@
           <h2 class="table-card__title">📊 Previsualización · Residual (Go) y bonos por rango</h2>
           <span class="badge">{{ filteredTree.length }} en vista · {{ usersWithRank }} con rango (Bronce+)</span>
         </div>
-        <div class="table-search">
+        <div class="table-search table-search--with-filter">
           <input v-model="search" class="search-input" placeholder="🔍 Buscar usuario..." />
+          <select v-model="searchRank" class="search-select">
+            <option value="">Todos los rangos</option>
+            <option v-for="r in availableRanks" :key="r" :value="r">{{ r }}</option>
+          </select>
         </div>
         <div class="table-responsive">
           <table class="cierre-table">
@@ -434,8 +438,12 @@
             </div>
           </div>
 
-          <div class="table-search">
+          <div class="table-search table-search--with-filter">
             <input v-model="cl._search" class="search-input" placeholder="🔍 Buscar en este cierre..." />
+            <select v-model="cl._searchRank" class="search-select">
+              <option value="">Todos los rangos</option>
+              <option v-for="r in availableRanks" :key="r" :value="r">{{ r }}</option>
+            </select>
           </div>
           <div class="table-responsive">
             <table class="cierre-table">
@@ -660,6 +668,7 @@ export default {
       virtualResets: [],
       saving:       false,
       search:       '',
+      searchRank:   '',
       snapshotModalData: null,
       showSaveConfirmModal: false,
       backupDownloading: false,
@@ -676,6 +685,22 @@ export default {
     },
   },
   computed: {
+    availableRanks() {
+      return [
+        'Activo',
+        'Bronce',
+        'Plata',
+        'Oro',
+        'Rubí',
+        'Esmeralda',
+        'Diamante',
+        'Doble Diamante',
+        'Triple Diamante',
+        'Diamante Imperial',
+        'Diamante Corona',
+        'Embajador Sifrah'
+      ]
+    },
     totalResidual() {
       return (this.tree || []).reduce((sum, n) => sum + (n.residual_bonus || 0), 0)
     },
@@ -726,9 +751,11 @@ export default {
     },
     filteredTree() {
       const q = this.search.toLowerCase()
+      const r = this.searchRank ? normalizeRankKey(this.searchRank) : null
       return (this.tree || [])
         .filter((e) => isRankShownInPreviewTable(e.rank))
         .filter((e) => {
+          if (r && normalizeRankKey(e.rank) !== r) return false
           if (!q) return true
           const name = (e.name || '').toLowerCase()
           const dni = String(e.dni || '').toLowerCase()
@@ -753,7 +780,9 @@ export default {
     },
     filteredHistory(cl) {
       const q = (cl._search || '').toLowerCase()
+      const r = cl._searchRank ? normalizeRankKey(cl._searchRank) : null
       return (cl.users || []).filter((u) => {
+        if (r && normalizeRankKey(u.rank) !== r) return false
         if (!q) return true
         const name = (u.name || '').toLowerCase()
         const dni = String(u.dni || '').toLowerCase()
@@ -809,7 +838,7 @@ export default {
               virtualResetsCount: virtualResetsArray.length,
             }
           }
-          return { ...c, _open: false, _search: '', _summary: summary }
+          return { ...c, _open: false, _search: '', _searchRank: '', _summary: summary }
         })
       } catch (e) {
         console.error('Error loading closures:', e)
@@ -1053,6 +1082,7 @@ export default {
 
 /* ─── Search ─── */
 .table-search { padding: 12px 24px; border-bottom: 1px solid #f0f4f8; }
+.table-search--with-filter { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .search-input {
   width: 100%; max-width: 380px;
   padding: 8px 14px; border: 1px solid #e2e8f0;
@@ -1060,6 +1090,12 @@ export default {
   transition: border 0.2s;
 }
 .search-input:focus { border-color: #667eea; }
+.search-select {
+  padding: 8px 14px; border: 1px solid #e2e8f0;
+  border-radius: 8px; font-size: 0.88rem; outline: none;
+  background: #fff; cursor: pointer; min-width: 180px;
+}
+.search-select:focus { border-color: #667eea; }
 
 /* ─── Modal ─── */
 .modal-overlay {
