@@ -339,12 +339,20 @@
       <!-- ─── History Section ─── -->
       <div class="section-divider"><span>📂 Historial de Cierres</span></div>
 
-      <div v-if="!closeds.length" class="empty-state">
-        <span>📭</span>
-        <p>No hay cierres registrados aún.</p>
+      <div class="table-search table-search--with-filter" style="margin-bottom: 20px; background: #fff; padding: 15px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+        <span style="font-size: 0.9rem; font-weight: 600; color: #4a5568;">Filtrar historial:</span>
+        <select v-model="globalHistorySearchRank" class="search-select">
+          <option value="">Mostrar todos los cierres</option>
+          <option v-for="r in availableRanks" :key="r" :value="r">{{ r }}</option>
+        </select>
       </div>
 
-      <div class="table-card historical-card" v-for="(cl, ci) in closeds" :key="ci">
+      <div v-if="!filteredCloseds.length" class="empty-state">
+        <span>📭</span>
+        <p>No hay cierres que coincidan con los filtros.</p>
+      </div>
+
+      <div class="table-card historical-card" v-for="(cl, ci) in filteredCloseds" :key="cl.id || ci">
         <!-- Closed Header -->
         <div class="table-card__header clickable" @click="cl._open = !cl._open">
           <div class="historical-title-group">
@@ -665,6 +673,7 @@ export default {
       affiliations: [],
       activations:  [],
       closeds:      [],
+      globalHistorySearchRank: '',
       virtualResets: [],
       saving:       false,
       search:       '',
@@ -731,10 +740,17 @@ export default {
       return this.totalResidual + this.totalGenerationalBonus + this.totalSavingsBonus + this.totalRankBonus
     },
     hasPreviewData() {
-      return (
-        (this.tree && this.tree.length > 0) ||
-        (this.virtualResets && this.virtualResets.length > 0)
-      )
+      return this.tree && this.tree.length > 0
+    },
+    filteredCloseds() {
+      let list = this.closeds;
+      if (this.globalHistorySearchRank) {
+        const r = normalizeRankKey(this.globalHistorySearchRank);
+        list = list.filter(cl => {
+          return (cl.users || []).some(u => normalizeRankKey(u.rank) === r);
+        });
+      }
+      return list;
     },
     totalVirtualReset() {
       return (this.virtualResets || []).reduce(
@@ -780,7 +796,8 @@ export default {
     },
     filteredHistory(cl) {
       const q = (cl._search || '').toLowerCase()
-      const r = cl._searchRank ? normalizeRankKey(cl._searchRank) : null
+      const rankToSearch = cl._searchRank || this.globalHistorySearchRank
+      const r = rankToSearch ? normalizeRankKey(rankToSearch) : null
       return (cl.users || []).filter((u) => {
         if (r && normalizeRankKey(u.rank) !== r) return false
         if (!q) return true
