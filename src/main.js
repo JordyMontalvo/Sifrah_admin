@@ -2,6 +2,7 @@ import Vue from "vue";
 import App from "./App.vue";
 import router from "./router";
 import store from "./store";
+import { startVersionCheck } from "./utils/version-check";
 
 import "bulma-switch/dist/css/bulma-switch.min.css";
 
@@ -31,3 +32,5 @@ new Vue({
   store,
   render: (h) => h(App),
 }).$mount("#app");
+
+startVersionCheck();
