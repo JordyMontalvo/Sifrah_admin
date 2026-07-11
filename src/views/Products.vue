@@ -172,9 +172,22 @@
             </div>
           </template>
           <template #cell-price="{ row }">
-            <span v-if="activeTab === 'savings'" class="sifrah-price-ref" title="Precio del catálogo SIFRAH (solo lectura)">
-              S/ {{ row.price }}
-            </span>
+            <template v-if="activeTab === 'savings'">
+              <span
+                v-if="isFromSifrahCatalog(row.raw || row)"
+                class="sifrah-price-ref"
+                title="Precio del catálogo SIFRAH (solo lectura)"
+              >
+                S/ {{ row.price }}
+              </span>
+              <span
+                v-else
+                class="sifrah-price-na has-text-grey"
+                title="Producto creado solo para Bono Ahorro"
+              >
+                No aplica
+              </span>
+            </template>
             <span v-else class="currency-value">{{ row.price }}</span>
           </template>
           <template #cell-is_savings_bonus="{ row }">
@@ -1012,9 +1025,21 @@
               Código: {{ editingSavingsProduct.code || "—" }}
             </p>
 
-            <div class="notification is-light" style="margin-bottom: 16px;">
+            <div
+              v-if="isFromSifrahCatalog(editingSavingsProduct)"
+              class="notification is-light"
+              style="margin-bottom: 16px;"
+            >
               Precio SIFRAH: <strong>S/ {{ editingSavingsProduct.price || 0 }}</strong>
               <span class="is-size-7 has-text-grey"> — no se modifica desde aquí</span>
+            </div>
+            <div
+              v-else
+              class="notification is-light"
+              style="margin-bottom: 16px;"
+            >
+              Producto solo de Bono Ahorro
+              <span class="is-size-7 has-text-grey"> — no pertenece al catálogo SIFRAH</span>
             </div>
 
             <div class="field">
@@ -1513,7 +1538,7 @@ export default {
         return 'Promociones comerciales visibles solo para usuarios activos (sin puntos ni compensación). Máx. / usuario = límite de compra individual.';
       }
       if (this.activeTab === 'savings') {
-        return 'Edita el precio de canje sin modificar el catálogo SIFRAH';
+        return 'El Precio SIFRAH solo aparece si el producto viene del catálogo SIFRAH. El precio de canje es el que usa la tienda Bono Ahorro.';
       }
       return 'Gestiona productos, puntos y asignación a planes. El número en Orden define cómo se ven en la tienda virtual (1 = primero).';
     },
@@ -2328,6 +2353,8 @@ export default {
       if (prod.catalog_type === "sifrah" || prod.catalog_type === "both") return true;
       const plans = prod.plans || {};
       if (Object.values(plans).some(Boolean)) return true;
+      // Solo canje / externo: no es catálogo SIFRAH
+      if (prod.is_savings_bonus && !Number(prod.points)) return false;
       return !!(prod.code && Number(prod.price) > 0);
     },
 
@@ -2473,7 +2500,9 @@ export default {
         Swal.fire({
           icon: "success",
           title: "Precio Bono Ahorro guardado",
-          text: `Canje: S/ ${product.savings_price} — Precio SIFRAH sin cambios`,
+          text: this.isFromSifrahCatalog(product)
+            ? `Canje: S/ ${product.savings_price} — Precio SIFRAH sin cambios`
+            : `Precio de canje: S/ ${product.savings_price}`,
           timer: 1800,
           showConfirmButton: false,
         });
@@ -2857,6 +2886,11 @@ export default {
 .sifrah-price-ref {
   color: #6b7280;
   font-size: 0.875rem;
+}
+
+.sifrah-price-na {
+  font-size: 0.8rem;
+  font-style: italic;
 }
 
 .field .label {
