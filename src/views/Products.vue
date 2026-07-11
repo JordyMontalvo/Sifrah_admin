@@ -559,7 +559,10 @@
                 <label class="label">Tipo de Catálogo</label>
                 <div class="control">
                   <div class="select is-fullwidth">
-                    <select v-model="newProduct.catalog_type">
+                    <select
+                      v-model="newProduct.catalog_type"
+                      @change="syncCatalogTypeFlags(newProduct)"
+                    >
                       <option value="both">Ambos (Sifrah + Bono Ahorro)</option>
                       <option value="sifrah">Solo SIFRAH</option>
                       <option value="savings">Solo Bono Ahorro (Canje Externo)</option>
@@ -833,7 +836,10 @@
                 <label class="label">Tipo de Catálogo</label>
                 <div class="control">
                   <div class="select is-fullwidth">
-                    <select v-model="editingProduct.catalog_type">
+                    <select
+                      v-model="editingProduct.catalog_type"
+                      @change="syncCatalogTypeFlags(editingProduct)"
+                    >
                       <option value="both">Ambos (Sifrah + Bono Ahorro)</option>
                       <option value="sifrah">Solo SIFRAH</option>
                       <option value="savings">Solo Bono Ahorro (Canje Externo)</option>
@@ -2599,7 +2605,7 @@ export default {
         this.validationErrors.price = "El precio del producto es obligatorio.";
         hasError = true;
       }
-      if (!this.newProduct.points) {
+      if (this.newProduct.catalog_type !== "savings" && !this.newProduct.points) {
         this.validationErrors.points = "Los puntos del producto son obligatorios.";
         hasError = true;
       }
@@ -2625,6 +2631,8 @@ export default {
       }
 
       try {
+        this.syncCatalogTypeFlags(this.newProduct);
+
         await api.products.POST({
           action: "add",
           data: {
@@ -2727,8 +2735,27 @@ export default {
       this.showEditModal = false;
     },
 
+    syncCatalogTypeFlags(product) {
+      if (!product) return product;
+      const catalogType = product.catalog_type || "sifrah";
+      if (catalogType === "sifrah") {
+        product.is_savings_bonus = false;
+      } else if (catalogType === "both" || catalogType === "savings") {
+        product.is_savings_bonus = true;
+        if (catalogType === "savings") {
+          product.points = 0;
+        }
+        if (!(Number(product.savings_price) > 0)) {
+          product.savings_price = Number(product.price) || 0;
+        }
+      }
+      return product;
+    },
+
     async saveProduct() {
       try {
+        this.syncCatalogTypeFlags(this.editingProduct);
+
         // Prepara el objeto data con los nombres correctos
         const data = {
           _name: this.editingProduct.name,
@@ -2742,6 +2769,7 @@ export default {
           _plans: this.editingProduct.plans,
           _weight: this.editingProduct.weight,
           _prices: this.editingProduct.prices,
+          catalog_type: this.editingProduct.catalog_type || "sifrah",
           is_savings_bonus: !!this.editingProduct.is_savings_bonus,
           savings_price: this.editingProduct.savings_price,
           savings_description: this.editingProduct.savings_description,
