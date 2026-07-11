@@ -106,57 +106,74 @@
             </span>
           </template>
           <template #cell-pay_method="{ row }">
-            <span class="tag is-light is-success">{{ formatPayMethod(row.raw || row) }}</span>
+            <div class="pay-method-tags">
+              <span
+                v-for="(tag, idx) in payMethodTags(row.raw || row)"
+                :key="idx"
+                class="pay-method-tag"
+                :class="'pay-method-tag--' + tag.tone"
+              >
+                {{ tag.label }}
+              </span>
+            </div>
           </template>
           <template #cell-voucher="{ row }">
-            <div
-              v-if="hasVoucher(row)"
-              style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap"
-            >
-              <span v-if="row.voucher && row.voucher.isImage">
+            <div v-if="hasVoucher(row)" class="voucher-cell">
+              <template v-if="voucherEntry(row, 'voucher')">
                 <img
-                  :src="row.voucher.url"
+                  v-if="voucherEntry(row, 'voucher').isImage"
+                  :src="voucherEntry(row, 'voucher').url"
                   alt="Voucher"
                   class="voucher-thumb"
-                  @click="openImageModal(row.voucher.url)"
+                  title="Ver voucher"
+                  @click="openImageModal(voucherEntry(row, 'voucher').url)"
                 />
-              </span>
-              <span v-else-if="row.voucher && row.voucher.url">{{
-                row.voucher.url
-              }}</span>
-              <span v-if="row.voucher2 && row.voucher2.isImage">
+                <a
+                  v-else
+                  :href="voucherEntry(row, 'voucher').url"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Ver archivo
+                </a>
+              </template>
+              <template v-if="voucherEntry(row, 'voucher2')">
                 <img
-                  :src="row.voucher2.url"
+                  v-if="voucherEntry(row, 'voucher2').isImage"
+                  :src="voucherEntry(row, 'voucher2').url"
                   alt="Voucher 2"
                   class="voucher-thumb"
-                  @click="openImageModal(row.voucher2.url)"
+                  title="Ver voucher"
+                  @click="openImageModal(voucherEntry(row, 'voucher2').url)"
                 />
-              </span>
-              <span v-else-if="row.voucher2 && row.voucher2.url">{{
-                row.voucher2.url
-              }}</span>
+                <a
+                  v-else
+                  :href="voucherEntry(row, 'voucher2').url"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Ver archivo
+                </a>
+              </template>
             </div>
-            <span v-else class="tag is-light">No aplica</span>
+            <span v-else class="tag is-light is-rounded voucher-na">No aplica</span>
           </template>
           <template #cell-payment_split="{ row }">
-            <div
-              style="display: flex; flex-direction: column; gap: 4px; line-height: 1.15"
-            >
-              <span
-                class="tag is-light is-success"
-                style="align-self: flex-start"
-              >
-                {{ paymentSplitDisplay(row.raw || row).modeLabel }}
+            <div class="payment-split-cell">
+              <span class="pay-method-tag pay-method-tag--savings payment-split-label">
+                {{ formatPayMethod(row.raw || row) }}
               </span>
-              <small style="color: #374151; font-weight: 700">
+              <small class="payment-split-applied">
                 Aplicado:
-                {{ formatCoins(paymentSplitDisplay(row.raw || row).paid_savings) }}
+                <strong>{{ formatCoins(paymentSplitDisplay(row.raw || row).paid_savings) }}</strong>
                 /
-                {{ formatCoins((row.raw || row).price) }}
+                {{ formatMoneyAmount((row.raw || row).price) }}
               </small>
-              <small style="color: #6b7280">
+              <small class="payment-split-due">
                 Faltante:
                 {{ formatCoins(paymentSplitDisplay(row.raw || row).due) }}
+                /
+                {{ formatMoneyAmount((row.raw || row).price) }}
               </small>
             </div>
           </template>
@@ -377,6 +394,14 @@ export default {
       const safe = Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
       return safe.toLocaleString("es-PE");
     },
+    formatMoneyAmount(value) {
+      const n = Number(value);
+      const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
+      return safe.toLocaleString("es-PE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    },
     formatPeriodLabel(label) {
       if (!label) return "—";
       const match = String(label).match(/^(\d{1,2})\/(\d{4})$/);
@@ -399,10 +424,85 @@ export default {
       return `${months[monthIndex] || match[1]} ${match[2]}`;
     },
     formatPayMethod(row) {
-      if (!row) return "—";
-      if (row.payMethodLabel) return row.payMethodLabel;
-      if (row.pay_method === "savings_bonus") return "Bono Ahorro";
-      return row.pay_method || "Bono Ahorro";
+      return this.payMethodTags(row)
+        .map((t) => t.label)
+        .join(" + ");
+    },
+    externalPayLabel(row) {
+      if (!row) return null;
+      if (row.pay_method === "credit-card") return "Tarjeta Izipay";
+      if (row.pay_method === "cash") return "Efectivo";
+
+      const info = row.bank_info || {};
+      const name = String(info.name || row.bank || "").trim();
+      const type = String(info.type || "").trim();
+      const blob = `${name} ${type}`.toLowerCase();
+
+      if (blob.includes("efectivo")) return "Efectivo";
+      if (blob.includes("yape")) return "Yape";
+      if (blob.includes("plin")) return "Plin";
+      if (blob.includes("interbank")) return "Interbank";
+      if (blob.includes("bcp")) return "Transferencia BCP";
+      if (blob.includes("bbva")) return "Transferencia BBVA";
+      if (blob.includes("scotiabank")) return "Transferencia Scotiabank";
+      if (blob.includes("banbif")) return "Transferencia BanBif";
+
+      if (name) {
+        if (type && /transfer/i.test(type)) return `Transferencia ${name}`;
+        return name;
+      }
+
+      if (row.pay_method === "bank") return "Transferencia";
+      return null;
+    },
+    externalPayTone(label) {
+      const blob = String(label || "").toLowerCase();
+      if (blob.includes("yape")) return "yape";
+      if (blob.includes("plin")) return "plin";
+      if (blob.includes("efectivo")) return "cash";
+      if (blob.includes("izipay") || blob.includes("tarjeta")) return "card";
+      if (blob.includes("interbank")) return "interbank";
+      if (blob.includes("bcp")) return "bcp";
+      if (blob.includes("bbva")) return "bbva";
+      if (blob.includes("scotiabank")) return "scotia";
+      return "bank";
+    },
+    payMethodTags(row) {
+      const source = row || {};
+      const split = this.paymentSplitDisplay(source);
+      const tags = [];
+
+      const hasSavings =
+        Number(split.paid_savings) > 0.0001 ||
+        source.pay_method === "savings_bonus" ||
+        Number(split.due) <= 0.0001;
+
+      if (hasSavings) {
+        tags.push({ label: "Bono Ahorro", tone: "savings" });
+      }
+
+      const hasExternal =
+        Number(split.due) > 0.0001 ||
+        source.pay_method === "bank" ||
+        source.pay_method === "credit-card" ||
+        source.pay_method === "cash" ||
+        !!source.bank_info ||
+        !!(source.voucher && source.voucher.url) ||
+        !!(typeof source.voucher === "string" && source.voucher) ||
+        !!source.transaction_id;
+
+      if (hasExternal) {
+        const label = this.externalPayLabel(source);
+        if (label) {
+          tags.push({ label, tone: this.externalPayTone(label) });
+        }
+      }
+
+      if (!tags.length) {
+        tags.push({ label: "Bono Ahorro", tone: "savings" });
+      }
+
+      return tags;
     },
     paymentSplitDisplay(row) {
       if (row && row.paymentSplit) {
@@ -431,10 +531,29 @@ export default {
       };
     },
     hasVoucher(row) {
-      if (!row) return false;
-      const v1 = row.voucher && row.voucher.url;
-      const v2 = row.voucher2 && row.voucher2.url;
-      return !!(v1 || v2);
+      return !!(this.voucherEntry(row, "voucher") || this.voucherEntry(row, "voucher2"));
+    },
+    voucherEntry(row, key) {
+      if (!row) return null;
+      const source = row.raw || row;
+      const value = source[key] || row[key];
+      if (!value) return null;
+
+      if (typeof value === "string") {
+        const url = value.trim();
+        if (!url) return null;
+        const isImage = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(url);
+        return { url, isImage };
+      }
+
+      const url = value.url ? String(value.url).trim() : "";
+      if (!url) return null;
+      return {
+        url,
+        isImage: value.isImage !== false &&
+          (value.isImage ||
+            /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(url)),
+      };
     },
     openImageModal(url) {
       if (url) this.imageModalUrl = url;
@@ -650,6 +769,20 @@ export default {
   border-radius: 6px;
   border: 1px solid #eee;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  object-fit: cover;
+  display: block;
+}
+.voucher-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.voucher-na {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border: none;
+  font-weight: 600;
 }
 .savings-total-coins {
   display: inline-flex;
@@ -663,6 +796,82 @@ export default {
   height: 1.15em;
   object-fit: contain;
   flex-shrink: 0;
+}
+.pay-method-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.pay-method-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.pay-method-tag--savings {
+  background: #dcfce7;
+  color: #166534;
+}
+.pay-method-tag--yape {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+.pay-method-tag--plin {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+.pay-method-tag--bcp {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.pay-method-tag--interbank {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+.pay-method-tag--bbva {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.pay-method-tag--scotia {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.pay-method-tag--cash {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.pay-method-tag--card {
+  background: #fce7f3;
+  color: #be185d;
+}
+.pay-method-tag--bank {
+  background: #e2e8f0;
+  color: #334155;
+}
+.payment-split-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  line-height: 1.2;
+}
+.payment-split-label {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.payment-split-applied {
+  color: #374151;
+  font-size: 0.78rem;
+}
+.payment-split-due {
+  color: #6b7280;
+  font-size: 0.78rem;
 }
 @media (max-width: 640px) {
   .detail-grid {
