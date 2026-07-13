@@ -143,9 +143,9 @@
             <div style="display: flex; flex-direction: column;">
               <span class="has-text-weight-bold">{{ value }}</span>
               <div class="tags" style="margin-top: 4px;">
-                <span v-if="row.catalog_type === 'savings' || (row.is_savings_bonus && !row.points)" class="tag is-warning is-light is-small">Externo / Canje</span>
-                <span v-if="row.catalog_type === 'sifrah' || row.points" class="tag is-info is-light is-small">SIFRAH</span>
-                <span v-if="row.is_savings_bonus" class="tag is-danger is-light is-small">Bono Ahorro</span>
+                <span v-if="row.catalog_type === 'savings'" class="tag is-warning is-light is-small">Externo / Canje</span>
+                <span v-if="row.catalog_type === 'sifrah' || row.catalog_type === 'both' || row.points" class="tag is-info is-light is-small">SIFRAH</span>
+                <span v-if="row.is_savings_bonus || row.catalog_type === 'both' || row.catalog_type === 'savings'" class="tag is-danger is-light is-small">Bono Ahorro</span>
               </div>
             </div>
           </template>
@@ -1514,9 +1514,7 @@ export default {
         is_promotion: !!product.is_promotion,
         promotion_active: product.promotion_active !== false,
         available_quantity: Number(product.available_quantity) || 0,
-        catalog_type:
-          product.catalog_type ||
-          (product.points ? "both" : product.is_savings_bonus ? "savings" : "sifrah"),
+        catalog_type: this.resolveCatalogType(product),
         raw: product,
       }));
     },
@@ -2131,6 +2129,21 @@ export default {
       return product;
     },
 
+    resolveCatalogType(prod) {
+      if (!prod) return "sifrah";
+      if (prod.is_promotion || prod.catalog_type === "promotion") return "promotion";
+      if (prod.catalog_type === "savings") return "savings";
+      // Toggle Bono Ahorro activo + catálogo SIFRAH → Ambos
+      if (prod.is_savings_bonus && (prod.catalog_type === "sifrah" || !prod.catalog_type)) {
+        return Number(prod.points) > 0 || !!prod.code ? "both" : "savings";
+      }
+      if (prod.catalog_type === "both") return "both";
+      if (prod.catalog_type === "sifrah") return "sifrah";
+      if (prod.is_savings_bonus && !(Number(prod.points) > 0)) return "savings";
+      if (prod.is_savings_bonus && Number(prod.points) > 0) return "both";
+      return "sifrah";
+    },
+
     buildProductEditData(product) {
       return {
         _name: product.name,
@@ -2144,6 +2157,7 @@ export default {
         _plans: product.plans || {},
         _weight: product.weight || 0,
         _prices: product.prices || {},
+        catalog_type: this.resolveCatalogType(product),
         is_savings_bonus: !!product.is_savings_bonus,
         savings_price: product.savings_price || 0,
         savings_description: product.savings_description || "",
@@ -2158,8 +2172,20 @@ export default {
 
       const enabled = event.target.checked;
       const previous = !enabled;
+      const previousCatalogType = product.catalog_type;
 
       this.$set(product, "is_savings_bonus", enabled);
+      if (enabled) {
+        if (!product.catalog_type || product.catalog_type === "sifrah") {
+          this.$set(product, "catalog_type", "both");
+        }
+      } else if (
+        product.catalog_type === "both" ||
+        product.catalog_type === "sifrah" ||
+        !product.catalog_type
+      ) {
+        this.$set(product, "catalog_type", "sifrah");
+      }
       this.normalizeSavingsPrice(product);
       this.$set(this.savingsToggleLoading, product.id, true);
 
@@ -2181,6 +2207,7 @@ export default {
           data = {
             is_savings_bonus: enabled,
             savings_price: product.savings_price,
+            catalog_type: product.catalog_type,
           };
         }
 
@@ -2189,6 +2216,9 @@ export default {
         }
         if (data && data.savings_price !== undefined) {
           this.$set(product, "savings_price", Number(data.savings_price) || 0);
+        }
+        if (data && data.catalog_type !== undefined) {
+          this.$set(product, "catalog_type", data.catalog_type);
         }
         if (data && data.savings_category_id !== undefined) {
           this.$set(product, "savings_category_id", data.savings_category_id);
@@ -2205,6 +2235,7 @@ export default {
         });
       } catch (error) {
         this.$set(product, "is_savings_bonus", previous);
+        this.$set(product, "catalog_type", previousCatalogType);
         event.target.checked = previous;
         console.error("Error toggling savings bonus:", error);
         Swal.fire({
@@ -2338,9 +2369,7 @@ export default {
         points: prod.points || 0,
         img: prod.img || "",
         plans: prod.plans || {},
-        catalog_type:
-          prod.catalog_type ||
-          (prod.points ? (prod.is_savings_bonus ? "both" : "sifrah") : "savings"),
+        catalog_type: this.resolveCatalogType(prod),
         savings_price:
           Number(prod.savings_price) > 0
             ? Number(prod.savings_price)
@@ -2551,9 +2580,7 @@ export default {
         savings_price: prod.savings_price || 0,
         savings_description: prod.savings_description || "",
         savings_img: prod.savings_img || "",
-        catalog_type:
-          prod.catalog_type ||
-          (prod.points ? (prod.is_savings_bonus ? "both" : "sifrah") : "savings"),
+        catalog_type: this.resolveCatalogType(prod),
       };
       this.showEditModal = true;
     },
