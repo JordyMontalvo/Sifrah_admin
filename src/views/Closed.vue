@@ -803,13 +803,20 @@ export default {
       const q = (cl._search || '').toLowerCase()
       const rankToSearch = cl._searchRank || this.globalHistorySearchRank
       const r = rankToSearch ? normalizeRankKey(rankToSearch) : null
-      return (cl.users || []).filter((u) => {
-        if (r && normalizeRankKey(u.rank) !== r) return false
-        if (!q) return true
-        const name = (u.name || '').toLowerCase()
-        const dni = String(u.dni || '').toLowerCase()
-        return name.includes(q) || dni.includes(q)
-      })
+      return (cl.users || [])
+        .filter((u) => {
+          if (r) {
+            return normalizeRankKey(u.rank) === r
+          } else {
+            return isRankBronceOrAbove(u.rank)
+          }
+        })
+        .filter((u) => {
+          if (!q) return true
+          const name = (u.name || '').toLowerCase()
+          const dni = String(u.dni || '').toLowerCase()
+          return name.includes(q) || dni.includes(q)
+        })
     },
     rankBonusForUser(cl, userId) {
       if (!cl || !cl.data || !userId) return { total: 0, lines: [] }
