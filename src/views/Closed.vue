@@ -769,9 +769,14 @@ export default {
       const q = this.search.toLowerCase()
       const r = this.searchRank ? normalizeRankKey(this.searchRank) : null
       return (this.tree || [])
-        .filter((e) => isRankShownInPreviewTable(e.rank))
         .filter((e) => {
-          if (r && normalizeRankKey(e.rank) !== r) return false
+          if (r) {
+            return normalizeRankKey(e.rank) === r
+          } else {
+            return isRankBronceOrAbove(e.rank)
+          }
+        })
+        .filter((e) => {
           if (!q) return true
           const name = (e.name || '').toLowerCase()
           const dni = String(e.dni || '').toLowerCase()

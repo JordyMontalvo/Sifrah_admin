@@ -858,12 +858,6 @@ export default {
           condition: (item) => item.status !== "cancelled",
         },
         {
-          key: "revert",
-          label: "Eliminar",
-          icon: "fas fa-trash",
-          class: "is-danger",
-        },
-        {
           key: "validate_voucher",
           label: "Validar Voucher",
           icon: "fas fa-file-invoice-dollar",
@@ -2224,12 +2218,17 @@ export default {
     },
 
     async deleteAffiliation(affiliation) {
-      if (
-        !confirm(
-          "¿Desea eliminar esta afiliación? Esta acción no se puede deshacer."
-        )
-      )
-        return;
+      const confirmed = await Swal.fire({
+        title: "¿Eliminar afiliación?",
+        html: `¿Seguro que deseas eliminar la afiliación de <strong>${affiliation.name} ${affiliation.lastName}</strong>? Esta acción no se puede deshacer.<br><br>
+        ${affiliation.status === 'approved' ? '<span style="color: #e74c3c;">⚠️ Esta afiliación fue aprobada. Se revertirá el estado del usuario.</span>' : ''}`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#e74c3c",
+      });
+      if (!confirmed.isConfirmed) return;
       affiliation.sending = true;
       try {
         const { data } = await api.Affiliations.POST({

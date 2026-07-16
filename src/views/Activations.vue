@@ -830,6 +830,12 @@ export default {
           class: "is-danger",
           condition: (item) => item.status !== "cancelled",
         },
+        {
+          key: "revert",
+          label: "Eliminar",
+          icon: "fas fa-trash",
+          class: "is-danger",
+        },
       ],
       tableFilters: [
         {
@@ -1594,6 +1600,8 @@ export default {
         this.showViewModal = true;
       } else if (action === "cancel") {
         await this.cancelActivation(activation);
+      } else if (action === "revert") {
+        await this.deleteActivation(activation);
       } else if (action === "validate_voucher") {
         const vn = activation.voucher_number || "";
         this.$router.push({
@@ -2144,6 +2152,67 @@ export default {
           timer: 2000,
           showConfirmButton: false,
         });
+      }
+    },
+    async deleteActivation(activation) {
+      const confirmed = await Swal.fire({
+        title: "¿Eliminar activación?",
+        html: `¿Seguro que deseas eliminar la activación de <strong>${activation.name} ${activation.lastName}</strong>? Esta acción no se puede deshacer.<br><br>
+        ${activation.status === 'approved' ? '<span style="color: #e74c3c;">⚠️ Esta activación fue aprobada. Se revertirán los puntos del usuario.</span>' : ''}`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#e74c3c",
+      });
+      if (!confirmed.isConfirmed) return;
+      activation.sending = true;
+      try {
+        const { data } = await api.Activations.POST({
+          action: "revert",
+          id: activation.id,
+        });
+        console.log("Respuesta de revert:", data);
+        if (data && data.error === false) {
+          // Eliminar de la lista local
+          this.activations = this.activations.filter(
+            (a) => a.id !== activation.id
+          );
+          this.allActivations = this.allActivations.filter(
+            (a) => a.id !== activation.id
+          );
+          this.totalItems = this.allActivations.length;
+          this.totalPages = Math.max(1, Math.ceil(this.totalItems / (Number(this.itemsPerPage) || 20)));
+          
+          Swal.fire({
+            icon: "success",
+            title: "Activación eliminada",
+            text: "La activación ha sido eliminada correctamente.",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: (data && data.msg) || "No se pudo eliminar la activación. Inténtalo de nuevo.",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        }
+        await this.GET(this.$route.params.filter);
+        await this.fetchStatusTotals();
+      } catch (error) {
+        console.error("Error eliminando activación:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo eliminar la activación. Inténtalo de nuevo.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } finally {
+        activation.sending = false;
       }
     },
 
