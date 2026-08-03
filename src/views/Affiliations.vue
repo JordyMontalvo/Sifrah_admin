@@ -155,6 +155,17 @@
             </span>
             <span v-else>N/A</span>
           </template>
+          <template #cell-sponsor="{ value }">
+            <div v-if="value" class="sponsor-cell" :title="value.statusLabel || ''">
+              <span class="sponsor-badge" :class="'is-' + (value.status || 'unknown')">
+                <span class="sponsor-badge-dot" aria-hidden="true"></span>
+                {{ sponsorStatusShort(value.status) }}
+              </span>
+              <span class="sponsor-name">{{ sponsorFullName(value) }}</span>
+              <span v-if="value.dni" class="sponsor-dni">DNI {{ value.dni }}</span>
+            </div>
+            <span v-else class="sponsor-empty">—</span>
+          </template>
           <template #cell-plan="{ value }">
             <span v-if="value && value.name">
               {{ value.name
@@ -760,6 +771,11 @@ export default {
           sortable: true,
         },
         {
+          key: "sponsor",
+          label: "Patrocinador",
+          sortable: false,
+        },
+        {
           key: "office",
           label: "Oficina",
           sortable: true,
@@ -1157,6 +1173,7 @@ export default {
             dni: affiliation.dni,
             phone: affiliation.phone,
           },
+          sponsor: affiliation.patrocinador || null,
           office: officeName,
           plan: {
             name: (affiliation.plan && affiliation.plan.name) || "",
@@ -2278,6 +2295,18 @@ export default {
       );
     },
 
+    sponsorFullName(p) {
+      if (!p) return "—";
+      return [p.name, p.lastName].filter(Boolean).join(" ").trim() || "—";
+    },
+
+    sponsorStatusShort(status) {
+      if (status === "affiliated") return "Afiliado";
+      if (status === "pending") return "Pendiente";
+      if (status === "none") return "Sin solicitud";
+      return "Sin dato";
+    },
+
     // toggleDelivery eliminado: ahora se marca desde el badge de tabla con un click.
   },
 };
@@ -2760,5 +2789,87 @@ function parseDate(dateStr) {
 
 .mt-1 {
   margin-top: 4px;
+}
+
+/* Columna Patrocinador */
+.sponsor-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 140px;
+  max-width: 200px;
+  line-height: 1.25;
+}
+
+.sponsor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 2px 8px 2px 6px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.sponsor-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sponsor-badge.is-affiliated {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.sponsor-badge.is-affiliated .sponsor-badge-dot {
+  background: #10b981;
+}
+
+.sponsor-badge.is-pending {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.sponsor-badge.is-pending .sponsor-badge-dot {
+  background: #f59e0b;
+}
+
+.sponsor-badge.is-none,
+.sponsor-badge.is-unknown {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.sponsor-badge.is-none .sponsor-badge-dot,
+.sponsor-badge.is-unknown .sponsor-badge-dot {
+  background: #ef4444;
+}
+
+.sponsor-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1f2937;
+  word-break: break-word;
+}
+
+.sponsor-dni {
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.sponsor-empty {
+  color: #9ca3af;
+  font-size: 0.85rem;
 }
 </style>
