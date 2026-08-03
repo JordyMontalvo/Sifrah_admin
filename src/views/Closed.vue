@@ -209,7 +209,8 @@
         <div class="table-search table-search--with-filter">
           <input v-model="search" class="search-input" placeholder="🔍 Buscar usuario..." />
           <select v-model="searchRank" class="search-select">
-            <option value="">Todos los rangos</option>
+            <option value="all">Todos (participantes)</option>
+            <option value="with_rank">Con rango (Bronce+)</option>
             <option v-for="r in availableRanks" :key="r" :value="r">{{ r }}</option>
           </select>
         </div>
@@ -449,7 +450,8 @@
           <div class="table-search table-search--with-filter">
             <input v-model="cl._search" class="search-input" placeholder="🔍 Buscar en este cierre..." />
             <select v-model="cl._searchRank" class="search-select">
-              <option value="">Todos los rangos</option>
+              <option value="all">Todos (participantes)</option>
+              <option value="with_rank">Con rango (Bronce+)</option>
               <option v-for="r in availableRanks" :key="r" :value="r">{{ r }}</option>
             </select>
           </div>
@@ -640,15 +642,13 @@ const RANKS_BRONCE_ADELANTE = new Set([
 
 /** Misma clave que el motor usa para comparar (sin tildes, minúsculas). */
 function normalizeRankKey(rank) {
-  return String(rank || '')
+  let k = String(rank || '')
     .trim()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-}
-
-function rankKey(rank) {
-  return String(rank || '').trim().toLowerCase()
+  if (k === 'active') k = 'activo'
+  return k
 }
 
 function isRankBronceOrAbove(rank) {
@@ -656,11 +656,39 @@ function isRankBronceOrAbove(rank) {
   return !!k && RANKS_BRONCE_ADELANTE.has(k)
 }
 
-/** Tabla de preview: desde `active`/`activo` (activado sin rango de carrera) hasta el máximo. Nunca `none`. */
-function isRankShownInPreviewTable(rank) {
-  const k = rankKey(rank)
-  if (!k) return false
-  return k !== 'none'
+/**
+ * Quién participa del cierre (alineado al motor Go en preview):
+ * rango distinto de none, o puntos grupales / bonos del cierre.
+ */
+function isClosureParticipant(user) {
+  if (!user || typeof user !== 'object') return false
+  const k = normalizeRankKey(user.rank)
+  if (k && k !== 'none') return true
+
+  const total = Number(
+    user._total != null
+      ? user._total
+      : user.total_points != null
+        ? user.total_points
+        : user.total || 0
+  )
+  const residual = Number(user.residual_bonus || 0)
+  const gen = Number(user.generational_bonus || 0)
+  const sav = Number(user.savings_bonus || 0)
+  const rankBonus = Number(user.rank_bonus_total || 0)
+  return total > 0 || residual > 0 || gen > 0 || sav > 0 || rankBonus > 0
+}
+
+/**
+ * - all: todos los participantes del cierre
+ * - with_rank: Bronce en adelante
+ * - otro: un rango concreto (Activo, Plata, …)
+ */
+function matchesRankFilter(user, filter) {
+  const f = String(filter || '').trim()
+  if (!f || f === 'all') return isClosureParticipant(user)
+  if (f === 'with_rank') return isRankBronceOrAbove(user && user.rank)
+  return normalizeRankKey(user && user.rank) === normalizeRankKey(f)
 }
 
 export default {
@@ -677,7 +705,7 @@ export default {
       virtualResets: [],
       saving:       false,
       search:       '',
-      searchRank:   '',
+      searchRank:   'all',
       snapshotModalData: null,
       showSaveConfirmModal: false,
       backupDownloading: false,
@@ -767,15 +795,9 @@ export default {
     },
     filteredTree() {
       const q = this.search.toLowerCase()
-      const r = this.searchRank ? normalizeRankKey(this.searchRank) : null
+      const rankFilter = this.searchRank || 'all'
       return (this.tree || [])
-        .filter((e) => {
-          if (r) {
-            return normalizeRankKey(e.rank) === r
-          } else {
-            return isRankBronceOrAbove(e.rank)
-          }
-        })
+        .filter((e) => matchesRankFilter(e, rankFilter))
         .filter((e) => {
           if (!q) return true
           const name = (e.name || '').toLowerCase()
@@ -801,16 +823,16 @@ export default {
     },
     filteredHistory(cl) {
       const q = (cl._search || '').toLowerCase()
-      const rankToSearch = cl._searchRank || this.globalHistorySearchRank
-      const r = rankToSearch ? normalizeRankKey(rankToSearch) : null
+      // Local del cierre, o filtro global de historial (si es un rango concreto)
+      const local = cl._searchRank
+      const rankFilter =
+        local !== undefined && local !== null && local !== ''
+          ? local
+          : this.globalHistorySearchRank && this.globalHistorySearchRank !== 'all'
+            ? this.globalHistorySearchRank
+            : 'all'
       return (cl.users || [])
-        .filter((u) => {
-          if (r) {
-            return normalizeRankKey(u.rank) === r
-          } else {
-            return isRankBronceOrAbove(u.rank)
-          }
-        })
+        .filter((u) => matchesRankFilter(u, rankFilter))
         .filter((u) => {
           if (!q) return true
           const name = (u.name || '').toLowerCase()
@@ -867,7 +889,7 @@ export default {
               virtualResetsCount: virtualResetsArray.length,
             }
           }
-          return { ...c, _open: false, _search: '', _searchRank: '', _summary: summary }
+          return { ...c, _open: false, _search: '', _searchRank: 'all', _summary: summary }
         })
       } catch (e) {
         console.error('Error loading closures:', e)
