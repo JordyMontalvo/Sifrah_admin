@@ -244,7 +244,17 @@
                 </td>
                 <td>
                   <div class="group-points-wrapper">
-                    <div class="group-total">Total: {{ (node._total || 0).toFixed(0) }}</div>
+                    <div class="group-total-row">
+                      <div class="group-total-box">
+                        <span class="gt-label">Total PTS:</span>
+                        <span class="gt-value">{{ (node._total || 0).toFixed(0) }}</span>
+                      </div>
+                      <div class="group-total-box">
+                        <span class="gt-label">Total personas:</span>
+                        <span class="gt-value gt-value--people">{{ getNetworkSize(node.tree_snapshot) }}</span>
+                        <div class="gt-hint">(Cantidad de personas de la red grupal)</div>
+                      </div>
+                    </div>
                     <div v-if="validLegs(node.grouped_points_legs).length" class="group-legs-array">
                       <div class="legs-list">
                         <div
@@ -485,7 +495,17 @@
                   </td>
                   <td>
                     <div class="group-points-wrapper">
-                      <div class="group-total">Total: {{ (user.total_points || user.total || 0).toFixed(0) }}</div>
+                      <div class="group-total-row">
+                        <div class="group-total-box">
+                          <span class="gt-label">Total PTS:</span>
+                          <span class="gt-value">{{ (user.total_points || user.total || 0).toFixed(0) }}</span>
+                        </div>
+                        <div class="group-total-box">
+                          <span class="gt-label">Total personas:</span>
+                          <span class="gt-value gt-value--people">{{ getNetworkSize(user.tree_snapshot) }}</span>
+                          <div class="gt-hint">(Cantidad de personas de la red grupal)</div>
+                        </div>
+                      </div>
                       <div
                         v-if="validLegs(user.grouped_points_legs).length"
                         class="group-legs-array"
@@ -807,6 +827,18 @@ export default {
     },
   },
   methods: {
+    getNetworkSize(snapshot) {
+      if (!snapshot) return 0
+      let count = 0
+      const traverse = (n) => {
+        if (n && n.childs && Array.isArray(n.childs)) {
+          count += n.childs.length
+          n.childs.forEach(traverse)
+        }
+      }
+      traverse(snapshot)
+      return count
+    },
     validLegs(legs) {
       if (!legs || !legs.length) return []
       return legs.filter(leg => leg && leg.name && !leg.name.includes('(Eliminado)'))
@@ -1223,6 +1255,13 @@ export default {
 .td-zero  { color: #cbd5e0; }
 .group-points-wrapper { display: flex; flex-direction: column; gap: 4px; }
 .group-total { font-weight: 600; color: #2d3748; }
+.group-total-row { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px dashed #e2e8f0; }
+.group-total-box { display: flex; flex-direction: column; gap: 2px; }
+.group-total-box:not(:last-child) { padding-right: 16px; border-right: 1px solid #e2e8f0; }
+.gt-label { font-size: 0.8rem; font-weight: 700; color: #4a5568; }
+.gt-value { font-size: 1.1rem; font-weight: 700; color: #38a169; }
+.gt-value--people { color: #38a169; }
+.gt-hint { font-size: 0.65rem; color: #a0aec0; max-width: 140px; line-height: 1.2; }
 .group-legs-array {
   margin-top: 2px;
 }
