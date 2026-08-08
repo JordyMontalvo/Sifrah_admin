@@ -252,7 +252,6 @@
                       <div class="group-total-box">
                         <span class="gt-label">Total personas:</span>
                         <span class="gt-value gt-value--people">{{ getNetworkSize(node.tree_snapshot) }}</span>
-                        <div class="gt-hint">(Cantidad de personas de la red grupal)</div>
                       </div>
                     </div>
                     <div v-if="validLegs(node.grouped_points_legs).length" class="group-legs-array">
@@ -503,7 +502,6 @@
                         <div class="group-total-box">
                           <span class="gt-label">Total personas:</span>
                           <span class="gt-value gt-value--people">{{ getNetworkSize(user.tree_snapshot) }}</span>
-                          <div class="gt-hint">(Cantidad de personas de la red grupal)</div>
                         </div>
                       </div>
                       <div
