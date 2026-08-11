@@ -556,7 +556,7 @@
               </div>
 
               <div class="field">
-                <label class="label">Tipo de Catálogo</label>
+                <label class="label">Tipo de Catálogo <span class="required">*</span></label>
                 <div class="control">
                   <div class="select is-fullwidth">
                     <select
@@ -626,14 +626,21 @@
               </div>
 
               <div class="field">
-                <label class="label">Precio</label>
+                <label class="label">Precio <span class="required">*</span></label>
                 <div class="control">
                   <input
                     class="input"
                     type="number"
+                    :class="{ 'is-danger': validationErrors.price }"
                     v-model.number="newProduct.price"
                     placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    @input="clearValidationError('price')"
                   />
+                  <p v-if="validationErrors.price" class="help is-danger">
+                    {{ validationErrors.price }}
+                  </p>
                 </div>
               </div>
 
@@ -2613,47 +2620,44 @@ export default {
     },
 
     async addProduct() {
-      this.validationErrors = {}; // Clear previous errors
+      this.validationErrors = {};
       let hasError = false;
 
-      if (!this.newProduct.code) {
-        this.validationErrors.code = "El código del producto es obligatorio.";
-        hasError = true;
-      }
-      if (!this.newProduct.name) {
+      // Obligatorio: nombre, categoría, tipo de catálogo y precio.
+      // Código, descripción, puntos, peso, imagen, planes y precios por paquete = opcionales.
+      if (!String(this.newProduct.name || "").trim()) {
         this.validationErrors.name = "El nombre del producto es obligatorio.";
         hasError = true;
       }
-      if (!this.newProduct.type) {
+      if (!String(this.newProduct.type || "").trim()) {
         this.validationErrors.type = "La categoría del producto es obligatoria.";
         hasError = true;
       }
-      if (!this.newProduct.price) {
-        this.validationErrors.price = "El precio del producto es obligatorio.";
+      if (!String(this.newProduct.catalog_type || "").trim()) {
+        this.validationErrors.catalog_type =
+          "El tipo de catálogo es obligatorio.";
         hasError = true;
       }
-      if (this.newProduct.catalog_type !== "savings" && !this.newProduct.points) {
-        this.validationErrors.points = "Los puntos del producto son obligatorios.";
-        hasError = true;
-      }
-      if (!this.newProduct.weight) {
-        this.validationErrors.weight = "El peso del producto es obligatorio.";
-        hasError = true;
-      }
-      if (!this.newProduct.img) {
-        this.validationErrors.img = "La imagen del producto es obligatoria.";
-        hasError = true;
-      }
-      if (Object.keys(this.newProduct.plans).length === 0) {
-        this.validationErrors.plans = "Debe asignar el producto a al menos un plan.";
-        hasError = true;
-      }
-      if (Object.keys(this.newProduct.prices).length === 0) {
-        this.validationErrors.prices = "Debe definir el precio para al menos un plan.";
+      const priceNum = Number(this.newProduct.price);
+      if (
+        this.newProduct.price === "" ||
+        this.newProduct.price == null ||
+        Number.isNaN(priceNum) ||
+        priceNum < 0
+      ) {
+        this.validationErrors.price =
+          "El precio del producto es obligatorio (0 o mayor).";
         hasError = true;
       }
 
       if (hasError) {
+        Swal.fire({
+          icon: "warning",
+          title: "Campos incompletos",
+          text: "Completa nombre, categoría, tipo de catálogo y precio.",
+          timer: 2500,
+          showConfirmButton: false,
+        });
         return;
       }
 
@@ -2663,22 +2667,22 @@ export default {
         await api.products.POST({
           action: "add",
           data: {
-            code: this.newProduct.code,
-            name: this.newProduct.name,
-            type: this.newProduct.type,
-            price: this.newProduct.price,
-            points: this.newProduct.points,
-            img: this.newProduct.img,
-            description: this.newProduct.description,
-            subdescription: this.newProduct.subdescription,
-            plans: this.newProduct.plans,
-            weight: this.newProduct.weight,
-            prices: this.newProduct.prices,
+            code: this.newProduct.code || "",
+            name: String(this.newProduct.name || "").trim(),
+            type: String(this.newProduct.type || "").trim(),
+            price: priceNum,
+            points: Number(this.newProduct.points) || 0,
+            img: this.newProduct.img || "",
+            description: this.newProduct.description || "",
+            subdescription: this.newProduct.subdescription || "",
+            plans: this.newProduct.plans || {},
+            weight: Number(this.newProduct.weight) || 0,
+            prices: this.newProduct.prices || {},
             is_savings_bonus: !!this.newProduct.is_savings_bonus,
             savings_price: this.newProduct.savings_price,
-            savings_description: this.newProduct.savings_description,
-            savings_img: this.newProduct.savings_img,
-            catalog_type: this.newProduct.catalog_type,
+            savings_description: this.newProduct.savings_description || "",
+            savings_img: this.newProduct.savings_img || "",
+            catalog_type: this.newProduct.catalog_type || "sifrah",
           },
         });
         Swal.fire({
@@ -2781,26 +2785,49 @@ export default {
 
     async saveProduct() {
       try {
+        if (!String(this.editingProduct.name || "").trim()) {
+          return Swal.fire("Error", "El nombre es obligatorio", "error");
+        }
+        if (!String(this.editingProduct.type || "").trim()) {
+          return Swal.fire("Error", "La categoría es obligatoria", "error");
+        }
+        if (!String(this.editingProduct.catalog_type || "").trim()) {
+          return Swal.fire("Error", "El tipo de catálogo es obligatorio", "error");
+        }
+        const priceNum = Number(this.editingProduct.price);
+        if (
+          this.editingProduct.price === "" ||
+          this.editingProduct.price == null ||
+          Number.isNaN(priceNum) ||
+          priceNum < 0
+        ) {
+          return Swal.fire(
+            "Error",
+            "El precio es obligatorio (0 o mayor)",
+            "error"
+          );
+        }
+
         this.syncCatalogTypeFlags(this.editingProduct);
 
         // Prepara el objeto data con los nombres correctos
         const data = {
-          _name: this.editingProduct.name,
-          _type: this.editingProduct.type,
-          _price: this.editingProduct.price,
-          _points: this.editingProduct.points,
-          _img: this.editingProduct.img,
-          _code: this.editingProduct.code,
-          _description: this.editingProduct.description,
-          _subdescription: this.editingProduct.subdescription,
-          _plans: this.editingProduct.plans,
-          _weight: this.editingProduct.weight,
-          _prices: this.editingProduct.prices,
+          _name: String(this.editingProduct.name || "").trim(),
+          _type: String(this.editingProduct.type || "").trim(),
+          _price: priceNum,
+          _points: Number(this.editingProduct.points) || 0,
+          _img: this.editingProduct.img || "",
+          _code: this.editingProduct.code || "",
+          _description: this.editingProduct.description || "",
+          _subdescription: this.editingProduct.subdescription || "",
+          _plans: this.editingProduct.plans || {},
+          _weight: Number(this.editingProduct.weight) || 0,
+          _prices: this.editingProduct.prices || {},
           catalog_type: this.editingProduct.catalog_type || "sifrah",
           is_savings_bonus: !!this.editingProduct.is_savings_bonus,
           savings_price: this.editingProduct.savings_price,
-          savings_description: this.editingProduct.savings_description,
-          savings_img: this.editingProduct.savings_img,
+          savings_description: this.editingProduct.savings_description || "",
+          savings_img: this.editingProduct.savings_img || "",
         };
 
         await api.products.POST({
