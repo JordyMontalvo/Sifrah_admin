@@ -1656,6 +1656,8 @@ export default {
     },
     isSavingsOnlyProduct(product) {
       if (!product) return false;
+      if (this.isPromotionProduct(product)) return false;
+      if (product.catalog_type === "sifrah" || product.catalog_type === "both") return false;
       if (product.catalog_type === "savings") return true;
       return !!product.is_savings_bonus && !(Number(product.points) > 0);
     },
