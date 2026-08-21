@@ -48,6 +48,7 @@ import SavingsRedemptions from "./views/SavingsRedemptions.vue";
 import SavingsCategories from "./views/SavingsCategories.vue";
 import BlockedEliminated from "./views/BlockedEliminated.vue";
 import AutoHealerLogs from "./views/AutoHealerLogs.vue";
+import Notifications from "./views/Notifications.vue";
 // import Reports      from './views/Reports.vue'
 
 Vue.use(Router);
@@ -70,6 +71,11 @@ const routes = [
     path: "/dashboard",
     component: Dashboard,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/notifications",
+    component: Notifications,
+    meta: { requiresAuth: true, title: "Notificaciones Push" },
   },
   {
     path: "/trans",
