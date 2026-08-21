@@ -31,14 +31,6 @@
                 <span>Dashboard</span>
               </a>
 
-              <!-- Notifications -->
-              <a class="navbar-item" href="/notifications">
-                <span class="icon">
-                  <i class="fas fa-bell"></i>
-                </span>
-                <span>Notificaciones</span>
-              </a>
-
               <!-- Users Menu -->
               <div
                 class="navbar-item menu-trigger"

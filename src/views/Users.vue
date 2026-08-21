@@ -41,6 +41,13 @@
                 <span>Config. Dashboard</span>
               </router-link>
               
+              <button class="button" @click="openNotificationModal(null)" style="color: #e91e63; background-color: #fde8ef; border-color: transparent; font-weight: 600;">
+                <span class="icon">
+                  <i class="fas fa-bell"></i>
+                </span>
+                <span>Notificaciones Push</span>
+              </button>
+
               <router-link to="/reactivations" class="button" style="color: #fff; background-color: #f39c12; border-color: transparent; font-weight: 600;">
                 <span class="icon">
                   <i class="fas fa-user-clock"></i>
@@ -577,6 +584,113 @@
         </div>
       </div>
 
+      <!-- Push Notification Modal -->
+      <div class="modal" :class="{ 'is-active': showNotificationModal }">
+        <div class="modal-background" @click="closeNotificationModal"></div>
+        <div class="modal-card" style="max-width: 580px; width: 100%;">
+          <header class="modal-card-head" style="background: #f8f9fa; border-bottom: 1px solid #eee; padding: 18px 24px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+              <div style="background: #fde8ef; color: #e91e63; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+                <i class="fas fa-bell"></i>
+              </div>
+              <div>
+                <p class="modal-card-title" style="font-weight: 700; color: #2c3e50; font-size: 1.25rem; margin: 0; line-height: 1.2;">
+                  Notificación Push
+                </p>
+                <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 2px; margin-bottom: 0;">
+                  Envía avisos directos a los celulares Android de tus usuarios
+                </p>
+              </div>
+            </div>
+            <button class="delete" aria-label="close" @click="closeNotificationModal"></button>
+          </header>
+          
+          <section class="modal-card-body" style="padding: 24px; background: #fff;">
+            <!-- Destinatario selector -->
+            <div class="field" style="margin-bottom: 18px;">
+              <label class="label" style="font-weight: 600; color: #2c3e50; font-size: 0.9rem;">Destinatarios</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select v-model="notificationForm.target">
+                    <option value="all">📢 A TODOS los usuarios con app instalada</option>
+                    <option value="specific">👤 A un usuario en específico</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Campo de usuario específico -->
+            <div v-if="notificationForm.target === 'specific'" class="field" style="margin-bottom: 18px;">
+              <label class="label" style="font-weight: 600; color: #2c3e50; font-size: 0.9rem;">DNI o ID del Usuario</label>
+              <div class="control has-icons-left">
+                <input class="input" type="text" v-model="notificationForm.userId" placeholder="Ej: 10328956" />
+                <span class="icon is-small is-left">
+                  <i class="fas fa-id-card"></i>
+                </span>
+              </div>
+              <p class="help" v-if="notificationForm.userLabel" style="color: #6e62cc; font-weight: 600; margin-top: 4px;">
+                👤 Destinatario: {{ notificationForm.userLabel }}
+              </p>
+            </div>
+
+            <!-- Título -->
+            <div class="field" style="margin-bottom: 18px;">
+              <label class="label" style="font-weight: 600; color: #2c3e50; font-size: 0.9rem;">Título de la notificación</label>
+              <div class="control has-icons-left">
+                <input class="input" type="text" v-model="notificationForm.title" placeholder="Ej: ¡Nueva Promoción en Sifrah!" />
+                <span class="icon is-small is-left">
+                  <i class="fas fa-heading"></i>
+                </span>
+              </div>
+            </div>
+
+            <!-- Mensaje -->
+            <div class="field" style="margin-bottom: 20px;">
+              <label class="label" style="font-weight: 600; color: #2c3e50; font-size: 0.9rem;">Mensaje</label>
+              <div class="control">
+                <textarea class="textarea" v-model="notificationForm.message" rows="3" placeholder="Escribe el contenido del mensaje..."></textarea>
+              </div>
+            </div>
+
+            <!-- Preview Card flotante tipo Android -->
+            <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 14px 16px;">
+              <p style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #adb5bd; margin-bottom: 8px; letter-spacing: 0.5px;">
+                <i class="fas fa-mobile-alt"></i> Vista previa en celular
+              </p>
+              <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <div style="background: #6e62cc; color: white; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0;">
+                  <i class="fas fa-bell"></i>
+                </div>
+                <div style="overflow: hidden; flex: 1;">
+                  <p style="font-weight: 700; font-size: 0.9rem; color: #2c3e50; margin-bottom: 2px;">
+                    {{ notificationForm.title || 'Título de la notificación' }}
+                  </p>
+                  <p style="font-size: 0.83rem; color: #6c757d; line-height: 1.35; margin-bottom: 0;">
+                    {{ notificationForm.message || 'Contenido del mensaje que llegará a la barra de estado...' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="modal-card-foot" style="justify-content: flex-end; background: #f8f9fa; border-top: 1px solid #eee; padding: 14px 24px; gap: 10px;">
+            <button class="button" @click="closeNotificationModal" :disabled="sendingNotification">
+              Cancelar
+            </button>
+            <button 
+              class="button" 
+              style="background: #e91e63; color: white; border-color: transparent; font-weight: 600; padding-left: 20px; padding-right: 20px;"
+              @click="sendNotification"
+              :class="{ 'is-loading': sendingNotification }"
+              :disabled="!notificationForm.title || !notificationForm.message || (notificationForm.target === 'specific' && !notificationForm.userId)"
+            >
+              <span class="icon"><i class="fas fa-paper-plane"></i></span>
+              <span>Enviar Notificación</span>
+            </button>
+          </footer>
+        </div>
+      </div>
+
       <!-- Loading Overlay -->
       <div class="loading-overlay" v-if="loading">
         <div class="loading-content">
@@ -742,6 +856,12 @@ export default {
           class: "is-primary",
         },
         {
+          key: "push_notification",
+          label: "Notificación Push",
+          icon: "fas fa-bell",
+          class: "is-danger",
+        },
+        {
           key: "delete_activation",
           label: "Eliminar Activación",
           icon: "fas fa-trash",
@@ -806,6 +926,15 @@ export default {
       showViewModal: false,
       showMasterPasswordModal: false,
       loadingMasterPassword: false,
+      showNotificationModal: false,
+      sendingNotification: false,
+      notificationForm: {
+        target: "all",
+        userId: "",
+        userLabel: "",
+        title: "",
+        message: "",
+      },
       masterPasswordStatus: {
         configured: false,
         updated_at: null
@@ -1078,6 +1207,9 @@ export default {
           break;
         case "reactivate":
           this.reactivateUser(item.raw || item);
+          break;
+        case "push_notification":
+          this.openNotificationModal(item.raw || item);
           break;
       }
     },
@@ -1729,6 +1861,63 @@ export default {
         Swal.fire("Error", "Error de conexión", "error");
       } finally {
         this.loadingMasterPassword = false;
+      }
+    },
+    openNotificationModal(user = null) {
+      this.notificationForm = {
+        target: user ? "specific" : "all",
+        userId: user ? (user.dni || user.id || user._id || "") : "",
+        userLabel: user ? `${user.name || ''} ${user.lastName || ''} (${user.dni || ''})`.trim() : "",
+        title: "",
+        message: "",
+      };
+      this.showNotificationModal = true;
+    },
+    closeNotificationModal() {
+      this.showNotificationModal = false;
+      this.notificationForm = {
+        target: "all",
+        userId: "",
+        userLabel: "",
+        title: "",
+        message: "",
+      };
+    },
+    async sendNotification() {
+      if (!this.notificationForm.title || !this.notificationForm.message) {
+        return Swal.fire("Campos incompletos", "Por favor ingresa un título y mensaje.", "warning");
+      }
+      if (this.notificationForm.target === "specific" && !this.notificationForm.userId) {
+        return Swal.fire("Falta usuario", "Por favor ingresa el DNI o ID del usuario.", "warning");
+      }
+
+      this.sendingNotification = true;
+      try {
+        const payload = {
+          title: this.notificationForm.title,
+          body: this.notificationForm.message,
+        };
+        if (this.notificationForm.target === "specific") {
+          payload.userId = this.notificationForm.userId;
+        }
+
+        const response = await api.notifications.POST(payload);
+        if (response.data && response.data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "¡Notificación enviada!",
+            html: `Se envió con éxito a <b>${response.data.successCount}</b> dispositivo(s).<br><small style="color:#888;">(Fallos: ${response.data.failureCount})</small>`,
+            confirmButtonColor: "#e91e63"
+          });
+          this.closeNotificationModal();
+        } else {
+          Swal.fire("Aviso", response.data.message || "No se pudo enviar la notificación.", "error");
+        }
+      } catch (err) {
+        const msg = (err.response && err.response.data && err.response.data.message) || err.message || "Error al enviar la notificación.";
+        Swal.fire("Error", msg, "error");
+      } finally {
+        this.sendingNotification = false;
       }
     }
   },
