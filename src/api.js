@@ -593,7 +593,7 @@ class GeneralPassword {
 
 class NotificationsAPI {
     POST(payload) {
-        return axios.post(`/api/notifications/send`, payload);
+        return axios.post(`/notifications/send`, payload);
     }
 }
 
