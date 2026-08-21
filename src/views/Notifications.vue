@@ -104,7 +104,7 @@ export default {
           this.errorMsg = response.data.message || 'Error al enviar';
         }
       } catch (err) {
-        this.errorMsg = err.response?.data?.message || err.message || 'Error de conexión';
+        this.errorMsg = (err.response && err.response.data && err.response.data.message) || err.message || 'Error de conexión';
       } finally {
         this.sending = false;
       }
