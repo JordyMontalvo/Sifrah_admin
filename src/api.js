@@ -98,6 +98,7 @@ class API {
         agenda,
         reactivations,
         savingsRedemptions,
+        notifications,
     }) {
         this.users = users;
         this.Affiliations = Affiliations;
@@ -141,6 +142,7 @@ class API {
         this.agenda = agenda;
         this.reactivations = reactivations;
         this.savingsRedemptions = savingsRedemptions;
+        this.notifications = notifications;
     }
 }
 
@@ -589,6 +591,12 @@ class GeneralPassword {
     }
 }
 
+class NotificationsAPI {
+    POST(payload) {
+        return axios.post(`/api/notifications/send`, payload);
+    }
+}
+
 class AdminAuth {
     login({ emailOrDni, password }) {
         return axios.post(`/admin/auth/login`, { emailOrDni, password });
@@ -696,4 +704,5 @@ export default new API({
     reactivations: new Reactivations(),
     savingsRedemptions: new SavingsRedemptions(),
     operations: new Operations(),
+    notifications: new NotificationsAPI(),
 });

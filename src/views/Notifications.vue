@@ -93,7 +93,7 @@ export default {
       }
 
       try {
-        const response = await api.post('/api/notifications/send', payload);
+        const response = await api.notifications.POST(payload);
         
         if (response.data.success) {
           this.successMsg = `¡Enviado! Éxitos: ${response.data.successCount}, Fallos: ${response.data.failureCount}`;
