@@ -1,7 +1,7 @@
 import axios from 'axios'
 import './api'
 
-const SERVER = process.env.VUE_APP_SERVER || 'https://sifrah-server-0920254d8662.herokuapp.com';
+const SERVER = process.env.VUE_APP_SERVER || 'https://api.serve-sifrah.xyz';
 
 class Lib {
   async upload(file, fileName, dir) {
