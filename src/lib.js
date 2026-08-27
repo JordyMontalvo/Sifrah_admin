@@ -40,6 +40,10 @@ class Lib {
         fileName: safeFileName,
         dir,
         fileData: base64Data,
+      }, {
+        timeout: 300000,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
       });
 
       if (!data || !data.url) {
@@ -51,6 +55,10 @@ class Lib {
 
     } catch (err) {
       console.error('[Lib] uploadBuffer FAILED:', err.message, err);
+      const status = err.response && err.response.status;
+      if (status === 413 || (!err.response && err.message === 'Network Error')) {
+        throw new Error('El archivo es demasiado pesado para subirlo aquí. Comprime el PDF o usa el link de Drive.');
+      }
       throw err;
     }
   }
