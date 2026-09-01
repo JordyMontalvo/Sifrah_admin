@@ -360,6 +360,52 @@
         </div>
       </div>
 
+      <!-- Modal: Editar Pago -->
+      <div class="modal" :class="{ 'is-active': showEditPaymentModal }">
+        <div class="modal-background" @click="showEditPaymentModal = false"></div>
+        <div class="modal-card modern-modal-card">
+          <header class="modal-card-head modern-modal-head">
+            <span class="modal-icon"><i class="fas fa-edit"></i></span>
+            <p class="modal-card-title">Editar Detalles de Pago</p>
+            <button class="delete" aria-label="close" @click="showEditPaymentModal = false"></button>
+          </header>
+          <section class="modal-card-body modern-modal-body">
+            <div v-if="selectedAffiliation" class="details-container">
+              <div class="field">
+                <label class="label">Medio de Pago</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select v-model="editPaymentForm.pay_method">
+                      <option value="cash">Efectivo</option>
+                      <option value="bank">Depósito/Transferencia (Banco)</option>
+                      <option value="credit-card">Tarjeta (Izipay)</option>
+                      <option value="internal_wallet">Billetera Interna</option>
+                      <option value="harmony_wallet">Billetera Harmony</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Nº de Operación (1)</label>
+                <div class="control">
+                  <input class="input" type="text" v-model="editPaymentForm.voucher_number" placeholder="Ej. 123456" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Nº de Operación (2)</label>
+                <div class="control">
+                  <input class="input" type="text" v-model="editPaymentForm.voucher_number2" placeholder="Opcional" />
+                </div>
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot modern-modal-foot">
+            <button class="button is-primary" :class="{ 'is-loading': savingPayment }" @click="submitEditPayment">Guardar Cambios</button>
+            <button class="button" @click="showEditPaymentModal = false" :disabled="savingPayment">Cancelar</button>
+          </footer>
+        </div>
+      </div>
+
       <div class="modal" :class="{ 'is-active': showViewModal }">
         <div class="modal-background" @click="showViewModal = false"></div>
         <div class="modal-card modern-modal-card">
@@ -751,6 +797,9 @@ export default {
       showImageModal: false,
       imageModalUrl: "",
       showViewModal: false,
+      showEditPaymentModal: false,
+      savingPayment: false,
+      editPaymentForm: { pay_method: "", voucher_number: "", voucher_number2: "" },
       selectedAffiliation: null,
       officesList: [], // Lista de oficinas cargadas
       periodsByKey: {}, // { [key]: periodDoc }
@@ -877,6 +926,12 @@ export default {
           icon: "fas fa-ban",
           class: "is-danger",
           condition: (item) => item.status !== "cancelled",
+        },
+        {
+          key: "edit_payment",
+          label: "Editar Pago",
+          icon: "fas fa-edit",
+          class: "is-warning",
         },
         {
           key: "validate_voucher",
@@ -1731,6 +1786,14 @@ export default {
       } else if (action === "view") {
         this.selectedAffiliation = affiliation;
         this.showViewModal = true;
+      } else if (action === "edit_payment") {
+        this.selectedAffiliation = affiliation;
+        this.editPaymentForm = {
+          pay_method: affiliation.pay_method || "",
+          voucher_number: affiliation.voucher_number || "",
+          voucher_number2: affiliation.voucher_number2 || "",
+        };
+        this.showEditPaymentModal = true;
       } else if (action === "validate_voucher") {
         const vn = affiliation.voucher_number || "";
         this.$router.push({
@@ -2197,7 +2260,33 @@ export default {
       }
       return "N/A";
     },
-
+    async submitEditPayment() {
+      try {
+        this.savingPayment = true;
+        const res = await api.post("admin/affiliations", {
+          action: "edit_payment",
+          item: {
+            id: this.selectedAffiliation.id,
+            pay_method: this.editPaymentForm.pay_method,
+            voucher_number: this.editPaymentForm.voucher_number,
+            voucher_number2: this.editPaymentForm.voucher_number2,
+          }
+        });
+        
+        if (res.data && res.data.success) {
+          this.$buefy.toast.open({ message: "Pago actualizado correctamente", type: "is-success" });
+          this.showEditPaymentModal = false;
+          await this.fetchData();
+        } else {
+          this.$buefy.toast.open({ message: "Error al actualizar pago", type: "is-danger" });
+        }
+      } catch (err) {
+        console.error(err);
+        this.$buefy.toast.open({ message: err.message || "Error", type: "is-danger" });
+      } finally {
+        this.savingPayment = false;
+      }
+    },
     async cancelAffiliation(affiliation) {
       const confirmed = await Swal.fire({
         title: "¿Anular afiliación?",
