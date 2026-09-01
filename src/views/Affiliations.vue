@@ -530,25 +530,30 @@
                 <span class="detail-value">{{ selectedAffiliation.voucher_number2 }}</span>
               </div>
 
-              <div class="detail-item">
+              <div class="detail-item voucher-thumbnails">
                 <span class="detail-label"
                   ><i class="fas fa-file-invoice"></i> Voucher:</span
                 >
-                <span class="detail-value">
+                <div class="detail-value" style="display: flex; gap: 10px; margin-top: 10px;">
                   <a
                     v-if="selectedAffiliation.voucher"
                     :href="selectedAffiliation.voucher"
                     target="_blank"
-                    style="margin-right: 10px;"
-                    >Ver Voucher 1</a
+                    class="voucher-link"
                   >
+                    <img v-if="/(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(selectedAffiliation.voucher)" :src="selectedAffiliation.voucher" alt="Voucher 1" class="voucher-thumb-detail" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;"/>
+                    <span v-else>Ver Voucher 1</span>
+                  </a>
                   <a
                     v-if="selectedAffiliation.voucher2"
                     :href="selectedAffiliation.voucher2"
                     target="_blank"
-                    >Ver Voucher 2</a
+                    class="voucher-link"
                   >
-                </span>
+                    <img v-if="/(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(selectedAffiliation.voucher2)" :src="selectedAffiliation.voucher2" alt="Voucher 2" class="voucher-thumb-detail" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;"/>
+                    <span v-else>Ver Voucher 2</span>
+                  </a>
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label"

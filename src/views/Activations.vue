@@ -455,26 +455,30 @@
                 <span class="detail-value">{{ selectedActivation.voucher_number2 }}</span>
               </div>
               
-              <!-- Voucher/Comprobante -->
-              <div class="detail-item" v-if="selectedActivation.pay_method === 'bank' && (selectedActivation.voucher || selectedActivation.voucher2)">
+              <div class="detail-item voucher-thumbnails" v-if="selectedActivation.pay_method === 'bank' && (selectedActivation.voucher || selectedActivation.voucher2)">
                 <span class="detail-label"
                   ><i class="fas fa-file-invoice"></i> Comprobante:</span
                 >
-                <span class="detail-value">
+                <div class="detail-value" style="display: flex; gap: 10px; margin-top: 10px;">
                   <a
                     v-if="selectedActivation.voucher"
                     :href="selectedActivation.voucher"
                     target="_blank"
-                    style="margin-right: 10px;"
-                    >Ver Comprobante 1</a
+                    class="voucher-link"
                   >
+                    <img v-if="/(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(selectedActivation.voucher)" :src="selectedActivation.voucher" alt="Comprobante 1" class="voucher-thumb-detail" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;"/>
+                    <span v-else>Ver Comprobante 1</span>
+                  </a>
                   <a
                     v-if="selectedActivation.voucher2"
                     :href="selectedActivation.voucher2"
                     target="_blank"
-                    >Ver Comprobante 2</a
+                    class="voucher-link"
                   >
-                </span>
+                    <img v-if="/(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(selectedActivation.voucher2)" :src="selectedActivation.voucher2" alt="Comprobante 2" class="voucher-thumb-detail" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;"/>
+                    <span v-else>Ver Comprobante 2</span>
+                  </a>
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label"
