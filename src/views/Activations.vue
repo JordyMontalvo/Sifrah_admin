@@ -351,8 +351,7 @@
                       <option value="cash">Efectivo</option>
                       <option value="bank">Depósito/Transferencia (Banco)</option>
                       <option value="credit-card">Tarjeta (Izipay)</option>
-                      <option value="internal_wallet">Billetera Interna</option>
-                      <option value="sifrah_wallet">Billetera Sifrah</option>
+                      <option value="balance">Billetera Interna / Saldo</option>
                     </select>
                   </div>
                 </div>
