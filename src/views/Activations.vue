@@ -352,7 +352,7 @@
                       <option value="bank">Depósito/Transferencia (Banco)</option>
                       <option value="credit-card">Tarjeta (Izipay)</option>
                       <option value="internal_wallet">Billetera Interna</option>
-                      <option value="harmony_wallet">Billetera Harmony</option>
+                      <option value="sifrah_wallet">Billetera Sifrah</option>
                     </select>
                   </div>
                 </div>
