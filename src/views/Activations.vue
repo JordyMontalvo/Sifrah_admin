@@ -234,7 +234,13 @@
             </div>
           </template>
           <template #cell-pay_method="{ row }">
-            {{ formatPayMethod(row.raw) }}
+            <div>{{ formatPayMethod(row.raw) }}</div>
+            <div v-if="row.raw.transaction_id" style="font-size: 0.75rem; color: #6b7280; margin-top: 4px;" title="Transaction ID">
+              <i class="fas fa-hashtag"></i> {{ row.raw.transaction_id }}
+            </div>
+            <div v-if="row.raw.authorization_code" style="font-size: 0.75rem; color: #6b7280;" title="Autorización">
+              <i class="fas fa-key"></i> {{ row.raw.authorization_code }}
+            </div>
           </template>
           <template #cell-comprobante="{ row }">
             <div class="payment-step-stack">
