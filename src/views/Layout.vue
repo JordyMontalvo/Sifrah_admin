@@ -174,6 +174,18 @@
                 <span>Banner</span>
               </a>
 
+              <!-- Redes sociales -->
+              <a
+                class="navbar-item"
+                href="/social-links"
+                v-if="accountType === 'admin'"
+              >
+                <span class="icon">
+                  <i class="fas fa-share-alt"></i>
+                </span>
+                <span>Redes</span>
+              </a>
+
               <!-- Herramientas Menu (incluye Audio y Libros en el desplegable) -->
               <div
                 class="navbar-item menu-trigger"
@@ -557,6 +569,12 @@
               <i class="fas fa-book"></i>
             </span>
             <span>Libros</span>
+          </a>
+          <a class="menu-item" href="/social-links" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-share-alt"></i>
+            </span>
+            <span>Redes sociales</span>
           </a>
         </div>
       </div>

@@ -94,6 +94,7 @@ class API {
         savingsCategories,
         rankHistory,
         generalPassword,
+        socialLinks,
         adminAuth,
         agenda,
         reactivations,
@@ -138,6 +139,7 @@ class API {
         this.savingsCategories = savingsCategories;
         this.rankHistory = rankHistory;
         this.generalPassword = generalPassword;
+        this.socialLinks = socialLinks;
         this.adminAuth = adminAuth;
         this.agenda = agenda;
         this.reactivations = reactivations;
@@ -591,6 +593,15 @@ class GeneralPassword {
     }
 }
 
+class SocialLinks {
+    GET() {
+        return axios.get(`/admin/social-links`);
+    }
+    POST({ facebook, youtube, tiktok, whatsapp }) {
+        return axios.post(`/admin/social-links`, { facebook, youtube, tiktok, whatsapp });
+    }
+}
+
 class NotificationsAPI {
     POST(payload) {
         return axios.post(`/notifications/send`, payload);
@@ -699,6 +710,7 @@ export default new API({
     savingsCategories: new SavingsCategories(),
     rankHistory: new RankHistory(),
     generalPassword: new GeneralPassword(),
+    socialLinks: new SocialLinks(),
     adminAuth: new AdminAuth(),
     agenda: new Agenda(),
     reactivations: new Reactivations(),

@@ -32,6 +32,7 @@ import DeliveryManagement from "./views/DeliveryManagement.vue";
 import PaymentMethods from "./views/PaymentMethods.vue";
 import DashboardConfig from "./views/DashboardConfig.vue";
 import GeneralPassword from "./views/GeneralPassword.vue";
+import SocialLinks from "./views/SocialLinks.vue";
 import Flyers from "./views/Flyers.vue";
 import Periods from "./views/Periods.vue";
 import Materials from "./views/Materials.vue";
@@ -262,6 +263,11 @@ const routes = [
     path: "/general-password",
     component: GeneralPassword,
     meta: { requiresAuth: true, title: "CLAVE MAESTRA" },
+  },
+  {
+    path: "/social-links",
+    component: SocialLinks,
+    meta: { requiresAuth: true, title: "Redes sociales" },
   },
   {
     path: "/flyers",
