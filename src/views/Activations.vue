@@ -882,12 +882,6 @@ export default {
           class: "is-danger",
           condition: (item) => item.status !== "cancelled",
         },
-        {
-          key: "edit_payment",
-          label: "Editar Pago",
-          icon: "fas fa-edit",
-          class: "is-warning",
-        },
       ],
       tableFilters: [
         {
@@ -1635,13 +1629,13 @@ export default {
     },
 
     async handleItemAction({ action, item }) {
-      const activation = item.raw;
+      const activation = (item && item.raw) || item;
       if (action === "approve") {
         await this.approve(activation);
       } else if (action === "reject") {
         await this.reject(activation);
-      } else if (action === "edit") {
-        this.editVoucher(activation);
+      } else if (action === "edit" || action === "edit_payment") {
+        this.openEditPayment(activation);
       } else if (action === "invoice") {
         window.open(`${this.INVOICE_ROOT}?id=${activation.id}`, "_blank");
       } else if (action === "delivery") {
@@ -1650,14 +1644,6 @@ export default {
       } else if (action === "view") {
         this.selectedActivation = activation;
         this.showViewModal = true;
-      } else if (action === "edit_payment") {
-        this.selectedActivation = activation;
-        this.editPaymentForm = {
-          pay_method: activation.pay_method || "",
-          voucher_number: activation.voucher_number || "",
-          voucher_number2: activation.voucher_number2 || "",
-        };
-        this.showEditPaymentModal = true;
       } else if (action === "cancel") {
         await this.cancelActivation(activation);
       } else if (action === "validate_voucher") {
@@ -1795,9 +1781,19 @@ export default {
       }
     },
 
+    openEditPayment(activation) {
+      if (!activation) return;
+      this.selectedActivation = activation;
+      this.editPaymentForm = {
+        pay_method: activation.pay_method || "",
+        voucher_number: activation.voucher_number || "",
+        voucher_number2: activation.voucher_number2 || "",
+      };
+      this.showEditPaymentModal = true;
+    },
+
     editVoucher(activation) {
-      activation.editing = true;
-      activation.newVoucher = activation.voucher;
+      this.openEditPayment(activation);
     },
 
     async saveVoucher(activation) {
@@ -2172,28 +2168,38 @@ export default {
       );
     },
     async submitEditPayment() {
+      if (!this.selectedActivation || !this.selectedActivation.id) {
+        if (this.$toast) this.$toast.error("No se encontró la activación a editar");
+        return;
+      }
       try {
         this.savingPayment = true;
-        const res = await api.post("admin/activations", {
+        const res = await api.Activations.POST({
           action: "edit_payment",
+          id: this.selectedActivation.id,
           item: {
             id: this.selectedActivation.id,
             pay_method: this.editPaymentForm.pay_method,
             voucher_number: this.editPaymentForm.voucher_number,
             voucher_number2: this.editPaymentForm.voucher_number2,
-          }
+          },
         });
-        
-        if (res.data && res.data.success) {
-          this.$buefy.toast.open({ message: "Pago actualizado correctamente", type: "is-success" });
+
+        if (res.data && (res.data.success || res.data.error === false)) {
+          if (this.$toast) this.$toast.success("Pago actualizado correctamente");
           this.showEditPaymentModal = false;
-          await this.fetchData();
+          await this.GET(this.$route.params.filter);
         } else {
-          this.$buefy.toast.open({ message: "Error al actualizar pago", type: "is-danger" });
+          const msg = (res.data && (res.data.msg || res.data.message)) || "Error al actualizar pago";
+          if (this.$toast) this.$toast.error(msg);
         }
       } catch (err) {
         console.error(err);
-        this.$buefy.toast.open({ message: err.message || "Error", type: "is-danger" });
+        const msg =
+          (err.response && err.response.data && (err.response.data.msg || err.response.data.message)) ||
+          err.message ||
+          "Error al actualizar pago";
+        if (this.$toast) this.$toast.error(msg);
       } finally {
         this.savingPayment = false;
       }

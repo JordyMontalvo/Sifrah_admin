@@ -913,6 +913,12 @@ export default {
           condition: (item) => item.status === "pending",
         },
         {
+          key: "edit",
+          label: "Editar",
+          icon: "fas fa-edit",
+          class: "is-info",
+        },
+        {
           key: "invoice",
           label: "Boleta",
           icon: "fas fa-file-invoice",
@@ -920,17 +926,10 @@ export default {
           condition: (item) => item.status === "approved",
         },
         {
-          key: "cancel",
-          label: "Anular",
-          icon: "fas fa-ban",
-          class: "is-danger",
-          condition: (item) => item.status !== "cancelled",
-        },
-        {
-          key: "edit_payment",
-          label: "Editar Pago",
-          icon: "fas fa-edit",
-          class: "is-warning",
+          key: "view",
+          label: "Ver Detalles",
+          icon: "fas fa-eye",
+          class: "is-primary",
         },
         {
           key: "validate_voucher",
@@ -940,10 +939,11 @@ export default {
           condition: (item) => (item.pay_method || "").toLowerCase().includes("bank") || (item.pay_method || "").toLowerCase().includes("banco"),
         },
         {
-          key: "view",
-          label: "Ver Detalles",
-          icon: "fas fa-eye",
-          class: "is-primary",
+          key: "cancel",
+          label: "Anular",
+          icon: "fas fa-ban",
+          class: "is-danger",
+          condition: (item) => item.status !== "cancelled",
         },
       ],
       tableFilters: [
@@ -1769,13 +1769,13 @@ export default {
     },
 
     async handleItemAction({ action, item }) {
-      const affiliation = item.raw;
+      const affiliation = (item && item.raw) || item;
       if (action === "approve") {
         await this.approve(affiliation);
       } else if (action === "reject") {
         await this.reject(affiliation);
-      } else if (action === "edit") {
-        this.editVoucher(affiliation);
+      } else if (action === "edit" || action === "edit_payment") {
+        this.openEditPayment(affiliation);
       } else if (action === "invoice") {
         window.open(`${this.INVOICE_ROOT}?id=${affiliation.id}`, "_blank");
       } else if (action === "cancel") {
@@ -1785,14 +1785,6 @@ export default {
       } else if (action === "view") {
         this.selectedAffiliation = affiliation;
         this.showViewModal = true;
-      } else if (action === "edit_payment") {
-        this.selectedAffiliation = affiliation;
-        this.editPaymentForm = {
-          pay_method: affiliation.pay_method || "",
-          voucher_number: affiliation.voucher_number || "",
-          voucher_number2: affiliation.voucher_number2 || "",
-        };
-        this.showEditPaymentModal = true;
       } else if (action === "validate_voucher") {
         const vn = affiliation.voucher_number || "";
         this.$router.push({
@@ -1929,9 +1921,19 @@ export default {
       }
     },
 
+    openEditPayment(affiliation) {
+      if (!affiliation) return;
+      this.selectedAffiliation = affiliation;
+      this.editPaymentForm = {
+        pay_method: affiliation.pay_method || "",
+        voucher_number: affiliation.voucher_number || "",
+        voucher_number2: affiliation.voucher_number2 || "",
+      };
+      this.showEditPaymentModal = true;
+    },
+
     editVoucher(affiliation) {
-      affiliation.editing = true;
-      affiliation.newVoucher = affiliation.voucher;
+      this.openEditPayment(affiliation);
     },
 
     async saveVoucher(affiliation) {
@@ -2260,28 +2262,38 @@ export default {
       return "N/A";
     },
     async submitEditPayment() {
+      if (!this.selectedAffiliation || !this.selectedAffiliation.id) {
+        if (this.$toast) this.$toast.error("No se encontró la afiliación a editar");
+        return;
+      }
       try {
         this.savingPayment = true;
-        const res = await api.post("admin/affiliations", {
+        const res = await api.Affiliations.POST({
           action: "edit_payment",
+          id: this.selectedAffiliation.id,
           item: {
             id: this.selectedAffiliation.id,
             pay_method: this.editPaymentForm.pay_method,
             voucher_number: this.editPaymentForm.voucher_number,
             voucher_number2: this.editPaymentForm.voucher_number2,
-          }
+          },
         });
-        
-        if (res.data && res.data.success) {
-          this.$buefy.toast.open({ message: "Pago actualizado correctamente", type: "is-success" });
+
+        if (res.data && (res.data.success || res.data.error === false)) {
+          if (this.$toast) this.$toast.success("Pago actualizado correctamente");
           this.showEditPaymentModal = false;
-          await this.fetchData();
+          await this.GET(this.$route.params.filter);
         } else {
-          this.$buefy.toast.open({ message: "Error al actualizar pago", type: "is-danger" });
+          const msg = (res.data && (res.data.msg || res.data.message)) || "Error al actualizar pago";
+          if (this.$toast) this.$toast.error(msg);
         }
       } catch (err) {
         console.error(err);
-        this.$buefy.toast.open({ message: err.message || "Error", type: "is-danger" });
+        const msg =
+          (err.response && err.response.data && (err.response.data.msg || err.response.data.message)) ||
+          err.message ||
+          "Error al actualizar pago";
+        if (this.$toast) this.$toast.error(msg);
       } finally {
         this.savingPayment = false;
       }

@@ -1026,7 +1026,9 @@ export default {
 
 /* Actions */
 .actions-cell {
-  width: 120px;
+  width: auto;
+  min-width: 200px;
+  white-space: nowrap;
 }
 
 .actions-menu {

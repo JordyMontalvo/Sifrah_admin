@@ -174,8 +174,8 @@ class Affiliations {
             `/admin/affiliations?filter=${filter}&page=${page}&limit=${limit}${adminAccountQuery(account)}${searchParam}`
         );
     }
-    POST({ action, id }) {
-        return axios.post(`/admin/affiliations`, { action, id });
+    POST(payload) {
+        return axios.post(`/admin/affiliations`, payload);
     }
 }
 
@@ -208,8 +208,8 @@ class Activations {
             `/admin/activations?filter=${filter}&page=${page}&limit=${limit}${adminAccountQuery(account)}${searchParam}`
         );
     }
-    POST({ action, id, points }) {
-        return axios.post(`/admin/activations`, { action, id, points });
+    POST(payload) {
+        return axios.post(`/admin/activations`, payload);
     }
 }
 
