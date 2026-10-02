@@ -242,8 +242,8 @@
                     <span class="file-meta">{{ file.meta || 'Documento' }}</span>
                   </div>
                   <div class="file-actions-box">
-                    <a v-if="file.url" :href="file.url" target="_blank" class="button is-small is-light" title="Descargar / Ver">
-                      <i class="fas fa-external-link-alt mr-1"></i> Abrir
+                    <a v-if="file.url" :href="file.url" class="button is-small is-light" title="Descargar / Ver" @click="downloadFile($event, file)">
+                      <i class="fas fa-download mr-1"></i> Descargar
                     </a>
                     <button class="button is-small is-light" @click="openFileModal('edit', file)">
                       <i class="fas fa-edit"></i>
@@ -731,6 +731,25 @@ export default {
     await this.fetchModules();
   },
   methods: {
+    async downloadFile(e, file) {
+      if (!file.url) return;
+      e.preventDefault();
+      try {
+        const res = await fetch(file.url);
+        if (!res.ok) throw new Error("Network error");
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name || "archivo";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        window.open(file.url, "_blank");
+      }
+    },
     async fetchModules() {
       this.refreshing = true;
       try {
