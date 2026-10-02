@@ -552,6 +552,12 @@
             </span>
             <span>Flyers</span>
           </a>
+          <a class="menu-item" href="/university" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-graduation-cap"></i>
+            </span>
+            <span>Universidad</span>
+          </a>
           <a class="menu-item" href="/materials" @click="closeMenu">
             <span class="icon">
               <i class="fas fa-layer-group"></i>

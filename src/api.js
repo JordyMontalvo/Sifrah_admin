@@ -671,7 +671,17 @@ class Operations {
     }
 }
 
+class University {
+    GET() {
+        return axios.get(`/admin/university`);
+    }
+    POST(payload) {
+        return axios.post(`/admin/university`, payload);
+    }
+}
+
 export default new API({
+    university: new University(),
     users: new Users(),
     Affiliations: new Affiliations(),
     Collects: new Collects(),
