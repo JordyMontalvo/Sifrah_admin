@@ -100,7 +100,10 @@ class API {
         reactivations,
         savingsRedemptions,
         notifications,
+        operations,
+        university,
     }) {
+        Object.assign(this, arguments[0] || {});
         this.users = users;
         this.Affiliations = Affiliations;
         this.Collects = Collects;
@@ -145,6 +148,8 @@ class API {
         this.reactivations = reactivations;
         this.savingsRedemptions = savingsRedemptions;
         this.notifications = notifications;
+        this.operations = operations;
+        this.university = university;
     }
 }
 
