@@ -7,11 +7,10 @@
           <h1>Pop-up de bienvenida post afiliación</h1>
           <p>Configura el contenido que se mostrará al usuario después de su afiliación.</p>
         </div>
-        <label class="pw-switch">
-          <input type="checkbox" v-model="form.active" />
+        <button type="button" class="pw-switch" :class="{ on: form.active }" @click="toggleActive">
           <i></i>
           <span>{{ form.active ? "Activo" : "Inactivo" }}</span>
-        </label>
+        </button>
       </header>
 
       <div v-if="loading" class="pw-loading">Cargando pop-up...</div>
@@ -272,6 +271,10 @@ export default {
         this.uploadingIcon = false;
       }
     },
+    async toggleActive() {
+      this.form.active = !this.form.active;
+      await this.save();
+    },
     async save() {
       this.saving = true;
       try {
@@ -298,12 +301,11 @@ export default {
 .pw-head { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1.1rem; }
 .pw-head h1 { font-size: 1.55rem; margin: 0 0 .25rem; color: #111827; }
 .pw-head p, .pw-help { color: #64748b; margin: .2rem 0 0; font-size: .88rem; line-height: 1.4; }
-.pw-switch { display: flex; align-items: center; gap: 8px; font-weight: 700; }
-.pw-switch input { display: none; }
+.pw-switch { display: flex; align-items: center; gap: 8px; font-weight: 700; background: none; border: 0; cursor: pointer; padding: 0; }
 .pw-switch i { width: 44px; height: 24px; border-radius: 999px; background: #e5e7eb; position: relative; display: inline-block; }
 .pw-switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: .2s; }
-.pw-switch input:checked + i { background: #e91e63; }
-.pw-switch input:checked + i::after { left: 23px; }
+.pw-switch.on i { background: #e91e63; }
+.pw-switch.on i::after { left: 23px; }
 .pw-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) 400px; gap: 18px; }
 .pw-card, .pw-preview { background: #fff; border: 1px solid #ececec; border-radius: 18px; padding: 18px; }
 .pw-preview h2 { margin: 0 0 4px; font-size: 1.02rem; }

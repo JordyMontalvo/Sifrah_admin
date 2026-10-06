@@ -7,11 +7,10 @@
           <h1>Pop-up de imagen</h1>
           <p>Configura el pop-up visual para usuarios no afiliados o mensajes institucionales.</p>
         </div>
-        <label class="pu-switch">
-          <input type="checkbox" v-model="form.active" />
+        <button type="button" class="pu-switch" :class="{ on: form.active }" @click="toggleActive">
           <i></i>
           <span>{{ form.active ? "Activo" : "Inactivo" }}</span>
-        </label>
+        </button>
       </header>
 
       <div v-if="loading" class="pu-loading">Cargando pop-ups...</div>
@@ -127,6 +126,15 @@ export default {
       this.type = type;
       this.applyType();
     },
+    async toggleActive() {
+      const next = !this.form.active;
+      if (next && !this.form.image) {
+        this.$refs.toast.error("Sube una imagen antes de activar el pop-up");
+        return;
+      }
+      this.form.active = next;
+      await this.save();
+    },
     async onImage(event) {
       const file = event.target.files && event.target.files[0];
       event.target.value = "";
@@ -173,12 +181,11 @@ export default {
 .pu-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1.1rem; }
 .pu-head h1 { font-size: 1.7rem; margin: 0 0 .25rem; color: #111827; }
 .pu-head p, .pu-help { color: #64748b; margin: 0; font-size: .9rem; line-height: 1.4; }
-.pu-switch { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #334155; }
-.pu-switch input { display: none; }
+.pu-switch { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #334155; background: none; border: 0; cursor: pointer; padding: 0; }
 .pu-switch i { width: 44px; height: 24px; border-radius: 999px; background: #e5e7eb; position: relative; display: inline-block; }
 .pu-switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: .2s; }
-.pu-switch input:checked + i { background: #e91e63; }
-.pu-switch input:checked + i::after { left: 23px; }
+.pu-switch.on i { background: #e91e63; }
+.pu-switch.on i::after { left: 23px; }
 .pu-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) 420px; gap: 18px; }
 .pu-card, .pu-preview { background: #fff; border: 1px solid #ececec; border-radius: 18px; padding: 20px; }
 .pu-card h2, .pu-preview h2 { font-size: 1.02rem; margin: 0 0 .35rem; color: #111827; }
