@@ -37,6 +37,7 @@ import Flyers from "./views/Flyers.vue";
 import Periods from "./views/Periods.vue";
 import Materials from "./views/Materials.vue";
 import University from "./views/University.vue";
+import LegalDocuments from "./views/LegalDocuments.vue";
 import Audios from "./views/Audios.vue";
 import Books from "./views/Books.vue";
 import RankHistorySummary from "./views/RankHistorySummary.vue";
@@ -284,6 +285,11 @@ const routes = [
     path: "/university",
     component: University,
     meta: { requiresAuth: true, title: "Universidad SIFRAH" },
+  },
+  {
+    path: "/legal",
+    component: LegalDocuments,
+    meta: { requiresAuth: true, title: "Documentos legales" },
   },
   {
     path: "/audios",

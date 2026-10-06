@@ -558,6 +558,12 @@
             </span>
             <span>Universidad</span>
           </a>
+          <a class="menu-item" href="/legal" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-file-contract"></i>
+            </span>
+            <span>Documentos legales</span>
+          </a>
           <a class="menu-item" href="/materials" @click="closeMenu">
             <span class="icon">
               <i class="fas fa-layer-group"></i>

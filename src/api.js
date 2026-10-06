@@ -685,8 +685,18 @@ class University {
     }
 }
 
+class Legal {
+    GET() {
+        return axios.get(`/admin/legal`);
+    }
+    POST(payload) {
+        return axios.post(`/admin/legal`, payload);
+    }
+}
+
 export default new API({
     university: new University(),
+    legal: new Legal(),
     users: new Users(),
     Affiliations: new Affiliations(),
     Collects: new Collects(),
