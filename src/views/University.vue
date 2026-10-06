@@ -16,8 +16,8 @@
                 <i class="fas fa-graduation-cap mr-2"></i> Formación & Capacitación
               </div>
               <h1 class="title is-3 has-text-weight-bold mb-1">Universidad SIFRAH</h1>
-              <p class="subtitle is-6 has-text-grey">
-                Administra los módulos, clases/videos, miniaturas y materiales educativos para los socios.
+              <p class="section-note">
+                Administra el banner principal, los módulos, las clases y los materiales para los socios.
               </p>
             </div>
             <div class="header-actions">
@@ -60,6 +60,120 @@
             </div>
           </div>
         </header>
+
+        <section class="hero-admin">
+          <div class="hero-admin-head">
+            <div>
+              <h2 class="title is-5 mb-1">Banner principal</h2>
+              <p class="is-size-7 has-text-grey">
+                Agrega o elimina banners. El carrusel muestra los que dejes visibles, sea uno o varios.
+              </p>
+            </div>
+            <div class="hero-admin-actions">
+            <button class="button is-light" type="button" @click="addHeroBanner">
+              <span class="icon"><i class="fas fa-plus"></i></span>
+              <span>Agregar banner</span>
+            </button>
+            <button class="button is-primary" @click="saveBanners" :disabled="savingBanners">
+              <span class="icon"><i class="fas fa-save"></i></span>
+              <span>{{ savingBanners ? "Guardando..." : "Guardar banners" }}</span>
+            </button>
+            </div>
+          </div>
+
+          <div class="hero-admin-grid">
+            <article v-for="(slide, index) in heroSlides" :key="slide.id" class="hero-admin-card">
+              <header class="hero-admin-card-head">
+                <strong>Banner {{ index + 1 }}</strong>
+                <div class="hero-admin-card-tools">
+                  <label class="checkbox is-size-7">
+                    <input type="checkbox" v-model="slide.active" />
+                    <span class="ml-1">Visible</span>
+                  </label>
+                  <button type="button" class="button is-small is-danger is-light" @click="removeHeroBanner(index)">
+                    Eliminar
+                  </button>
+                </div>
+              </header>
+
+              <div class="hero-admin-preview" :class="slide.image ? '' : ('theme-' + slide.theme)">
+                <img v-if="slide.image" :src="slide.image" alt="" />
+                <span v-else>Sin imagen</span>
+                <button v-if="slide.image" type="button" class="button is-small is-danger hero-admin-remove" @click="slide.image = ''">
+                  Quitar
+                </button>
+              </div>
+
+              <div class="tabs is-toggle is-small mb-2">
+                <ul>
+                  <li :class="{ 'is-active': slide.uploadType !== 'url' }">
+                    <a @click="slide.uploadType = 'upload'">Subir</a>
+                  </li>
+                  <li :class="{ 'is-active': slide.uploadType === 'url' }">
+                    <a @click="slide.uploadType = 'url'">URL</a>
+                  </li>
+                </ul>
+              </div>
+              <label v-if="slide.uploadType !== 'url'" class="button is-light is-small is-fullwidth mb-2">
+                <span v-if="slide.uploading">Subiendo...</span>
+                <span v-else>Imagen del banner</span>
+                <input type="file" accept="image/*" hidden :disabled="slide.uploading" @change="uploadHeroImage(index, $event)" />
+              </label>
+              <input v-else v-model="slide.image" class="custom-input mb-2" type="text" placeholder="https://.../banner.jpg" />
+
+              <label class="hero-label">Texto superior</label>
+              <input v-model="slide.kicker" class="custom-input mb-2" type="text" placeholder="Bienvenido a" />
+              <label class="hero-label">Título</label>
+              <input v-model="slide.title" class="custom-input mb-2" type="text" placeholder="Universidad SIFRAH" />
+              <label class="hero-label">Texto</label>
+              <textarea v-model="slide.text" class="custom-input textarea-input mb-2" rows="2" placeholder="Descripción corta"></textarea>
+              <label class="checkbox is-size-7 mb-2">
+                <input type="checkbox" v-model="slide.hideText" />
+                <span class="ml-1">Ocultar textos si la imagen ya los incluye</span>
+              </label>
+
+              <label class="hero-label">Texto del botón</label>
+              <input v-model="slide.buttonText" class="custom-input mb-2" type="text" placeholder="Ver video" />
+              <label class="hero-label">Acción del botón</label>
+              <div class="select is-fullwidth mb-2">
+                <select v-model="slide.action">
+                  <option value="welcome">Abrir el video de bienvenida</option>
+                  <option value="continue">Continuar aprendiendo</option>
+                  <option value="modules">Ir a los módulos</option>
+                  <option value="link">Abrir un enlace</option>
+                  <option value="video">Reproducir una clase</option>
+                </select>
+              </div>
+              <template v-if="slide.action === 'link'">
+                <label class="hero-label">Link de destino</label>
+                <input v-model="slide.link" class="custom-input" type="text" placeholder="https://... o /tools" />
+              </template>
+              <template v-if="slide.action === 'video'">
+                <label class="hero-label">Módulo</label>
+                <div class="select is-fullwidth mb-2">
+                  <select v-model="slide.moduleId" @change="slide.videoId = ''">
+                    <option value="">Selecciona un módulo</option>
+                    <option v-for="mod in modules" :key="mod._id" :value="String(mod._id)">
+                      {{ mod.badge }} · {{ mod.title }}
+                    </option>
+                  </select>
+                </div>
+                <label class="hero-label">Video asociado</label>
+                <div class="select is-fullwidth">
+                  <select v-model="slide.videoId">
+                    <option value="">Selecciona una clase</option>
+                    <option v-for="video in videosOf(slide.moduleId)" :key="video.id" :value="video.id">
+                      {{ video.title }}
+                    </option>
+                  </select>
+                </div>
+              </template>
+            </article>
+          </div>
+          <p v-if="!heroSlides.length" class="has-text-grey is-size-7 mt-3">
+            No hay banners. Agrega uno para mostrarlo en Universidad SIFRAH.
+          </p>
+        </section>
 
         <!-- Two Column Manager Layout (Inspired by web-cursos) -->
         <div class="manager-layout">
@@ -160,7 +274,7 @@
               <div class="section-toolbar mb-4">
                 <div>
                   <h3 class="title is-5 mb-1">Clases del Módulo</h3>
-                  <p class="subtitle is-7 has-text-grey">Configura el video, miniatura, título y duración de cada clase.</p>
+                  <p class="section-note">Configura el video, miniatura, título y duración de cada clase.</p>
                 </div>
                 <button class="button is-primary" @click="openVideoModal('create')">
                   <span class="icon"><i class="fas fa-plus"></i></span>
@@ -238,7 +352,7 @@
               <div class="section-toolbar mb-4">
                 <div>
                   <h3 class="title is-5 mb-1">Material Complementario</h3>
-                  <p class="subtitle is-7 has-text-grey">Guías en PDF, hojas de trabajo o documentos para este módulo.</p>
+                  <p class="section-note">Guías en PDF, hojas de trabajo o documentos para este módulo.</p>
                 </div>
                 <button class="button is-primary" @click="openFileModal('create')">
                   <span class="icon"><i class="fas fa-plus"></i></span>
@@ -737,6 +851,8 @@ export default {
       loading: true,
       refreshing: false,
       saving: false,
+      savingBanners: false,
+      heroSlides: [],
       modules: [],
       selectedModule: null,
       activeTab: "videos",
@@ -818,10 +934,119 @@ export default {
       return this.modules.reduce((acc, m) => acc + ((m.files || []).length), 0);
     },
   },
+  created() {
+    this.heroSlides = this.emptyHeroSlides();
+  },
   async mounted() {
     await this.fetchModules();
   },
   methods: {
+    emptyHeroSlides() {
+      const presets = [
+        { kicker: "Bienvenido a", title: "Universidad SIFRAH", text: "Da el primer paso en tu formación.", buttonText: "Ver video de bienvenida", action: "welcome", theme: "sunset" },
+        { kicker: "Sigue tu ruta", title: "Plan de compensación", text: "Entiende cómo funciona el residual.", buttonText: "Continuar módulo 3", action: "continue", theme: "chart" },
+        { kicker: "Empieza por aquí", title: "Cinco módulos", text: "De la bienvenida a tu activación.", buttonText: "Ver módulos", action: "modules", theme: "city" },
+      ];
+      return presets.map((preset, index) => ({
+        id: "slide_" + (index + 1),
+        image: "",
+        link: "",
+        moduleId: "",
+        videoId: "",
+        hideText: false,
+        active: true,
+        uploadType: "upload",
+        uploading: false,
+        ...preset,
+      }));
+    },
+    videosOf(moduleId) {
+      const mod = this.modules.find((item) => String(item._id) === String(moduleId));
+      return mod && Array.isArray(mod.videos) ? mod.videos : [];
+    },
+    addHeroBanner() {
+      const themes = ["sunset", "chart", "city", "sunrise", "market"];
+      const index = this.heroSlides.length;
+      this.heroSlides.push({
+        id: "slide_" + Date.now(),
+        image: "",
+        kicker: "",
+        title: "",
+        text: "",
+        buttonText: "",
+        action: "modules",
+        link: "",
+        moduleId: "",
+        videoId: "",
+        theme: themes[index % themes.length],
+        hideText: false,
+        active: true,
+        uploadType: "upload",
+        uploading: false,
+      });
+    },
+    removeHeroBanner(index) {
+      this.heroSlides.splice(index, 1);
+    },
+    async uploadHeroImage(index, event) {
+      const file = event.target.files && event.target.files[0];
+      event.target.value = "";
+      if (!file) return;
+      const slide = this.heroSlides[index];
+      const blobUrl = URL.createObjectURL(file);
+      try {
+        this.$set(slide, "uploading", true);
+        const buffer = await (await fetch(blobUrl)).arrayBuffer();
+        const uploadedUrl = await lib.uploadBuffer(
+          buffer,
+          file.name,
+          file.type || "image/jpeg",
+          "university_banners"
+        );
+        slide.image = uploadedUrl;
+        this.$refs.toast.success("Imagen del banner subida");
+      } catch (err) {
+        this.$refs.toast.error("No se pudo subir la imagen");
+      } finally {
+        this.$set(slide, "uploading", false);
+        URL.revokeObjectURL(blobUrl);
+      }
+    },
+    async saveBanners() {
+      this.savingBanners = true;
+      try {
+        const banners = this.heroSlides.map((slide, index) => ({
+          id: slide.id || "slide_" + (index + 1),
+          image: slide.image || "",
+          kicker: slide.kicker || "",
+          title: slide.title || "",
+          text: slide.text || "",
+          buttonText: slide.buttonText || "",
+          action: slide.action || "modules",
+          link: slide.link || "",
+          moduleId: slide.moduleId || "",
+          videoId: slide.videoId || "",
+          theme: slide.theme || "sunset",
+          hideText: !!slide.hideText,
+          active: !!slide.active,
+          order: index,
+        }));
+        const res = await api.university.POST({ action: "save-banners", data: { banners } });
+        if (res.data && res.data.banners) {
+          this.heroSlides = this.heroSlides.map((slide, index) => ({
+            ...slide,
+            ...(res.data.banners[index] || {}),
+            uploadType: slide.uploadType,
+            uploading: false,
+          }));
+        }
+        this.$refs.toast.success("Banners guardados");
+      } catch (err) {
+        this.$refs.toast.error("No se pudieron guardar los banners");
+      } finally {
+        this.savingBanners = false;
+      }
+    },
     async downloadFile(e, file) {
       if (!file.url) return;
       e.preventDefault();
@@ -845,6 +1070,25 @@ export default {
       this.refreshing = true;
       try {
         const res = await api.university.GET();
+        if (res.data && Array.isArray(res.data.banners)) {
+          this.heroSlides = res.data.banners.map((saved, index) => ({
+            id: saved.id || "slide_" + (index + 1),
+            image: saved.image || "",
+            kicker: saved.kicker || "",
+            title: saved.title || "",
+            text: saved.text || "",
+            buttonText: saved.buttonText || "",
+            action: saved.action || "modules",
+            link: saved.link || "",
+            moduleId: saved.moduleId ? String(saved.moduleId) : "",
+            videoId: saved.videoId || "",
+            theme: saved.theme || "sunset",
+            hideText: !!saved.hideText,
+            active: saved.active !== false,
+            uploadType: saved.image ? "url" : "upload",
+            uploading: false,
+          }));
+        }
         if (res.data && res.data.modules) {
           this.modules = res.data.modules;
           if (this.modules.length > 0) {
@@ -1300,6 +1544,76 @@ export default {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.hero-admin {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  margin-bottom: 1.5rem;
+}
+.hero-admin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.hero-admin-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.hero-admin-card-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.hero-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.hero-admin-card {
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fafafa;
+}
+.hero-admin-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.hero-admin-preview {
+  position: relative;
+  height: 92px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+}
+.hero-admin-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-admin-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+.hero-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
 .page-header {
   background: white;
   border-radius: 16px;
@@ -1499,9 +1813,15 @@ export default {
 .section-toolbar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 1rem;
+}
+.section-note {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 /* Video Grid */
