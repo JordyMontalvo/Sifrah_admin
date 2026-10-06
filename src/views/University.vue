@@ -109,11 +109,25 @@
           <!-- Right: Module Detail & Classes Content -->
           <main class="module-content" v-if="selectedModule">
             <!-- Module Top Banner -->
-            <div class="module-hero-card" :class="'theme-' + (selectedModule.theme || 'sunset')">
-              <div class="hero-left">
+            <div
+              class="module-hero-card"
+              :class="[!selectedModule.banner ? ('theme-' + (selectedModule.theme || 'sunset')) : 'has-custom-banner']"
+              :style="selectedModule.banner ? {
+                backgroundImage: selectedModule.hideBannerText
+                  ? 'url(' + selectedModule.banner + ')'
+                  : 'linear-gradient(to right, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.45) 60%, rgba(15, 23, 42, 0.2) 100%), url(' + selectedModule.banner + ')',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              } : {}"
+            >
+              <div class="hero-left" v-if="!selectedModule.hideBannerText">
                 <span class="hero-badge">{{ selectedModule.badge }}</span>
                 <h2 class="hero-title">{{ selectedModule.title }}</h2>
                 <p class="hero-lead">{{ selectedModule.lead || 'Sin descripción del módulo.' }}</p>
+              </div>
+              <div class="hero-left" v-else>
+                <span class="hero-badge" style="background: rgba(0,0,0,0.55);"><i class="fas fa-image mr-1"></i> {{ selectedModule.badge }} · {{ selectedModule.title }}</span>
               </div>
               <div class="hero-right">
                 <button class="button is-white is-outlined is-small" @click="openModuleModal('edit', selectedModule)">
@@ -479,7 +493,7 @@
       <!-- MODAL: GESTIÓN DE MÓDULO                      -->
       <!-- ============================================== -->
       <div v-if="moduleModal.active" class="modal-overlay" @click.self="closeModuleModal">
-        <div class="modal-dialog">
+        <div class="modal-dialog is-large">
           <header class="modal-header">
             <h3>{{ moduleModal.mode === 'create' ? 'Nuevo Módulo' : 'Editar Módulo' }}</h3>
             <button class="close-btn" @click="closeModuleModal"><i class="fas fa-times"></i></button>
@@ -503,6 +517,79 @@
                 <div class="form-group">
                   <label>Subtítulo / Lead</label>
                   <textarea v-model="moduleForm.lead" class="custom-input textarea-input" rows="2" placeholder="Breve introducción del objetivo del módulo"></textarea>
+                </div>
+              </div>
+
+              <!-- SECCIÓN: BANNER DEL MÓDULO -->
+              <div class="column is-12">
+                <div class="content-box-config">
+                  <h4 class="config-subtitle">
+                    <i class="fas fa-image mr-2 has-text-primary"></i> Imagen de Banner del Módulo
+                  </h4>
+
+                  <div class="tabs is-toggle is-small mb-3">
+                    <ul>
+                      <li :class="{ 'is-active': bannerUploadType === 'upload' }">
+                        <a @click="bannerUploadType = 'upload'">
+                          <i class="fas fa-upload mr-1"></i> Subir Imagen
+                        </a>
+                      </li>
+                      <li :class="{ 'is-active': bannerUploadType === 'url' }">
+                        <a @click="bannerUploadType = 'url'">
+                          <i class="fas fa-link mr-1"></i> URL de Imagen
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div class="thumb-upload-flex is-banner">
+                    <!-- Dropzone / Input -->
+                    <div class="thumb-input-area">
+                      <div v-if="bannerUploadType === 'upload'" class="upload-dropzone is-compact">
+                        <div v-if="uploadingBanner" class="uploading-state">
+                          <div class="loading-spinner-small"></div>
+                          <span class="is-size-7">Subiendo imagen del banner...</span>
+                        </div>
+                        <label v-else class="dropzone-label">
+                          <i class="fas fa-cloud-upload-alt mr-2"></i>
+                          <span>Seleccionar banner (JPG, PNG, WebP)</span>
+                          <input type="file" accept="image/*" @change="handleBannerFileSelect" hidden />
+                        </label>
+                      </div>
+                      <div v-else class="form-group">
+                        <input
+                          type="text"
+                          v-model="moduleForm.banner"
+                          class="custom-input"
+                          placeholder="https://.../banner.jpg"
+                        />
+                      </div>
+                      <p class="is-size-7 has-text-grey mt-1">
+                        Imagen panorámica de cabecera (recomendado: 1400×380 px). Si se omite, se usará el fondo predeterminado con gradiente.
+                      </p>
+
+                      <div class="mt-2" v-if="moduleForm.banner">
+                        <label class="checkbox is-size-7">
+                          <input type="checkbox" v-model="moduleForm.hideBannerText" />
+                          <span class="ml-1">Ocultar texto sobre el banner (si la imagen ya incluye títulos diseñados)</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Preview Banner Box -->
+                    <div class="thumb-preview-box banner-preview-box">
+                      <div v-if="moduleForm.banner" class="thumb-img-wrapper">
+                        <img :src="moduleForm.banner" alt="Preview Banner" />
+                        <button class="button is-small is-danger thumb-remove-btn" @click="moduleForm.banner = ''" title="Quitar">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                      <div v-else class="thumb-placeholder-box" :class="'theme-' + (moduleForm.theme || 'sunset')">
+                        <i class="fas fa-image"></i>
+                        <span>Fondo predeterminado</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="column is-6">
@@ -657,9 +744,11 @@ export default {
       // Subida de archivos
       uploadingVideo: false,
       uploadingThumb: false,
+      uploadingBanner: false,
       uploadingFile: false,
       videoUploadType: "upload",
       thumbUploadType: "upload",
+      bannerUploadType: "upload",
 
       // Modal Módulo
       moduleModal: {
@@ -672,6 +761,8 @@ export default {
         title: "",
         lead: "",
         theme: "sunset",
+        banner: "",
+        hideBannerText: false,
         order: 0,
         active: true,
       },
@@ -805,6 +896,7 @@ export default {
     // --- MÓDULOS ---
     openModuleModal(mode, mod = null) {
       this.moduleModal.mode = mode;
+      this.bannerUploadType = "upload";
       if (mode === "edit" && mod) {
         this.moduleForm = {
           _id: mod._id,
@@ -812,6 +904,8 @@ export default {
           title: mod.title,
           lead: mod.lead || "",
           theme: mod.theme || "sunset",
+          banner: mod.banner || "",
+          hideBannerText: !!mod.hideBannerText,
           order: mod.order || 0,
           active: mod.active !== false,
         };
@@ -823,6 +917,8 @@ export default {
           title: "",
           lead: "",
           theme: "sunset",
+          banner: "",
+          hideBannerText: false,
           order: count,
           active: true,
         };
@@ -960,6 +1056,30 @@ export default {
         this.$refs.toast.error("Error al subir miniatura: " + (err.message || ""));
       } finally {
         this.uploadingThumb = false;
+        URL.revokeObjectURL(blobUrl);
+      }
+    },
+
+    async handleBannerFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const fileName = file.name;
+      const mimeType = file.type || "image/jpeg";
+      const blobUrl = URL.createObjectURL(file);
+
+      try {
+        this.uploadingBanner = true;
+        const resp = await fetch(blobUrl);
+        const buffer = await resp.arrayBuffer();
+        const uploadedUrl = await lib.uploadBuffer(buffer, fileName, mimeType, "university_banners");
+        this.moduleForm.banner = uploadedUrl;
+        this.$refs.toast.success("Banner subido exitosamente");
+      } catch (err) {
+        console.error("Error subiendo banner:", err);
+        this.$refs.toast.error("Error al subir banner: " + (err.message || ""));
+      } finally {
+        this.uploadingBanner = false;
         URL.revokeObjectURL(blobUrl);
       }
     },
@@ -1723,12 +1843,26 @@ export default {
   gap: 1rem;
   align-items: start;
 }
+.thumb-upload-flex.is-banner {
+  grid-template-columns: 1fr 200px;
+}
 .thumb-preview-box {
   width: 140px;
   height: 85px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #cbd5e1;
+}
+.banner-preview-box {
+  width: 200px;
+  height: 95px;
+}
+.module-hero-card.has-custom-banner {
+  min-height: 160px;
+}
+.module-hero-card.has-custom-banner .hero-title,
+.module-hero-card.has-custom-banner .hero-lead {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 .thumb-img-wrapper {
   position: relative;
