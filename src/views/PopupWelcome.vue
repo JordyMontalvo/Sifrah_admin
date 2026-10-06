@@ -43,16 +43,23 @@
             <div class="pw-body">
               <label>Video de bienvenida</label>
               <div class="pw-video-row">
-                <video v-if="form.video" :src="form.video"></video>
+                <iframe v-if="videoEmbed" :src="videoEmbed" title="Video de bienvenida" allowfullscreen></iframe>
+                <video v-else-if="form.video" :src="form.video"></video>
                 <div v-else class="pw-video-empty">Sin video</div>
                 <div>
                   <label class="pw-file">
                     <input type="file" accept="video/mp4,video/webm" @change="onVideo" />
-                    ↑ {{ uploadingVideo ? "Subiendo..." : (form.video ? "Cambiar video" : "Subir video") }}
+                    ↑ {{ uploadingVideo ? "Subiendo..." : (form.video ? "Cambiar archivo" : "Subir archivo") }}
                   </label>
-                  <p class="pw-help">Formatos: MP4, WebM<br />Tamaño máximo: 100 MB<br />Duración recomendada: 1–5 minutos</p>
+                  <p class="pw-help">Archivo MP4 o WebM, máximo 100 MB.</p>
                 </div>
               </div>
+              <input
+                class="pw-link"
+                v-model="form.video"
+                placeholder="O pega un enlace de YouTube, Vimeo o un MP4"
+              />
+              <p class="pw-help">Si pegas un enlace, reemplaza al archivo. Guarda para publicarlo.</p>
             </div>
           </div>
           <div class="pw-field">
@@ -191,6 +198,16 @@ export default {
       },
     };
   },
+  computed: {
+    videoEmbed() {
+      const url = String(this.form.video || "").trim();
+      const youtube = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|shorts\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      if (youtube) return "https://www.youtube.com/embed/" + youtube[1];
+      const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+      if (vimeo) return "https://player.vimeo.com/video/" + vimeo[1];
+      return "";
+    },
+  },
   async mounted() {
     await this.load();
   },
@@ -300,7 +317,8 @@ export default {
 .pw-body input, .pw-body textarea, .pw-body select { width: 100%; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; background: #f8fafc; }
 .pw-body textarea { padding-bottom: 22px; }
 .pw-video-row { display: flex; gap: 14px; align-items: center; }
-.pw-video-row video, .pw-video-empty { width: 180px; height: 108px; object-fit: cover; border-radius: 14px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-video-row video, .pw-video-row iframe, .pw-video-empty { width: 180px; height: 108px; object-fit: cover; border-radius: 14px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 0; }
+.pw-link { margin-top: 10px; }
 .pw-file { display: inline-flex; border: 1.5px solid #f9a8d4; color: #e91e63; border-radius: 12px; padding: 8px 14px; font-weight: 700; width: fit-content; cursor: pointer; background: #fff; }
 .pw-file-sm { font-size: 12px; padding: 6px 10px; }
 .pw-file input { display: none; }
