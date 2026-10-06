@@ -64,25 +64,10 @@
           <div class="pw-field">
             <span class="pw-num">4</span>
             <div class="pw-body">
-              <label>Icono y texto inferior</label>
-              <div class="pw-icon-row">
-                <div class="pw-icon-col">
-                  <span class="pw-icon">
-                    <img v-if="form.icon" :src="form.icon" alt="" />
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
-                      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-                    </svg>
-                  </span>
-                  <label class="pw-file pw-file-sm">
-                    <input type="file" accept="image/*" @change="onIcon" />
-                    ↑ Cambiar icono
-                  </label>
-                </div>
-                <div class="pw-input-wrap">
-                  <textarea v-model="form.footerText" maxlength="200" rows="3"></textarea>
-                  <small>{{ (form.footerText || "").length }}/200</small>
-                </div>
+              <label>Texto inferior</label>
+              <div class="pw-input-wrap">
+                <textarea v-model="form.footerText" maxlength="200" rows="3"></textarea>
+                <small>{{ (form.footerText || "").length }}/200</small>
               </div>
             </div>
           </div>
@@ -140,7 +125,7 @@
               <input v-if="form.secondaryButton.action === 'link'" v-model="form.secondaryButton.link" placeholder="https://" />
             </div>
           </div>
-          <button class="pw-save" type="button" :disabled="saving || uploadingVideo || uploadingIcon" @click="save">
+          <button class="pw-save" type="button" :disabled="saving || uploadingVideo" @click="save">
             {{ saving ? "Guardando..." : "Guardar" }}
           </button>
         </section>
@@ -154,7 +139,6 @@
               :title="form.title"
               :message="form.message"
               :video="form.video"
-              :icon="form.icon"
               :footer-text="form.footerText"
               :primary-text="form.primaryButton.text"
               :secondary-text="form.secondaryButton.text"
@@ -184,7 +168,6 @@ export default {
       loading: true,
       saving: false,
       uploadingVideo: false,
-      uploadingIcon: false,
       form: {
         active: false,
         title: "¡Bienvenido a SIFRAH!",
@@ -221,7 +204,7 @@ export default {
           title: welcome.title || this.form.title,
           message: welcome.message || this.form.message,
           video: welcome.video || "",
-          icon: welcome.icon || "",
+          icon: "",
           footerText: welcome.footerText || this.form.footerText,
           primaryButton: {
             text: (welcome.primaryButton && welcome.primaryButton.text) || this.form.primaryButton.text,
@@ -258,19 +241,6 @@ export default {
         this.uploadingVideo = false;
       }
     },
-    async onIcon(event) {
-      const file = event.target.files && event.target.files[0];
-      event.target.value = "";
-      if (!file) return;
-      this.uploadingIcon = true;
-      try {
-        this.form.icon = await lib.upload(file, "popup_icon_" + Date.now() + "_" + file.name, "popup_images");
-      } catch (err) {
-        this.$refs.toast.error("No se pudo subir el icono");
-      } finally {
-        this.uploadingIcon = false;
-      }
-    },
     async toggleActive() {
       this.form.active = !this.form.active;
       await this.save();
@@ -278,7 +248,7 @@ export default {
     async save() {
       this.saving = true;
       try {
-        const res = await api.popups.POST({ type: "welcome", ...this.form });
+        const res = await api.popups.POST({ type: "welcome", ...this.form, icon: "" });
         if (res.data && res.data.error) {
           this.$refs.toast.error(res.data.msg || "No se pudo guardar");
           return;
@@ -322,17 +292,12 @@ export default {
 .pw-video-row video, .pw-video-row iframe, .pw-video-empty { width: 180px; height: 108px; object-fit: cover; border-radius: 14px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 0; }
 .pw-link { margin-top: 10px; }
 .pw-file { display: inline-flex; border: 1.5px solid #f9a8d4; color: #e91e63; border-radius: 12px; padding: 8px 14px; font-weight: 700; width: fit-content; cursor: pointer; background: #fff; }
-.pw-file-sm { font-size: 12px; padding: 6px 10px; }
 .pw-file input { display: none; }
-.pw-icon-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; }
-.pw-icon-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.pw-icon { width: 54px; height: 54px; border-radius: 50%; background: #fff1f6; color: #e91e63; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1.5px solid #f9a8d4; }
-.pw-icon img, .pw-icon svg { width: 28px; height: 28px; }
 .pw-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pw-save { background: #e91e63; color: #fff; border: 0; border-radius: 12px; padding: 10px 18px; font-weight: 700; cursor: pointer; }
 .pw-phone { margin-top: 12px; background: #4b5563; border-radius: 22px; padding: 18px 14px; }
 .pw-loading { padding: 2rem 0; color: #64748b; }
 @media (max-width: 980px) {
-  .pw-grid, .pw-btn-grid, .pw-icon-row { grid-template-columns: 1fr; }
+  .pw-grid, .pw-btn-grid { grid-template-columns: 1fr; }
 }
 </style>
