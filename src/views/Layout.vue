@@ -564,6 +564,18 @@
             </span>
             <span>Documentos legales</span>
           </a>
+          <a class="menu-item" href="/popups" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-window-restore"></i>
+            </span>
+            <span>Pop-ups de imagen</span>
+          </a>
+          <a class="menu-item" href="/popups/welcome" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-door-open"></i>
+            </span>
+            <span>Bienvenida post afiliación</span>
+          </a>
           <a class="menu-item" href="/materials" @click="closeMenu">
             <span class="icon">
               <i class="fas fa-layer-group"></i>

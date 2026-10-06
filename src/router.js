@@ -38,6 +38,8 @@ import Periods from "./views/Periods.vue";
 import Materials from "./views/Materials.vue";
 import University from "./views/University.vue";
 import LegalDocuments from "./views/LegalDocuments.vue";
+import Popups from "./views/Popups.vue";
+import PopupWelcome from "./views/PopupWelcome.vue";
 import Audios from "./views/Audios.vue";
 import Books from "./views/Books.vue";
 import RankHistorySummary from "./views/RankHistorySummary.vue";
@@ -290,6 +292,16 @@ const routes = [
     path: "/legal",
     component: LegalDocuments,
     meta: { requiresAuth: true, title: "Documentos legales" },
+  },
+  {
+    path: "/popups",
+    component: Popups,
+    meta: { requiresAuth: true, title: "Pop-ups" },
+  },
+  {
+    path: "/popups/welcome",
+    component: PopupWelcome,
+    meta: { requiresAuth: true, title: "Bienvenida post afiliación" },
   },
   {
     path: "/audios",

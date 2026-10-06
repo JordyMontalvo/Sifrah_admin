@@ -694,9 +694,19 @@ class Legal {
     }
 }
 
+class Popups {
+    GET() {
+        return axios.get(`/admin/popups`);
+    }
+    POST(payload) {
+        return axios.post(`/admin/popups`, payload);
+    }
+}
+
 export default new API({
     university: new University(),
     legal: new Legal(),
+    popups: new Popups(),
     users: new Users(),
     Affiliations: new Affiliations(),
     Collects: new Collects(),
