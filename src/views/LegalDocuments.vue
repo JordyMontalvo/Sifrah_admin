@@ -28,14 +28,50 @@
 
       <div v-else class="legal-panel">
         <div class="legal-toolbar">
-          <button type="button" @mousedown.prevent="format('bold')"><b>B</b></button>
-          <button type="button" @mousedown.prevent="format('italic')"><i>I</i></button>
-          <button type="button" @mousedown.prevent="format('underline')"><u>U</u></button>
-          <button type="button" @mousedown.prevent="formatBlock('h2')">Título</button>
-          <button type="button" @mousedown.prevent="formatBlock('p')">Párrafo</button>
-          <button type="button" @mousedown.prevent="format('insertUnorderedList')">Lista</button>
-          <button type="button" @mousedown.prevent="format('insertOrderedList')">Numerada</button>
-          <button type="button" @mousedown.prevent="addLink">Enlace</button>
+          <div class="toolbar-group">
+            <button type="button" @mousedown.prevent="format('bold')" title="Negrita"><b>B</b></button>
+            <button type="button" @mousedown.prevent="format('italic')" title="Cursiva"><i>I</i></button>
+            <button type="button" @mousedown.prevent="format('underline')" title="Subrayado"><u>U</u></button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <div class="toolbar-group">
+            <button type="button" @mousedown.prevent="formatBlock('h2')">Título</button>
+            <button type="button" @mousedown.prevent="formatBlock('p')">Párrafo</button>
+            <button type="button" @mousedown.prevent="format('insertUnorderedList')">Lista</button>
+            <button type="button" @mousedown.prevent="format('insertOrderedList')">Numerada</button>
+            <button type="button" @mousedown.prevent="addLink">Enlace</button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Selector de color de letra -->
+          <div class="toolbar-group color-group">
+            <span class="color-label">Color:</span>
+            <div class="color-presets">
+              <button
+                v-for="c in colorPresets"
+                :key="c.value"
+                type="button"
+                class="color-preset-btn"
+                :class="{ 'is-active': currentColor === c.value }"
+                :style="{ backgroundColor: c.value }"
+                :title="c.name"
+                @mousedown.prevent="applyTextColor(c.value)"
+              ></button>
+            </div>
+            <label class="color-picker-label" title="Personalizar color de letra">
+              <input
+                type="color"
+                v-model="currentColor"
+                @input="applyTextColor($event.target.value)"
+                @change="applyTextColor($event.target.value)"
+                class="color-picker-input"
+              />
+              <span class="color-picker-icon" :style="{ color: currentColor }">🎨</span>
+            </label>
+          </div>
         </div>
         <div
           ref="editor"
@@ -64,6 +100,17 @@ export default {
       loading: true,
       saving: false,
       active: "terms",
+      currentColor: "#e91e63",
+      colorPresets: [
+        { name: "Sifrah Rosa", value: "#e91e63" },
+        { name: "Negro", value: "#2d2d2d" },
+        { name: "Gris", value: "#6b7280" },
+        { name: "Azul", value: "#2563eb" },
+        { name: "Verde", value: "#16a34a" },
+        { name: "Rojo", value: "#dc2626" },
+        { name: "Naranja", value: "#d97706" },
+        { name: "Morado", value: "#7c3aed" },
+      ],
       docs: {
         terms: { html: "", updatedAt: null },
         privacy: { html: "", updatedAt: null },
@@ -124,6 +171,12 @@ export default {
     },
     formatBlock(tag) {
       document.execCommand("formatBlock", false, tag);
+      this.capture();
+    },
+    applyTextColor(color) {
+      if (!color) return;
+      this.currentColor = color;
+      document.execCommand("foreColor", false, color);
       this.capture();
     },
     addLink() {
@@ -194,18 +247,105 @@ export default {
 .legal-toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.toolbar-group {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
+}
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #cbd5e1;
+  margin: 0 4px;
 }
 .legal-toolbar button {
-  border: 1px solid #e5e5e5;
-  background: #fafafa;
-  border-radius: 8px;
-  min-width: 36px;
-  height: 34px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 6px;
+  min-width: 34px;
+  height: 32px;
   padding: 0 10px;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+.legal-toolbar button:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+.color-group {
+  gap: 8px;
+}
+.color-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.color-presets {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.color-preset-btn {
+  min-width: 22px !important;
+  width: 22px !important;
+  height: 22px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 0 1px #cbd5e1;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.color-preset-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px #e91e63 !important;
+}
+.color-preset-btn.is-active {
+  box-shadow: 0 0 0 2px #e91e63 !important;
+}
+.color-picker-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.color-picker-label:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+.color-picker-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+}
+.color-picker-icon {
+  font-size: 15px;
+  pointer-events: none;
 }
 .legal-editor {
   min-height: 420px;
@@ -222,7 +362,6 @@ export default {
 .legal-editor >>> h2 {
   font-size: 1.15rem;
   margin: 1rem 0 0.4rem;
-  color: #e91e63;
 }
 .legal-editor >>> p,
 .legal-editor >>> li {
