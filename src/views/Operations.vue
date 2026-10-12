@@ -45,9 +45,6 @@
           <button type="button" class="ops-chip-btn" @click="copyDni">
             <i class="fas fa-copy"></i> Copiar DNI
           </button>
-          <button type="button" class="ops-chip-btn" @click="copyOfficePassword">
-            <i class="fas fa-key"></i> Copiar Clave
-          </button>
           <button type="button" class="ops-chip-btn ops-chip-btn--outline" @click="clearMember">
             <i class="fas fa-user-times"></i> Cambiar Socio
           </button>
@@ -148,7 +145,6 @@ export default {
       iframeSrc: "",
       iframeKey: 0,
       iframeLoading: false,
-      officePassword: process.env.VUE_APP_OFFICE_PASSWORD || "2374",
     };
   },
   computed: {
@@ -170,8 +166,6 @@ export default {
     },
   },
   async created() {
-    await this.loadOfficePassword();
-
     const saved = sessionStorage.getItem(STORAGE_KEY);
     if (saved) {
       this.dniInput = saved;
@@ -179,16 +173,6 @@ export default {
     }
   },
   methods: {
-    async loadOfficePassword() {
-      try {
-        const { data } = await api.generalPassword.GET();
-        if (data && !data.error && data.office_password) {
-          this.officePassword = data.office_password;
-        }
-      } catch (e) {
-        console.warn("No se pudo cargar clave de oficina", e);
-      }
-    },
     buildIframeSrc(dni, session) {
       const params = new URLSearchParams({
         session,
@@ -311,19 +295,6 @@ export default {
         });
       } catch (e) {
         Swal.fire("Error", "No se pudo copiar el DNI", "error");
-      }
-    },
-    async copyOfficePassword() {
-      try {
-        await navigator.clipboard.writeText(this.officePassword);
-        Swal.fire({
-          icon: "success",
-          title: "Clave de oficina copiada",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } catch (e) {
-        Swal.fire("Error", "No se pudo copiar la clave", "error");
       }
     },
   },
