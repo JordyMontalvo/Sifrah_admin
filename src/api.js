@@ -206,6 +206,12 @@ class OfficeCollects {
     }
 }
 
+class StoreOrders {
+    GET() {
+        return axios.get(`/admin/store-orders`);
+    }
+}
+
 class Activations {
     GET({ filter, account, page = 1, limit = 20, search }) {
         const searchParam = search ? `&search=${search}` : "";
@@ -712,6 +718,7 @@ export default new API({
     Collects: new Collects(),
     OfficeCollects: new OfficeCollects(),
     Activations: new Activations(),
+    storeOrders: new StoreOrders(),
     products: new Products(),
     kadex: new Kadex(),
     closeds: new Closeds(),

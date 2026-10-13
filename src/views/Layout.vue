@@ -477,6 +477,12 @@
             </span>
             <span>Afiliaciones Pendientes</span>
           </a>
+          <a class="menu-item" href="/tienda" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-store"></i>
+            </span>
+            <span>Tienda</span>
+          </a>
         </div>
 
         <div v-if="activeMenu === 'collects'" class="menu-items">

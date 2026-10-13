@@ -44,6 +44,7 @@ import Audios from "./views/Audios.vue";
 import Books from "./views/Books.vue";
 import RankHistorySummary from "./views/RankHistorySummary.vue";
 import ValidacionVouchers from "./views/ValidacionVouchers.vue";
+import StoreOrders from "./views/StoreOrders.vue";
 import Agenda from "./views/Agenda.vue";
 import ChangePassword from "./views/ChangePassword.vue";
 import Sessions from "./views/Sessions.vue";
@@ -317,6 +318,11 @@ const routes = [
     path: "/rank-history-summary",
     component: RankHistorySummary,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/tienda",
+    component: StoreOrders,
+    meta: { requiresAuth: true, title: "Tienda" },
   },
   {
     path: "/validacion-vouchers",

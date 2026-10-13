@@ -37,6 +37,15 @@
               Activaciones
             </router-link>
             <router-link
+              to="/tienda"
+              class="section-tab"
+              :class="{ 'is-active': $route.path.startsWith('/tienda') }"
+              role="tab"
+              :aria-selected="$route.path.startsWith('/tienda')"
+            >
+              Tienda
+            </router-link>
+            <router-link
               to="/validacion-vouchers"
               class="section-tab"
               :class="{ 'is-active': $route.path.startsWith('/validacion-vouchers') }"
