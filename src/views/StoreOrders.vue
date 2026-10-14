@@ -111,6 +111,13 @@
             </div>
           </template>
 
+          <template #cell-points="{ value }">
+            <span class="points-badge">
+              <i class="fas fa-star points-icon"></i>
+              {{ Number(value || 0) }} pts
+            </span>
+          </template>
+
           <template #cell-amount="{ value }">
             <span class="amount">S/ {{ Number(value || 0).toFixed(2) }}</span>
           </template>
@@ -200,6 +207,13 @@
             <p><strong>Celular:</strong> {{ selected.buyer.phone || "-" }}</p>
             <p><strong>Socio:</strong> {{ selected.seller.name }} <span v-if="selected.seller.dni">· DNI {{ selected.seller.dni }}</span></p>
             <p><strong>Productos:</strong> {{ selected.products }}</p>
+            <p>
+              <strong>Puntos generados:</strong>
+              <span class="points-badge">
+                <i class="fas fa-star points-icon"></i>
+                {{ Number(selected.points || 0) }} pts
+              </span>
+            </p>
             <p><strong>Importe:</strong> S/ {{ Number(selected.amount || 0).toFixed(2) }}</p>
             <p><strong>Banco:</strong> {{ selected.bank || "-" }}</p>
             <p><strong>N° de operación:</strong> {{ selected.voucher_number || "-" }}</p>
@@ -288,6 +302,7 @@ export default {
         { key: "buyer", label: "Comprador", sortable: false },
         { key: "seller", label: "Socio", sortable: false },
         { key: "products", label: "Productos", sortable: false },
+        { key: "points", label: "Puntos", sortable: true, type: "number" },
         { key: "amount", label: "Importe", sortable: true, type: "currency" },
         { key: "comprobante", label: "Comprobante", sortable: false },
       ],
@@ -493,6 +508,23 @@ export default {
 }
 .amount {
   font-weight: 800;
+}
+.points-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.points-icon {
+  color: #f59e0b;
+  font-size: 0.8rem;
 }
 .voucher-photo {
   display: block;
