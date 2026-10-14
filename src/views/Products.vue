@@ -191,27 +191,10 @@
             <span v-else class="currency-value">{{ row.price }}</span>
           </template>
           <template #cell-public_price="{ row }">
-            <div class="public-price-edit" @click.stop>
-              <div class="field has-addons">
-                <p class="control">
-                  <span class="button is-static is-small">S/</span>
-                </p>
-                <p class="control">
-                  <input
-                    class="input is-small"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    v-model.number="row.raw.public_price"
-                    :disabled="!!publicPriceSaving[row.raw.id]"
-                    @focus="rememberPublicPrice(row.raw)"
-                    @blur="savePublicPriceIfChanged(row.raw)"
-                    @keyup.enter="$event.target.blur()"
-                    placeholder="0.00"
-                  />
-                </p>
-              </div>
-            </div>
+            <span v-if="Number(row.public_price) > 0" class="currency-value">
+              {{ row.public_price }}
+            </span>
+            <span v-else class="has-text-grey-light">—</span>
           </template>
           <template #cell-is_savings_bonus="{ row }">
             <div v-if="activeTab === 'promotions'" class="savings-toggle-field" @click.stop>
@@ -1483,8 +1466,6 @@ export default {
       savingsToggleLoading: {},
       savingsPriceSaving: {},
       savingsPriceSnapshot: {},
-      publicPriceSaving: {},
-      publicPriceSnapshot: {},
       sortOrderSaving: {},
       sortOrderSnapshot: {},
       showEditSavingsModal: false,
@@ -1572,6 +1553,7 @@ export default {
         type: product.type || "",
         description: product.description || "",
         price: product.price || 0,
+        public_price: Number(product.public_price) || 0,
         points: product.points || 0,
         weight: product.weight || 0,
         img: product.img || "",
@@ -1758,6 +1740,7 @@ export default {
           sort_order: Math.max(1, Number(p.sort_order) || 0),
           is_savings_bonus: !!p.is_savings_bonus,
           savings_price: Number(p.savings_price) || 0,
+          public_price: Number(p.public_price) || 0,
           is_promotion: this.isPromotionProduct({ raw: p }),
           promotion_active: p.promotion_active !== false,
           available_quantity: Number(p.available_quantity) || 0,
@@ -2481,56 +2464,6 @@ export default {
       this.showEditSavingsModal = false;
     },
 
-    rememberPublicPrice(product) {
-      if (!product || !product.id) return;
-      this.$set(
-        this.publicPriceSnapshot,
-        product.id,
-        Number(product.public_price) || 0
-      );
-    },
-
-    async savePublicPriceIfChanged(product) {
-      if (!product || !product.id) return;
-
-      const previous =
-        this.publicPriceSnapshot[product.id] !== undefined
-          ? this.publicPriceSnapshot[product.id]
-          : Number(product.public_price) || 0;
-      const next = Number(product.public_price) || 0;
-
-      this.$delete(this.publicPriceSnapshot, product.id);
-
-      if (next === previous) return;
-
-      this.$set(this.publicPriceSaving, product.id, true);
-      try {
-        await api.products.POST({
-          action: "update_public_price",
-          id: product.id,
-          public_price: next,
-        });
-        this.$set(product, "public_price", next);
-        Swal.fire({
-          icon: "success",
-          title: "Precio público guardado",
-          text: `S/ ${next.toFixed(2)}`,
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } catch (error) {
-        console.error("Error saving public price:", error);
-        this.$set(product, "public_price", previous);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo guardar el precio público",
-        });
-      } finally {
-        this.$set(this.publicPriceSaving, product.id, false);
-      }
-    },
-
     rememberSavingsPrice(product) {
       if (!product || !product.id) return;
       this.$set(
@@ -3077,13 +3010,11 @@ export default {
   min-height: 28px;
 }
 
-.savings-price-edit,
-.public-price-edit {
+.savings-price-edit {
   min-width: 120px;
 }
 
-.savings-price-edit .input.is-small,
-.public-price-edit .input.is-small {
+.savings-price-edit .input.is-small {
   width: 90px;
 }
 
