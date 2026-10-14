@@ -190,6 +190,29 @@
             </template>
             <span v-else class="currency-value">{{ row.price }}</span>
           </template>
+          <template #cell-public_price="{ row }">
+            <div class="public-price-edit" @click.stop>
+              <div class="field has-addons">
+                <p class="control">
+                  <span class="button is-static is-small">S/</span>
+                </p>
+                <p class="control">
+                  <input
+                    class="input is-small"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    v-model.number="row.raw.public_price"
+                    :disabled="!!publicPriceSaving[row.raw.id]"
+                    @focus="rememberPublicPrice(row.raw)"
+                    @blur="savePublicPriceIfChanged(row.raw)"
+                    @keyup.enter="$event.target.blur()"
+                    placeholder="0.00"
+                  />
+                </p>
+              </div>
+            </div>
+          </template>
           <template #cell-is_savings_bonus="{ row }">
             <div v-if="activeTab === 'promotions'" class="savings-toggle-field" @click.stop>
               <input
@@ -644,6 +667,21 @@
                 </div>
               </div>
 
+              <div class="field">
+                <label class="label">Precio público <span class="has-text-grey is-size-7">(Tienda compartida)</span></label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="number"
+                    v-model.number="newProduct.public_price"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                  <p class="help">Precio que verán los clientes en el enlace de tienda compartida</p>
+                </div>
+              </div>
+
               <div v-if="newProduct.catalog_type !== 'savings'" class="field">
                 <label class="label">Puntos</label>
                 <div class="control">
@@ -909,6 +947,21 @@
                     v-model.number="editingProduct.price"
                     placeholder="0.00"
                   />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label">Precio público <span class="has-text-grey is-size-7">(Tienda compartida)</span></label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    v-model.number="editingProduct.public_price"
+                    placeholder="0.00"
+                  />
+                  <p class="help">Precio que verán los clientes en el enlace de tienda compartida</p>
                 </div>
               </div>
 
@@ -1276,6 +1329,7 @@ export default {
         savings_description: "",
         savings_img: "",
         catalog_type: "sifrah",
+        public_price: 0,
       },
       editingProduct: {
         code: "",
@@ -1284,6 +1338,7 @@ export default {
         description: "",
         subdescription: "",
         price: 0,
+        public_price: 0,
         points: 0,
         weight: 0,
         img: "",
@@ -1336,6 +1391,12 @@ export default {
         {
           key: "price",
           label: "Precio",
+          sortable: true,
+          type: "currency",
+        },
+        {
+          key: "public_price",
+          label: "Precio Público",
           sortable: true,
           type: "currency",
         },
@@ -1422,6 +1483,8 @@ export default {
       savingsToggleLoading: {},
       savingsPriceSaving: {},
       savingsPriceSnapshot: {},
+      publicPriceSaving: {},
+      publicPriceSnapshot: {},
       sortOrderSaving: {},
       sortOrderSnapshot: {},
       showEditSavingsModal: false,
@@ -2418,6 +2481,56 @@ export default {
       this.showEditSavingsModal = false;
     },
 
+    rememberPublicPrice(product) {
+      if (!product || !product.id) return;
+      this.$set(
+        this.publicPriceSnapshot,
+        product.id,
+        Number(product.public_price) || 0
+      );
+    },
+
+    async savePublicPriceIfChanged(product) {
+      if (!product || !product.id) return;
+
+      const previous =
+        this.publicPriceSnapshot[product.id] !== undefined
+          ? this.publicPriceSnapshot[product.id]
+          : Number(product.public_price) || 0;
+      const next = Number(product.public_price) || 0;
+
+      this.$delete(this.publicPriceSnapshot, product.id);
+
+      if (next === previous) return;
+
+      this.$set(this.publicPriceSaving, product.id, true);
+      try {
+        await api.products.POST({
+          action: "update_public_price",
+          id: product.id,
+          public_price: next,
+        });
+        this.$set(product, "public_price", next);
+        Swal.fire({
+          icon: "success",
+          title: "Precio público guardado",
+          text: `S/ ${next.toFixed(2)}`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error("Error saving public price:", error);
+        this.$set(product, "public_price", previous);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo guardar el precio público",
+        });
+      } finally {
+        this.$set(this.publicPriceSaving, product.id, false);
+      }
+    },
+
     rememberSavingsPrice(product) {
       if (!product || !product.id) return;
       this.$set(
@@ -2579,6 +2692,7 @@ export default {
         description: prod.description || "",
         subdescription: prod.subdescription || "",
         price: prod.price || 0,
+        public_price: prod.public_price != null ? prod.public_price : 0,
         points: prod.points || 0,
         weight: prod.weight || 0,
         img: prod.img || "",
@@ -2673,6 +2787,7 @@ export default {
             name: String(this.newProduct.name || "").trim(),
             type: String(this.newProduct.type || "").trim(),
             price: priceNum,
+            public_price: Number(this.newProduct.public_price) >= 0 ? Number(this.newProduct.public_price) : 0,
             points: Number(this.newProduct.points) || 0,
             img: this.newProduct.img || "",
             description: this.newProduct.description || "",
@@ -2717,6 +2832,7 @@ export default {
         description: "",
         subdescription: "",
         price: 0,
+        public_price: 0,
         points: 0,
         weight: 0,
         img: "",
@@ -2817,6 +2933,8 @@ export default {
           _name: String(this.editingProduct.name || "").trim(),
           _type: String(this.editingProduct.type || "").trim(),
           _price: priceNum,
+          _public_price: Number(this.editingProduct.public_price) >= 0 ? Number(this.editingProduct.public_price) : 0,
+          public_price: Number(this.editingProduct.public_price) >= 0 ? Number(this.editingProduct.public_price) : 0,
           _points: Number(this.editingProduct.points) || 0,
           _img: this.editingProduct.img || "",
           _code: this.editingProduct.code || "",
@@ -2959,11 +3077,13 @@ export default {
   min-height: 28px;
 }
 
-.savings-price-edit {
+.savings-price-edit,
+.public-price-edit {
   min-width: 120px;
 }
 
-.savings-price-edit .input.is-small {
+.savings-price-edit .input.is-small,
+.public-price-edit .input.is-small {
   width: 90px;
 }
 
