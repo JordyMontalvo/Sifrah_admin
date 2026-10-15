@@ -220,6 +220,19 @@
               <label :for="`savings-switch-${row.raw.id}`"></label>
             </div>
           </template>
+          <template #cell-visible_shared_store="{ row }">
+            <div class="savings-toggle-field" @click.stop>
+              <input
+                type="checkbox"
+                class="switch is-rounded is-success"
+                :id="`shared-store-${row.raw.id}`"
+                :checked="row.raw.visible_shared_store !== false"
+                :disabled="!!sharedStoreToggleLoading[row.raw.id]"
+                @change="toggleSharedStore(row.raw, $event)"
+              />
+              <label :for="`shared-store-${row.raw.id}`"></label>
+            </div>
+          </template>
           <template #cell-promotion_active="{ row }">
             <div class="savings-toggle-field" @click.stop>
               <input
@@ -760,6 +773,17 @@
               </div>
             </div>
 
+            <!-- Shared Store Visibility Configuration -->
+            <div class="field" style="margin-top: 20px; padding: 12px 16px; background-color: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <label class="checkbox" style="font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" v-model="newProduct.visible_shared_store">
+                Visible en tienda externa
+              </label>
+              <p class="help has-text-grey" style="margin-top: 4px;">
+                Si está marcado, este producto aparecerá en el catálogo público compartido, productos relacionados y opciones de compartir de los socios.
+              </p>
+            </div>
+
             <!-- Savings Bonus Configuration -->
             <div class="savings-bonus-config-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed #eee;">
               <h3 class="title is-5" style="color: #e91e63;">
@@ -1046,6 +1070,17 @@
               </div>
             </div>
 
+            <!-- Shared Store Visibility Configuration -->
+            <div class="field" style="margin-top: 20px; padding: 12px 16px; background-color: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <label class="checkbox" style="font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" v-model="editingProduct.visible_shared_store">
+                Visible en tienda externa
+              </label>
+              <p class="help has-text-grey" style="margin-top: 4px;">
+                Si está marcado, este producto aparecerá en el catálogo público compartido, productos relacionados y opciones de compartir de los socios.
+              </p>
+            </div>
+
           </section>
           <footer class="modal-card-foot">
             <button
@@ -1313,6 +1348,7 @@ export default {
         savings_img: "",
         catalog_type: "sifrah",
         public_price: 0,
+        visible_shared_store: true,
       },
       editingProduct: {
         code: "",
@@ -1332,6 +1368,7 @@ export default {
         savings_description: "",
         savings_img: "",
         catalog_type: "both",
+        visible_shared_store: true,
       },
       validationErrors: {
         type: "",
@@ -1406,6 +1443,12 @@ export default {
           sortable: true,
           type: "boolean",
         },
+        {
+          key: "visible_shared_store",
+          label: "Tienda Externa",
+          sortable: true,
+          type: "boolean",
+        },
       ],
       tableActions: [
         {
@@ -1460,10 +1503,20 @@ export default {
             { value: false, label: "Deshabilitados" },
           ],
         },
+        {
+          key: "visible_shared_store",
+          label: "Tienda Externa",
+          placeholder: "Filtrar Tienda Externa",
+          options: [
+            { value: true, label: "Habilitados" },
+            { value: false, label: "Deshabilitados" },
+          ],
+        },
       ],
       showSavingsManager: false,
       savingsManagerDraft: [],
       savingsToggleLoading: {},
+      sharedStoreToggleLoading: {},
       savingsPriceSaving: {},
       savingsPriceSnapshot: {},
       sortOrderSaving: {},
@@ -1566,6 +1619,7 @@ export default {
         is_promotion: !!product.is_promotion,
         promotion_active: product.promotion_active !== false,
         available_quantity: Number(product.available_quantity) || 0,
+        visible_shared_store: product.visible_shared_store !== false,
         catalog_type: this.resolveCatalogType(product),
         raw: product,
       }));
@@ -1744,6 +1798,7 @@ export default {
           is_promotion: this.isPromotionProduct({ raw: p }),
           promotion_active: p.promotion_active !== false,
           available_quantity: Number(p.available_quantity) || 0,
+          visible_shared_store: p.visible_shared_store !== false,
         }));
 
         this.allProducts = this.sortProductsInMemory(normalized);
@@ -2217,7 +2272,47 @@ export default {
         savings_price: product.savings_price || 0,
         savings_description: product.savings_description || "",
         savings_img: product.savings_img || "",
+        visible_shared_store: product.visible_shared_store !== false,
       };
+    },
+
+    async toggleSharedStore(product, event) {
+      if (!product || !product.id) return;
+
+      const enabled = event.target.checked;
+      const previous = !enabled;
+
+      this.$set(product, "visible_shared_store", enabled);
+      this.$set(this.sharedStoreToggleLoading, product.id, true);
+
+      try {
+        await api.products.POST({
+          action: "toggle_visible_shared_store",
+          id: product.id,
+          enabled,
+        });
+
+        Swal.fire({
+          icon: "success",
+          title: enabled ? "Visible en tienda externa" : "Oculto en tienda externa",
+          text: enabled
+            ? "El producto ahora aparecerá en el catálogo público y opciones para compartir"
+            : "El producto ya no aparecerá en el catálogo público ni opciones para compartir",
+          timer: 1600,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        this.$set(product, "visible_shared_store", previous);
+        event.target.checked = previous;
+        console.error("Error toggling visible shared store:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo actualizar la visibilidad en tienda externa",
+        });
+      } finally {
+        this.$set(this.sharedStoreToggleLoading, product.id, false);
+      }
     },
 
     async toggleSavingsBonus(product, event) {
@@ -2406,6 +2501,11 @@ export default {
             const has = p.plans && Object.values(p.plans).some(Boolean);
             return val ? has : !has;
           });
+        }
+
+        if (this.activeFilters.visible_shared_store !== undefined && this.activeFilters.visible_shared_store !== "") {
+          const val = this.activeFilters.visible_shared_store === "true" || this.activeFilters.visible_shared_store === true;
+          filtered = filtered.filter(p => (p.visible_shared_store !== false) === val);
         }
       }
 
@@ -2637,6 +2737,7 @@ export default {
         savings_description: prod.savings_description || "",
         savings_img: prod.savings_img || "",
         catalog_type: this.resolveCatalogType(prod),
+        visible_shared_store: prod.visible_shared_store !== false,
       };
       this.showEditModal = true;
     },
@@ -2733,6 +2834,7 @@ export default {
             savings_description: this.newProduct.savings_description || "",
             savings_img: this.newProduct.savings_img || "",
             catalog_type: this.newProduct.catalog_type || "sifrah",
+            visible_shared_store: this.newProduct.visible_shared_store !== false,
           },
         });
         Swal.fire({
@@ -2776,6 +2878,7 @@ export default {
         savings_description: "",
         savings_img: "",
         catalog_type: "sifrah",
+        visible_shared_store: true,
       };
       this.validationErrors = {}; // Clear validation errors
     },
@@ -2881,6 +2984,7 @@ export default {
           savings_price: this.editingProduct.savings_price,
           savings_description: this.editingProduct.savings_description || "",
           savings_img: this.editingProduct.savings_img || "",
+          visible_shared_store: this.editingProduct.visible_shared_store !== false,
         };
 
         await api.products.POST({
