@@ -623,25 +623,29 @@
               </div>
 
               <div class="field">
-                <label class="label">Descripción</label>
+                <label class="label">Descripción Breve (Sub-descripción)</label>
                 <div class="control">
                   <textarea
                     class="textarea"
-                    v-model="newProduct.description"
-                    placeholder="Descripción del producto"
+                    rows="2"
+                    v-model="newProduct.subdescription"
+                    placeholder="Descripción corta para la tienda del socio y tarjetas"
                   ></textarea>
                 </div>
+                <p class="help">Texto breve mostrado debajo del precio en la página de producto y catálogo.</p>
               </div>
 
               <div class="field">
-                <label class="label">Sub-descripción</label>
+                <label class="label">Descripción Completa del Producto</label>
                 <div class="control">
                   <textarea
                     class="textarea"
-                    v-model="newProduct.subdescription"
-                    placeholder="Sub-descripción del producto"
+                    rows="4"
+                    v-model="newProduct.description"
+                    placeholder="Descripción extensa de beneficios, modo de uso e ingredientes"
                   ></textarea>
                 </div>
+                <p class="help">Se muestra en la sección "Descripción del producto" en la página individual.</p>
               </div>
 
               <div class="field">
@@ -736,6 +740,46 @@
 
               <div v-if="newProduct.img" class="field has-text-centered">
                 <img :src="newProduct.img" class="product-image-preview" alt="Vista previa" />
+              </div>
+
+              <!-- Galería de imágenes adicionales (Miniaturas 2 y 3 para la tienda externa) -->
+              <div class="field" style="margin-top: 14px; padding: 12px 14px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label class="label" style="font-size: 14px; margin-bottom: 6px;">
+                  <i class="fas fa-images"></i> Galería de Imágenes Adicionales (Miniaturas 2 y 3)
+                </label>
+                <p class="help has-text-grey" style="margin-bottom: 12px;">
+                  Estas imágenes aparecen en la galería interactiva con miniaturas de la tienda externa.
+                </p>
+
+                <div class="columns is-mobile is-multiline">
+                  <div class="column is-6">
+                    <label class="label is-size-7">Miniatura 2</label>
+                    <div class="file is-small has-name is-fullwidth">
+                      <label class="file-label">
+                        <input class="file-input" type="file" accept="image/*" @change="handleProductImageUpload($event, 'new_2')" :disabled="productImageUploading" />
+                        <span class="file-cta"><span class="file-icon"><i class="fas fa-upload"></i></span><span class="file-label">Subir</span></span>
+                      </label>
+                    </div>
+                    <input class="input is-small" style="margin-top: 6px;" v-model="newProduct.extra_img_1" placeholder="URL imagen 2" />
+                    <div v-if="newProduct.extra_img_1" class="has-text-centered" style="margin-top: 6px;">
+                      <img :src="newProduct.extra_img_1" style="height: 60px; object-fit: contain; border-radius: 4px; border: 1px solid #e2e8f0;" />
+                    </div>
+                  </div>
+
+                  <div class="column is-6">
+                    <label class="label is-size-7">Miniatura 3</label>
+                    <div class="file is-small has-name is-fullwidth">
+                      <label class="file-label">
+                        <input class="file-input" type="file" accept="image/*" @change="handleProductImageUpload($event, 'new_3')" :disabled="productImageUploading" />
+                        <span class="file-cta"><span class="file-icon"><i class="fas fa-upload"></i></span><span class="file-label">Subir</span></span>
+                      </label>
+                    </div>
+                    <input class="input is-small" style="margin-top: 6px;" v-model="newProduct.extra_img_2" placeholder="URL imagen 3" />
+                    <div v-if="newProduct.extra_img_2" class="has-text-centered" style="margin-top: 6px;">
+                      <img :src="newProduct.extra_img_2" style="height: 60px; object-fit: contain; border-radius: 4px; border: 1px solid #e2e8f0;" />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="field">
@@ -923,25 +967,29 @@
               </div>
 
               <div class="field">
-                <label class="label">Descripción</label>
+                <label class="label">Descripción Breve (Sub-descripción)</label>
                 <div class="control">
                   <textarea
                     class="textarea"
-                    v-model="editingProduct.description"
-                    placeholder="Descripción del producto"
+                    rows="2"
+                    v-model="editingProduct.subdescription"
+                    placeholder="Descripción corta para la tienda del socio y tarjetas"
                   ></textarea>
                 </div>
+                <p class="help">Texto breve mostrado debajo del precio en la página de producto y catálogo.</p>
               </div>
 
               <div class="field">
-                <label class="label">Sub-descripción</label>
+                <label class="label">Descripción Completa del Producto</label>
                 <div class="control">
                   <textarea
                     class="textarea"
-                    v-model="editingProduct.subdescription"
-                    placeholder="Sub-descripción del producto"
+                    rows="4"
+                    v-model="editingProduct.description"
+                    placeholder="Descripción extensa de beneficios, modo de uso e ingredientes"
                   ></textarea>
                 </div>
+                <p class="help">Se muestra en la sección "Descripción del producto" en la página individual.</p>
               </div>
 
               <div class="field">
@@ -1030,6 +1078,46 @@
 
               <div v-if="editingProduct.img" class="field has-text-centered">
                 <img :src="editingProduct.img" class="product-image-preview" alt="Vista previa" />
+              </div>
+
+              <!-- Galería de imágenes adicionales (Miniaturas 2 y 3 para la tienda externa) -->
+              <div class="field" style="margin-top: 14px; padding: 12px 14px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label class="label" style="font-size: 14px; margin-bottom: 6px;">
+                  <i class="fas fa-images"></i> Galería de Imágenes Adicionales (Miniaturas 2 y 3)
+                </label>
+                <p class="help has-text-grey" style="margin-bottom: 12px;">
+                  Estas imágenes aparecen en la galería interactiva con miniaturas de la tienda externa.
+                </p>
+
+                <div class="columns is-mobile is-multiline">
+                  <div class="column is-6">
+                    <label class="label is-size-7">Miniatura 2</label>
+                    <div class="file is-small has-name is-fullwidth">
+                      <label class="file-label">
+                        <input class="file-input" type="file" accept="image/*" @change="handleProductImageUpload($event, 'edit_2')" :disabled="productImageUploading" />
+                        <span class="file-cta"><span class="file-icon"><i class="fas fa-upload"></i></span><span class="file-label">Subir</span></span>
+                      </label>
+                    </div>
+                    <input class="input is-small" style="margin-top: 6px;" v-model="editingProduct.extra_img_1" placeholder="URL imagen 2" />
+                    <div v-if="editingProduct.extra_img_1" class="has-text-centered" style="margin-top: 6px;">
+                      <img :src="editingProduct.extra_img_1" style="height: 60px; object-fit: contain; border-radius: 4px; border: 1px solid #e2e8f0;" />
+                    </div>
+                  </div>
+
+                  <div class="column is-6">
+                    <label class="label is-size-7">Miniatura 3</label>
+                    <div class="file is-small has-name is-fullwidth">
+                      <label class="file-label">
+                        <input class="file-input" type="file" accept="image/*" @change="handleProductImageUpload($event, 'edit_3')" :disabled="productImageUploading" />
+                        <span class="file-cta"><span class="file-icon"><i class="fas fa-upload"></i></span><span class="file-label">Subir</span></span>
+                      </label>
+                    </div>
+                    <input class="input is-small" style="margin-top: 6px;" v-model="editingProduct.extra_img_2" placeholder="URL imagen 3" />
+                    <div v-if="editingProduct.extra_img_2" class="has-text-centered" style="margin-top: 6px;">
+                      <img :src="editingProduct.extra_img_2" style="height: 60px; object-fit: contain; border-radius: 4px; border: 1px solid #e2e8f0;" />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="field">
@@ -1349,6 +1437,8 @@ export default {
         catalog_type: "sifrah",
         public_price: 0,
         visible_shared_store: true,
+        extra_img_1: "",
+        extra_img_2: "",
       },
       editingProduct: {
         code: "",
@@ -1369,6 +1459,8 @@ export default {
         savings_img: "",
         catalog_type: "both",
         visible_shared_store: true,
+        extra_img_1: "",
+        extra_img_2: "",
       },
       validationErrors: {
         type: "",
@@ -1852,6 +1944,14 @@ export default {
         const url = await lib.upload(file, file.name, "products");
         if (target === "edit") {
           this.editingProduct.img = url;
+        } else if (target === "edit_2") {
+          this.editingProduct.extra_img_1 = url;
+        } else if (target === "edit_3") {
+          this.editingProduct.extra_img_2 = url;
+        } else if (target === "new_2") {
+          this.newProduct.extra_img_1 = url;
+        } else if (target === "new_3") {
+          this.newProduct.extra_img_2 = url;
         } else if (target === "new_savings") {
           this.newProduct.savings_img = url;
         } else {
@@ -2738,6 +2838,8 @@ export default {
         savings_img: prod.savings_img || "",
         catalog_type: this.resolveCatalogType(prod),
         visible_shared_store: prod.visible_shared_store !== false,
+        extra_img_1: (Array.isArray(prod.images) && prod.images[1]) ? prod.images[1] : "",
+        extra_img_2: (Array.isArray(prod.images) && prod.images[2]) ? prod.images[2] : "",
       };
       this.showEditModal = true;
     },
@@ -2835,6 +2937,11 @@ export default {
             savings_img: this.newProduct.savings_img || "",
             catalog_type: this.newProduct.catalog_type || "sifrah",
             visible_shared_store: this.newProduct.visible_shared_store !== false,
+            images: [
+              this.newProduct.img,
+              this.newProduct.extra_img_1,
+              this.newProduct.extra_img_2,
+            ].filter(Boolean),
           },
         });
         Swal.fire({
@@ -2879,6 +2986,8 @@ export default {
         savings_img: "",
         catalog_type: "sifrah",
         visible_shared_store: true,
+        extra_img_1: "",
+        extra_img_2: "",
       };
       this.validationErrors = {}; // Clear validation errors
     },
@@ -2985,6 +3094,16 @@ export default {
           savings_description: this.editingProduct.savings_description || "",
           savings_img: this.editingProduct.savings_img || "",
           visible_shared_store: this.editingProduct.visible_shared_store !== false,
+          _images: [
+            this.editingProduct.img,
+            this.editingProduct.extra_img_1,
+            this.editingProduct.extra_img_2,
+          ].filter(Boolean),
+          images: [
+            this.editingProduct.img,
+            this.editingProduct.extra_img_1,
+            this.editingProduct.extra_img_2,
+          ].filter(Boolean),
         };
 
         await api.products.POST({
