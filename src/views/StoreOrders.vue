@@ -217,6 +217,15 @@
             <p><strong>Importe:</strong> S/ {{ Number(selected.amount || 0).toFixed(2) }}</p>
             <p><strong>Banco:</strong> {{ selected.bank || "-" }}</p>
             <p><strong>N° de operación:</strong> {{ selected.voucher_number || "-" }}</p>
+            <p>
+              <strong>Modalidad:</strong>
+              <span class="tag is-info is-light">
+                {{ selected.shipping_method === 'pickup' ? '🏪 Retiro en Tienda / PDE' : '🚚 Delivery a Domicilio' }}
+              </span>
+            </p>
+            <p v-if="selected.shipping_method === 'pickup'">
+              <strong>Punto de entrega:</strong> {{ selected.office_name || "Oficina asignada" }}
+            </p>
             <p><strong>Dirección:</strong> {{ selected.address || "-" }}</p>
             <img
               v-if="isImage(selected.voucher)"
