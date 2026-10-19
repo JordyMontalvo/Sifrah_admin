@@ -180,7 +180,7 @@
                       'delivery-delivered': row.delivered,
                       'delivery-pending': !row.delivered && isDeliveryEnabled(row),
                       'delivery-disabled': !isDeliveryEnabled(row),
-                      'is-clickable': isDeliveryEnabled(row),
+                      'is-clickable': isDeliveryEnabled(row) && !row.delivered,
                     }"
                     :title="deliveryTitle(row)"
                     @click="handleDeliveryBadgeClick(row)"
@@ -309,13 +309,6 @@ export default {
           condition: (item) => this.isDeliveryEnabled(item) && !item.delivered,
         },
         {
-          key: "delivery_uncheck",
-          label: "Marcar pendiente",
-          icon: "fas fa-undo",
-          class: "is-warning",
-          condition: (item) => this.isDeliveryEnabled(item) && item.delivered,
-        },
-        {
           key: "cancel",
           label: "Anular",
           icon: "fas fa-ban",
@@ -373,7 +366,7 @@ export default {
     },
     deliveryTitle(row) {
       if (!this.isDeliveryEnabled(row)) return "La entrega se habilita al aprobar el comprobante";
-      if (row && row.delivered) return "Clic para cambiar estado (Entregado)";
+      if (row && row.delivered) return "Productos entregados (estado definitivo)";
       return "Clic para marcar como entregado";
     },
     recordTabLabel(status) {
@@ -413,7 +406,7 @@ export default {
         });
         return;
       }
-      if (action === "delivery_check" || action === "delivery_uncheck") {
+      if (action === "delivery_check") {
         return this.handleDeliveryBadgeClick(item);
       }
       if (action === "approve") return this.changeStatus(item, "approve", "¿Aprobar esta compra?", "La compra quedó aprobada.");
@@ -422,6 +415,15 @@ export default {
     },
     async handleDeliveryBadgeClick(row) {
       if (!row) return;
+      if (row.delivered) {
+        Swal.fire({
+          title: "Pedido ya entregado",
+          text: "Este pedido ya fue entregado. Una vez confirmada la entrega, el estado es definitivo y no se puede revertir.",
+          icon: "info",
+          confirmButtonText: "Entendido",
+        });
+        return;
+      }
       if (!this.isDeliveryEnabled(row)) {
         Swal.fire({
           title: "Entrega no disponible",
@@ -433,19 +435,12 @@ export default {
       }
       if (row.savingDelivery) return;
 
-      const isDelivered = !!row.delivered;
-      const title = isDelivered ? "¿Revertir entrega?" : "¿Confirmar entrega?";
-      const text = isDelivered
-        ? "¿Deseas cambiar este pedido a pendiente de entrega?"
-        : "¿Confirmas que los productos de este pedido ya fueron entregados al comprador?";
-      const confirmButtonText = isDelivered ? "Sí, marcar pendiente" : "Sí, marcar entregado";
-
       const result = await Swal.fire({
-        title,
-        text,
+        title: "¿Confirmar entrega?",
+        text: "¿Confirmas que los productos de este pedido ya fueron entregados al comprador? Esta acción no se puede revertir.",
         icon: "question",
         showCancelButton: true,
-        confirmButtonText,
+        confirmButtonText: "Sí, marcar entregado",
         cancelButtonText: "Cancelar",
       });
 
@@ -453,19 +448,14 @@ export default {
 
       row.savingDelivery = true;
       try {
-        const action = isDelivered ? "uncheck" : "check";
-        const { data } = await api.Activations.POST({ action, id: row.id });
+        const { data } = await api.Activations.POST({ action: "check", id: row.id });
         if (data && data.error) {
           Swal.fire("Aviso", data.msg || "No se pudo actualizar el estado de entrega.", "warning");
           return;
         }
-        row.delivered = !isDelivered;
+        row.delivered = true;
         await this.load();
-        Swal.fire(
-          "Listo",
-          isDelivered ? "Pedido marcado como pendiente de entrega." : "Pedido marcado como entregado.",
-          "success"
-        );
+        Swal.fire("Listo", "Pedido marcado como entregado.", "success");
       } catch (error) {
         console.error("Error al actualizar estado de entrega:", error);
         Swal.fire("Error", "No se pudo actualizar el estado de entrega.", "error");
