@@ -135,7 +135,10 @@
                   <div v-if="isBank(row)" class="payment-step-container">
                     <span
                       v-if="purchaseStatus(row) === 'pending'"
-                      class="delivery-badge delivery-pending status-main-badge"
+                      class="delivery-badge delivery-pending status-main-badge is-clickable"
+                      style="cursor: pointer;"
+                      @click="handleItemAction({ action: 'validate_voucher', item: row })"
+                      title="Clic para validar comprobante"
                     >
                       <i class="fas fa-clock"></i>
                       Pendiente
@@ -177,8 +180,10 @@
                       'delivery-delivered': row.delivered,
                       'delivery-pending': !row.delivered && isDeliveryEnabled(row),
                       'delivery-disabled': !isDeliveryEnabled(row),
+                      'is-clickable': isDeliveryEnabled(row),
                     }"
                     :title="deliveryTitle(row)"
+                    @click="handleDeliveryBadgeClick(row)"
                   >
                     <i :class="row.delivered ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
                     {{ row.delivered ? "Entregado" : "Pendiente" }}
@@ -297,6 +302,20 @@ export default {
           },
         },
         {
+          key: "delivery_check",
+          label: "Marcar entregado",
+          icon: "fas fa-truck",
+          class: "is-success",
+          condition: (item) => this.isDeliveryEnabled(item) && !item.delivered,
+        },
+        {
+          key: "delivery_uncheck",
+          label: "Marcar pendiente",
+          icon: "fas fa-undo",
+          class: "is-warning",
+          condition: (item) => this.isDeliveryEnabled(item) && item.delivered,
+        },
+        {
           key: "cancel",
           label: "Anular",
           icon: "fas fa-ban",
@@ -354,8 +373,8 @@ export default {
     },
     deliveryTitle(row) {
       if (!this.isDeliveryEnabled(row)) return "La entrega se habilita al aprobar el comprobante";
-      if (row && row.delivered) return "Entregado";
-      return "Pendiente de entrega";
+      if (row && row.delivered) return "Clic para cambiar estado (Entregado)";
+      return "Clic para marcar como entregado";
     },
     recordTabLabel(status) {
       const labels = {
@@ -394,9 +413,65 @@ export default {
         });
         return;
       }
+      if (action === "delivery_check" || action === "delivery_uncheck") {
+        return this.handleDeliveryBadgeClick(item);
+      }
       if (action === "approve") return this.changeStatus(item, "approve", "¿Aprobar esta compra?", "La compra quedó aprobada.");
       if (action === "reject") return this.changeStatus(item, "reject", "¿Rechazar esta compra?", "La compra quedó rechazada.");
       if (action === "cancel") return this.changeStatus(item, "cancel", "¿Anular esta compra?", "La compra quedó anulada.");
+    },
+    async handleDeliveryBadgeClick(row) {
+      if (!row) return;
+      if (!this.isDeliveryEnabled(row)) {
+        Swal.fire({
+          title: "Entrega no disponible",
+          text: "La entrega solo se puede marcar cuando el comprobante de la compra ha sido confirmado/aprobado.",
+          icon: "info",
+          confirmButtonText: "Entendido",
+        });
+        return;
+      }
+      if (row.savingDelivery) return;
+
+      const isDelivered = !!row.delivered;
+      const title = isDelivered ? "¿Revertir entrega?" : "¿Confirmar entrega?";
+      const text = isDelivered
+        ? "¿Deseas cambiar este pedido a pendiente de entrega?"
+        : "¿Confirmas que los productos de este pedido ya fueron entregados al comprador?";
+      const confirmButtonText = isDelivered ? "Sí, marcar pendiente" : "Sí, marcar entregado";
+
+      const result = await Swal.fire({
+        title,
+        text,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText,
+        cancelButtonText: "Cancelar",
+      });
+
+      if (!result.isConfirmed) return;
+
+      row.savingDelivery = true;
+      try {
+        const action = isDelivered ? "uncheck" : "check";
+        const { data } = await api.Activations.POST({ action, id: row.id });
+        if (data && data.error) {
+          Swal.fire("Aviso", data.msg || "No se pudo actualizar el estado de entrega.", "warning");
+          return;
+        }
+        row.delivered = !isDelivered;
+        await this.load();
+        Swal.fire(
+          "Listo",
+          isDelivered ? "Pedido marcado como pendiente de entrega." : "Pedido marcado como entregado.",
+          "success"
+        );
+      } catch (error) {
+        console.error("Error al actualizar estado de entrega:", error);
+        Swal.fire("Error", "No se pudo actualizar el estado de entrega.", "error");
+      } finally {
+        row.savingDelivery = false;
+      }
     },
     async changeStatus(item, action, title, done) {
       const result = await Swal.fire({
@@ -633,6 +708,19 @@ export default {
   font-weight: 500;
   border: 1px solid transparent;
   box-sizing: border-box;
+}
+.delivery-badge.is-clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.delivery-badge.is-clickable:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+.delivery-badge.is-clickable:active {
+  transform: translateY(0);
 }
 .status-main-badge {
   min-width: 132px;
