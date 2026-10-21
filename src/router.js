@@ -41,6 +41,7 @@ import LegalDocuments from "./views/LegalDocuments.vue";
 import Popups from "./views/Popups.vue";
 import PopupWelcome from "./views/PopupWelcome.vue";
 import Audios from "./views/Audios.vue";
+import Broadcasts from "./views/Broadcasts.vue";
 import Books from "./views/Books.vue";
 import RankHistorySummary from "./views/RankHistorySummary.vue";
 import ValidacionVouchers from "./views/ValidacionVouchers.vue";
@@ -307,6 +308,11 @@ const routes = [
   {
     path: "/audios",
     component: Audios,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/audio-en-vivo",
+    component: Broadcasts,
     meta: { requiresAuth: true },
   },
   {

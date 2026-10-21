@@ -594,6 +594,12 @@
             </span>
             <span>Audio</span>
           </a>
+          <a class="menu-item" href="/audio-en-vivo" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-broadcast-tower"></i>
+            </span>
+            <span>Audio en vivo</span>
+          </a>
           <a class="menu-item" href="/books" @click="closeMenu">
             <span class="icon">
               <i class="fas fa-book"></i>

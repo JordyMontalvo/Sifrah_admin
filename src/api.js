@@ -534,6 +534,19 @@ class Audios {
     }
 }
 
+class Broadcasts {
+    GET() {
+        return axios.get(`/admin/broadcasts`);
+    }
+    // action: 'add' | 'edit' | 'delete' | 'setStatus'
+    POST({ action, id, status, data }) {
+        return axios.post(`/admin/broadcasts`, { action, id, status, data });
+    }
+    DELETE({ id }) {
+        return axios.delete(`/admin/broadcasts`, { data: { id } });
+    }
+}
+
 class AudioCategories {
     GET() {
         return axios.get(`/admin/audio-categories`);
@@ -746,6 +759,7 @@ export default new API({
     flyers: new Flyers(),
     materials: new Materials(),
     audios: new Audios(),
+    broadcasts: new Broadcasts(),
     audioCategories: new AudioCategories(),
     books: new Books(),
     bookCategories: new BookCategories(),
