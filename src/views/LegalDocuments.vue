@@ -79,7 +79,16 @@
           contenteditable="true"
           @paste="onPaste"
         ></div>
-        <p class="section-note">Última actualización: {{ updatedLabel }}</p>
+        <div class="legal-date">
+          <label for="legal-updated-at">Fecha de última actualización:</label>
+          <input
+            id="legal-updated-at"
+            type="date"
+            class="input legal-date-input"
+            v-model="docs[active].dateInput"
+          />
+          <span class="section-note">Se mostrará: {{ updatedLabel }}</span>
+        </div>
       </div>
 
       <Toast ref="toast" />
@@ -112,19 +121,18 @@ export default {
         { name: "Morado", value: "#7c3aed" },
       ],
       docs: {
-        terms: { html: "", updatedAt: null },
-        privacy: { html: "", updatedAt: null },
+        terms: { html: "", updatedAt: null, dateInput: "" },
+        privacy: { html: "", updatedAt: null, dateInput: "" },
       },
     };
   },
   computed: {
     updatedLabel() {
-      const value = this.docs[this.active] && this.docs[this.active].updatedAt;
-      if (!value) return "sin guardar";
-      const date = new Date(value);
-      if (isNaN(date.getTime())) return "sin guardar";
+      const value = this.docs[this.active] && this.docs[this.active].dateInput;
+      if (!value) return "hoy (fecha de guardado)";
+      const [y, m, d] = value.split("-").map(Number);
       const months = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-      return date.getDate() + " de " + months[date.getMonth()] + " de " + date.getFullYear();
+      return d + " de " + months[m - 1] + " de " + y;
     },
   },
   async mounted() {
@@ -141,6 +149,7 @@ export default {
           this.docs[key] = {
             html: doc.html || "",
             updatedAt: doc.updatedAt || null,
+            dateInput: this.toDateInput(doc.updatedAt),
           };
         });
         this.$nextTick(() => this.fillEditor());
@@ -150,6 +159,13 @@ export default {
         this.loading = false;
         this.$nextTick(() => this.fillEditor());
       }
+    },
+    toDateInput(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
     },
     fillEditor() {
       if (!this.$refs.editor) return;
@@ -198,6 +214,7 @@ export default {
         const res = await api.legal.POST({
           doc: this.active,
           html: this.docs[this.active].html,
+          updatedAt: this.docs[this.active].dateInput || "",
         });
         if (res.data && res.data.error) {
           this.$refs.toast.error(res.data.msg || "No se pudo guardar");
@@ -207,6 +224,7 @@ export default {
         if (saved) {
           this.docs[this.active].html = saved.html;
           this.docs[this.active].updatedAt = saved.updatedAt;
+          this.docs[this.active].dateInput = this.toDateInput(saved.updatedAt);
           this.fillEditor();
         }
         this.$refs.toast.success("Documento guardado");
@@ -366,6 +384,25 @@ export default {
 .legal-editor >>> p,
 .legal-editor >>> li {
   margin: 0 0 0.6rem;
+}
+.legal-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: #334155;
+}
+.legal-date label {
+  font-weight: 600;
+}
+.legal-date-input {
+  width: auto;
+  max-width: 180px;
+}
+.legal-date .section-note {
+  margin: 0;
 }
 .legal-loading {
   padding: 2rem 0;
