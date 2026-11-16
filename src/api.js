@@ -212,6 +212,16 @@ class StoreOrders {
     }
 }
 
+// Libro de Reclamaciones (solo lectura)
+class Complaints {
+    GET() {
+        return axios.get(`/admin/complaints`);
+    }
+    one(id) {
+        return axios.get(`/admin/complaints`, { params: { id } });
+    }
+}
+
 class Activations {
     GET({ filter, account, page = 1, limit = 20, search }) {
         const searchParam = search ? `&search=${search}` : "";
@@ -732,6 +742,7 @@ export default new API({
     OfficeCollects: new OfficeCollects(),
     Activations: new Activations(),
     storeOrders: new StoreOrders(),
+    complaints: new Complaints(),
     products: new Products(),
     kadex: new Kadex(),
     closeds: new Closeds(),

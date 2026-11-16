@@ -570,6 +570,12 @@
             </span>
             <span>Documentos legales</span>
           </a>
+          <a class="menu-item" href="/libro-de-reclamaciones" @click="closeMenu">
+            <span class="icon">
+              <i class="fas fa-book-open"></i>
+            </span>
+            <span>Libro de Reclamaciones</span>
+          </a>
           <a class="menu-item" href="/popups" @click="closeMenu">
             <span class="icon">
               <i class="fas fa-window-restore"></i>
