@@ -212,13 +212,17 @@ class StoreOrders {
     }
 }
 
-// Libro de Reclamaciones (solo lectura)
+// Libro de Reclamaciones
 class Complaints {
     GET() {
         return axios.get(`/admin/complaints`);
     }
     one(id) {
         return axios.get(`/admin/complaints`, { params: { id } });
+    }
+    // Cambia el estado y guarda la respuesta ({ id, status, response, notify })
+    update(payload) {
+        return axios.post(`/admin/complaints`, { action: "update", ...payload });
     }
 }
 
