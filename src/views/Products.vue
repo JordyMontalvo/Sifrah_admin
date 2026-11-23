@@ -429,6 +429,14 @@
             </div>
 
             <div class="field">
+              <label class="label">Puntos de reconsumo por promoción <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" type="number" min="1" step="1" v-model.number="newPromotion.promotion_required_points" placeholder="160" />
+              </div>
+              <p class="help">Puntos de reconsumo del ciclo que habilitan cada compra de esta promoción (por defecto 160). La afiliación del ciclo habilita 1 compra sin este mínimo.</p>
+            </div>
+
+            <div class="field">
               <label class="label">Imagen principal</label>
               <div class="control">
                 <div class="file has-name is-fullwidth">
@@ -514,6 +522,13 @@
                   <input class="input" type="number" min="1" step="1" v-model.number="editingPromotion.available_quantity" />
                 </div>
               </div>
+            </div>
+            <div class="field">
+              <label class="label">Puntos de reconsumo por promoción <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" type="number" min="1" step="1" v-model.number="editingPromotion.promotion_required_points" placeholder="160" />
+              </div>
+              <p class="help">Puntos de reconsumo del ciclo que habilitan cada compra de esta promoción (por defecto 160). La afiliación del ciclo habilita 1 compra sin este mínimo.</p>
             </div>
             <div class="field">
               <label class="label">Imagen principal</label>
@@ -1640,6 +1655,7 @@ export default {
         subdescription: "",
         price: 0,
         available_quantity: 1,
+        promotion_required_points: 160,
         img: "",
         is_savings_bonus: false,
         savings_price: 0,
@@ -1651,6 +1667,7 @@ export default {
         subdescription: "",
         price: 0,
         available_quantity: 1,
+        promotion_required_points: 160,
         img: "",
         is_savings_bonus: false,
         savings_price: 0,
@@ -1711,6 +1728,7 @@ export default {
         is_promotion: !!product.is_promotion,
         promotion_active: product.promotion_active !== false,
         available_quantity: Number(product.available_quantity) || 0,
+        promotion_required_points: Number(product.promotion_required_points) > 0 ? Number(product.promotion_required_points) : 160,
         visible_shared_store: product.visible_shared_store !== false,
         catalog_type: this.resolveCatalogType(product),
         raw: product,
@@ -1755,6 +1773,7 @@ export default {
         { key: "name", label: "Promoción", sortable: true },
         { key: "price", label: "Precio", sortable: true, type: "currency" },
         { key: "available_quantity", label: "Máx. / usuario", sortable: true, type: "number" },
+        { key: "promotion_required_points", label: "Pts. reconsumo", sortable: true, type: "number" },
         { key: "promotion_active", label: "En tienda", sortable: true, type: "boolean" },
         { key: "is_savings_bonus", label: "Bono Ahorro", sortable: true, type: "boolean" },
       ];
@@ -1890,6 +1909,7 @@ export default {
           is_promotion: this.isPromotionProduct({ raw: p }),
           promotion_active: p.promotion_active !== false,
           available_quantity: Number(p.available_quantity) || 0,
+          promotion_required_points: Number(p.promotion_required_points) > 0 ? Number(p.promotion_required_points) : 160,
           visible_shared_store: p.visible_shared_store !== false,
         }));
 
@@ -2079,6 +2099,10 @@ export default {
       if (!name || !price || !available_quantity || available_quantity < 1) {
         return Swal.fire("Error", "Completa nombre, precio y cantidad disponible", "error");
       }
+      const requiredPoints = this.validRequiredPoints(this.newPromotion.promotion_required_points);
+      if (!requiredPoints) {
+        return Swal.fire("Error", "Los puntos de reconsumo por promoción deben ser un número entero mayor a 0.", "error");
+      }
 
       this.loading = true;
       try {
@@ -2086,7 +2110,7 @@ export default {
           ? Number(this.newPromotion.savings_price) || Number(price)
           : 0;
 
-        await api.products.POST({
+        const { data: addResult } = await api.products.POST({
           action: "add",
           data: {
             code: this.generatePromotionCode(),
@@ -2103,6 +2127,7 @@ export default {
             is_promotion: true,
             promotion_active: true,
             available_quantity: Number(available_quantity),
+            promotion_required_points: requiredPoints,
             catalog_type: "promotion",
             is_savings_bonus: !!this.newPromotion.is_savings_bonus,
             savings_price: savingsPrice,
@@ -2110,6 +2135,9 @@ export default {
           },
         });
 
+        if (addResult && addResult.error) {
+          return Swal.fire("Error", addResult.msg || "No se pudo guardar", "error");
+        }
         Swal.fire({ icon: "success", title: "Promoción creada", timer: 1800, showConfirmButton: false });
         this.showAddPromotionModal = false;
         this.newPromotion = {
@@ -2118,6 +2146,7 @@ export default {
           subdescription: "",
           price: 0,
           available_quantity: 1,
+          promotion_required_points: 160,
           img: "",
           is_savings_bonus: false,
           savings_price: 0,
@@ -2131,6 +2160,12 @@ export default {
       }
     },
 
+    // Entero >= 1, o null si no es válido
+    validRequiredPoints(value) {
+      const n = Number(value);
+      return Number.isInteger(n) && n >= 1 && n <= 100000 ? n : null;
+    },
+
     editPromotionProduct(product) {
       const prod = this.allProducts.find((p) => p.id === product.id) || product;
       this.editingPromotion = {
@@ -2141,6 +2176,7 @@ export default {
         subdescription: prod.subdescription || "",
         price: prod.price || 0,
         available_quantity: Number(prod.available_quantity) || 1,
+        promotion_required_points: Number(prod.promotion_required_points) > 0 ? Number(prod.promotion_required_points) : 160,
         img: prod.img || "",
         is_savings_bonus: !!prod.is_savings_bonus,
         savings_price: Number(prod.savings_price) || Number(prod.price) || 0,
@@ -2158,10 +2194,14 @@ export default {
       if (!p.name || !p.price || !p.available_quantity) {
         return Swal.fire("Error", "Completa los campos obligatorios", "error");
       }
+      const requiredPoints = this.validRequiredPoints(p.promotion_required_points);
+      if (!requiredPoints) {
+        return Swal.fire("Error", "Los puntos de reconsumo por promoción deben ser un número entero mayor a 0.", "error");
+      }
 
       this.loading = true;
       try {
-        await api.products.POST({
+        const { data: editResult } = await api.products.POST({
           action: "edit",
           id: p.id,
           data: {
@@ -2179,6 +2219,7 @@ export default {
             is_promotion: true,
             promotion_active: p.promotion_active !== false,
             available_quantity: Number(p.available_quantity),
+            promotion_required_points: requiredPoints,
             catalog_type: "promotion",
             is_savings_bonus: !!p.is_savings_bonus,
             savings_price: p.is_savings_bonus ? Number(p.savings_price) || Number(p.price) : 0,
@@ -2186,6 +2227,9 @@ export default {
             savings_img: p.img || "",
           },
         });
+        if (editResult && editResult.error) {
+          return Swal.fire("Error", editResult.msg || "No se pudo actualizar la promoción", "error");
+        }
         Swal.fire({ icon: "success", title: "Promoción actualizada", timer: 1800, showConfirmButton: false });
         this.closeEditPromotionModal();
         await this.load();
