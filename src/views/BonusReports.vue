@@ -105,7 +105,7 @@
                   <tr v-for="(pcts, rank) in residualLogic" :key="rank">
                     <td><span :class="['rank-tag', rankClass(rank)]">{{ rank }}</span></td>
                     <td v-for="(p, idx) in pcts" :key="idx" :class="{ 'zero-pct': p === 0 }">
-                      {{ p > 0 ? (p*100).toFixed(0) + '%' : '-' }}
+                      {{ p > 0 ? formatPct(p) : '-' }}
                     </td>
                   </tr>
                 </tbody>
@@ -178,6 +178,9 @@ export default {
         "RUBÍ": [0.15, 0.15, 0.15, 0.15, 0.10, 0.05, 0.025, 0, 0],
         "ESMERALDA": [0.15, 0.15, 0.15, 0.15, 0.10, 0.05, 0.025, 0.025, 0.01],
         "DIAMANTE": [0.15, 0.15, 0.15, 0.15, 0.10, 0.075, 0.025, 0.025, 0.01],
+        "DOBLE DIAMANTE": [0.15, 0.15, 0.15, 0.15, 0.10, 0.075, 0.05, 0.025, 0.01],
+        "TRIPLE DIAMANTE": [0.15, 0.15, 0.15, 0.15, 0.10, 0.075, 0.05, 0.025, 0.025],
+        "DIAMANTE IMPERIAL": [0.15, 0.15, 0.15, 0.15, 0.10, 0.075, 0.05, 0.05, 0.025],
         "EMBAJADOR SIFRAH": [0.15, 0.15, 0.15, 0.15, 0.10, 0.075, 0.05, 0.05, 0.05],
       },
       rankRequirements: [
@@ -187,9 +190,9 @@ export default {
         { rank: 'RUBÍ', threshold: 7500, frontals: 4, vmp: 2100, reconsumo: 160 },
         { rank: 'ESMERALDA', threshold: 20000, frontals: 4, vmp: 5500, reconsumo: 160 },
         { rank: 'DIAMANTE', threshold: 45000, frontals: 4, vmp: 12000, reconsumo: 160 },
-        { rank: 'D. DIAMANTE', threshold: 85000, frontals: 5, vmp: 19000, reconsumo: 160 },
-        { rank: 'T. DIAMANTE', threshold: 170000, frontals: 5, vmp: 37500, reconsumo: 160 },
-        { rank: 'D. IMPERIAL', threshold: 300000, frontals: 6, vmp: 55000, reconsumo: 160 },
+        { rank: 'DOBLE DIAMANTE', threshold: 85000, frontals: 5, vmp: 19000, reconsumo: 160 },
+        { rank: 'TRIPLE DIAMANTE', threshold: 170000, frontals: 5, vmp: 37500, reconsumo: 160 },
+        { rank: 'DIAMANTE IMPERIAL', threshold: 300000, frontals: 6, vmp: 55000, reconsumo: 160 },
         { rank: 'EMBAJADOR SIFRAH', threshold: 600000, frontals: 6, vmp: 100000, reconsumo: 160 },
       ]
     }
@@ -197,7 +200,12 @@ export default {
   methods: {
     rankClass(rank) {
       if (!rank) return ''
-      return 'rank-' + rank.toLowerCase().replace(/ /g, '-')
+      const slug = rank.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '-')
+      return 'rank-' + slug
+    },
+    // 0.025 -> "2.5%", 0.15 -> "15%" (sin redondear a entero)
+    formatPct(p) {
+      return parseFloat((p * 100).toFixed(2)) + '%'
     }
   }
 }
@@ -380,6 +388,9 @@ export default {
 .rank-rubi { background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
 .rank-esmeralda { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
 .rank-diamante { background: #eff6ff; color: #1e40af; border: 1px solid #dbeafe; }
+.rank-doble-diamante { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+.rank-triple-diamante { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
+.rank-diamante-imperial { background: #f5f3ff; color: #5b21b6; border: 1px solid #ddd6fe; }
 .rank-embajador-sifrah { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #fff; }
 
 @media (max-width: 768px) {
